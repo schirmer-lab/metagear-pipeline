@@ -16,9 +16,9 @@ workflow QUALITY_CONTROL {
     main:
         // FastQC, quality trimming, adapter removal, and host decontamination
 
-		FASTQC_RAW ( validated_input )
+        FASTQC_RAW ( validated_input )
 
-		TRIMGALORE ( validated_input )
+        TRIMGALORE ( validated_input )
 
         // Fix fastq headers (enabled by default)
         if ( params.fix_fastq_header ) {
@@ -51,7 +51,7 @@ workflow QUALITY_CONTROL {
                             .mix(FASTQC_CLEAN.out.versions)
 
     emit:
-		fastqc_zip_pre = FASTQC_RAW.out.zip
+        fastqc_zip_pre = FASTQC_RAW.out.zip
         fastqc_zip_post = FASTQC_CLEAN.out.zip
         trimmed = TRIMGALORE.out.reads
         clean = KNEADDATA.out.reads
