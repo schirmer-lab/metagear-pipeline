@@ -1,10 +1,11 @@
 /* --- IMPORT LOCAL SUBWORKFLOWS --- */
 
 include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
+include { METAPHLAN_METAPHLAN } from "$projectDir/modules/local/metaphlan4.1/metaphlan/main"
 include { SUMMARY } from "$projectDir/subworkflows/local/common/summary"
 
 /* --- RUN MAIN WORKFLOW --- */
-workflow METAGEAR {
+workflow MICROBIAL_PROFILES {
 
     take:
         ch_input // channel: samplesheet read in from --input
@@ -14,9 +15,12 @@ workflow METAGEAR {
         ch_versions = Channel.empty()
         summary_data = Channel.empty()
 
-        INPUT_CHECK ( ch_input, "reads" )
+        // INPUT_CHECK ( ch_input, "reads" )
 
-        ch_versions = ch_versions.mix( INPUT_CHECK.out.versions.first() )
+        METAPHLAN_METAPHLAN ( ch_input, file(params.metaphlan_db) )
+
+        ch_versions = METAPHLAN_METAPHLAN.out.versions.first()
+
         SUMMARY ( ch_versions, summary_data )
 
     emit:

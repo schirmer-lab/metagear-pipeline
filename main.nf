@@ -13,33 +13,51 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { METAGEAR  } from './workflows/metagear'
-include { PIPELINE_INITIALISATION } from './subworkflows/local/utils_nfcore_metagear_pipeline'
-include { PIPELINE_COMPLETION     } from './subworkflows/local/utils_nfcore_metagear_pipeline'
+include { METAGEAR  } from "$projectDir/workflows/metagear"
+include { PIPELINE_INITIALISATION } from "$projectDir/subworkflows/local/utils_nfcore_metagear_pipeline"
+include { PIPELINE_COMPLETION } from "$projectDir/subworkflows/local/utils_nfcore_metagear_pipeline"
+
+include { MICROBIAL_PROFILES } from "$projectDir/subworkflows/local/microbiome/microbial_profiles"
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     NAMED WORKFLOWS FOR PIPELINE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-//
 // WORKFLOW: Run main analysis pipeline depending on type of input
-//
 workflow SCHIRMERLAB_METAGEAR {
 
     take:
-    samplesheet // channel: samplesheet read in from --input
+        samplesheet // channel: samplesheet read in from --input
 
     main:
 
-    //
-    // WORKFLOW: Run pipeline
-    //
-    METAGEAR (
-        samplesheet
-    )
+        ch_multiqc_report = Channel.empty()
+
+        if ( params.module != "" ) {
+
+        }
+        else if ( params.subworkflow != "" ) {
+
+            if ( params.subworkflow == "microbial_profiles" ) {
+                MICROBIAL_PROFILES ( samplesheet )
+                ch_multiqc_report = MICROBIAL_PROFILES.out.multiqc_report
+            }
+
+        }
+        else if( params.workflow != "" ) {
+
+        }
+        else{
+            // WORKFLOW: Run pipeline
+            METAGEAR ( samplesheet )
+            ch_multiqc_report = METAGEAR.out.multiqc_report
+        }
+
+
+
     emit:
-    multiqc_report = METAGEAR.out.multiqc_report // channel: /path/to/multiqc_report.html
+        multiqc_report = ch_multiqc_report // channel: /path/to/multiqc_report.html
 }
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -50,36 +68,36 @@ workflow SCHIRMERLAB_METAGEAR {
 workflow {
 
     main:
-    //
-    // SUBWORKFLOW: Run initialisation tasks
-    //
-    PIPELINE_INITIALISATION (
-        params.version,
-        params.validate_params,
-        params.monochrome_logs,
-        args,
-        params.outdir,
-        params.input
-    )
+        //
+        // SUBWORKFLOW: Run initialisation tasks
+        //
+        PIPELINE_INITIALISATION (
+            params.version,
+            params.validate_params,
+            params.monochrome_logs,
+            args,
+            params.outdir,
+            params.input
+        )
 
-    //
-    // WORKFLOW: Run main workflow
-    //
-    SCHIRMERLAB_METAGEAR (
-        PIPELINE_INITIALISATION.out.samplesheet
-    )
-    //
-    // SUBWORKFLOW: Run completion tasks
-    //
-    PIPELINE_COMPLETION (
-        params.email,
-        params.email_on_fail,
-        params.plaintext_email,
-        params.outdir,
-        params.monochrome_logs,
-        params.hook_url,
-        SCHIRMERLAB_METAGEAR.out.multiqc_report
-    )
+        //
+        // WORKFLOW: Run main workflow
+        //
+        SCHIRMERLAB_METAGEAR (
+            PIPELINE_INITIALISATION.out.samplesheet
+        )
+        //
+        // SUBWORKFLOW: Run completion tasks
+        //
+        PIPELINE_COMPLETION (
+            params.email,
+            params.email_on_fail,
+            params.plaintext_email,
+            params.outdir,
+            params.monochrome_logs,
+            params.hook_url,
+            SCHIRMERLAB_METAGEAR.out.multiqc_report
+        )
 }
 
 /*
