@@ -12,10 +12,11 @@ process METAPHLAN_METAPHLAN {
     path metaphlan_db_latest
 
     output:
-    tuple val(meta), path("*_profile.txt")   ,                emit: profile
-    tuple val(meta), path("*.biom")          ,                emit: biom
+    tuple val(meta), path("*_microbial_profile.txt"), emit: microbial_profile
+    tuple val(meta), path("*_viral_profile.txt"), optional: true, emit:viral_profile
+    tuple val(meta), path("*.biom"), emit: biom
     tuple val(meta), path('*.bowtie2out.txt'), optional:true, emit: bt2out
-    path "versions.yml"                      ,                emit: versions
+    path "versions.yml", emit: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -45,6 +46,45 @@ process METAPHLAN_METAPHLAN {
         --index \$BT2_DB_INDEX \\
         --biom ${prefix}.biom \\
         --output_file ${prefix}_microbial_profile.txt
+
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        metaphlan: \$(metaphlan --version 2>&1 | awk '{print \$3}')
+    END_VERSIONS
+    """
+}
+
+process METAPHLAN_MERGE_PROFILES {
+    tag "$meta.id"
+    label 'process_medium'
+
+    conda "${moduleDir}/environment.yml"
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/metaphlan:4.1.1--pyhdfd78af_0' :
+        'biocontainers/metaphlan:4.1.1--pyhdfd78af_0' }"
+
+    input:
+        tuple val(meta), path(profiles)
+
+    output:
+        tuple val(meta), path("merged_*_profiles.txt") , emit: merged_profiles
+        path "versions.yml" , emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def args = task.ext.args ?: ''
+    def prefix = task.ext.prefix ?: "${meta.id}"
+
+    """
+    if [ "$prefix" = "microbial" ]; then
+        merge_metaphlan_tables.py $profiles > merged_microbial_profiles.txt
+    fi
+
+    if [ "$prefix" = "viral" ]; then
+        merge_vsc_tables.py $profiles > merged_viral_profiles.txt
+    fi
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
