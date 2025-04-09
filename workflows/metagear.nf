@@ -14,9 +14,9 @@ workflow METAGEAR {
         ch_versions = Channel.empty()
         summary_data = Channel.empty()
 
-        INPUT_CHECK ( ch_input, "reads" )
+        // INPUT_CHECK ( ch_input, "reads" )
 
-        ch_versions = ch_versions.mix( INPUT_CHECK.out.versions.first() )
+        // ch_versions = ch_versions.mix( INPUT_CHECK.out.versions.first() )
         SUMMARY ( ch_versions, summary_data )
 
     emit:
