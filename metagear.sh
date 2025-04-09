@@ -56,3 +56,5 @@ all_files=( "${config_files[@]}" "${additional_files[@]}" )
 # mkdir -p $RESULTS_DIR $WORK_DIR && cd $WORK_DIR
 
 # clear && nextflow $REPO/main.nf -c $REPO/metagear_run.config -profile singularity,singularity_schirmer -resume -w $WORK_DIR
+
+# nextflow $REPO/main.nf -c $REPO/metagear_run.config -profile singularity,singularity_schirmer -resume -w $WORK_DIR
