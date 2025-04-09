@@ -17,8 +17,8 @@ declare -A profiles_map  # For profile blocks inside the profiles section
 # Process files in the order provided.
 for file in "$@"; do
     if [ ! -f "$file" ]; then
-       echo "Error: file '$file' not found." >&2
-       exit 1
+        echo "Error: file '$file' not found." >&2
+        exit 1
     fi
 
     # current_section will be either "params", "process", or "profiles"

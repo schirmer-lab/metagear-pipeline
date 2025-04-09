@@ -23,5 +23,3 @@ workflow METAGEAR {
         multiqc_report = SUMMARY.out.multiqc_report
 
 }
-
-/* --- END --- */
