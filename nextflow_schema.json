@@ -40,6 +40,34 @@
                     "type": "string",
                     "description": "MultiQC report title. Printed as page header, used for filename if not otherwise specified.",
                     "fa_icon": "fas fa-file-signature"
+                },
+                "module": {
+                    "type": "string",
+                    "description": "Module for laucher workflow (module)."
+                },
+                "subworkflow": {
+                    "type": "string",
+                    "description": "Process for laucher workflow (subworkflow)."
+                },
+                "workflow": {
+                    "type": "string",
+                    "description": "Entry point (workflow)."
+                },
+                "dereplication": {
+                    "type": "boolean",
+                    "description": "Perform dereplication or asseblies"
+                },
+                "kneaddata_refdb": {
+                    "type": "array",
+                    "description": "Database(s) to use for KneadData."
+                },
+                "metaphlan_db": {
+                    "type": "string",
+                    "description": "Database to use for MetaPhlAn."
+                },
+                "fix_fastq_header": {
+                    "type": "boolean",
+                    "description": "Fix fastq header."
                 }
             }
         },

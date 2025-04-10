@@ -12,6 +12,7 @@ workflow INPUT_CHECK {
         csv_channel = SAMPLESHEET_CHECK ( samplesheet, input_type ).csv.splitCsv ( header:true, sep:',' )
 
         csv_channel.map { create_input_channel(it, input_type) }
+
                     .filter{ !it[0].id.startsWith("#") } // Filter out lines starting with '#'
                     .flatMap { it ->
                             def tuples = [ [it[0], 0, it[1]] ]
@@ -32,7 +33,6 @@ workflow INPUT_CHECK {
             .map{ it ->
                     def indexes = it[1]
                     def reads = it[2]
-                    // reorder the `reads` array based on the `indexes` array, where each element in `indexes` corresponds to the desired position of the element in `reads`
                     ordered_reads = []
 
                     for (int i = 0; i < indexes.size(); i++) {
@@ -48,7 +48,7 @@ workflow INPUT_CHECK {
             .set { validated_input }
 
     emit:
-        validated_input  // channel: [ val(meta), [ etc ] ]
+        validated_input = validated_input  // channel: [ val(meta), [ etc ] ]
         versions = SAMPLESHEET_CHECK.out.versions.mix(RENAME_FILES.out.versions) // channel: [ versions.yml ]
 }
 
