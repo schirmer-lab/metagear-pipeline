@@ -11,7 +11,7 @@ workflow SETUP {
         ch_versions = Channel.empty()
         summary_data = Channel.empty()
 
-        DATABASES ()
+        DATABASES ( )
 
         SUMMARY ( ch_versions, summary_data )
 
