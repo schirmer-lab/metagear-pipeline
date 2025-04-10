@@ -45,16 +45,4 @@ all_files=( "${config_files[@]}" "${additional_files[@]}" )
 ./metagear_configure.sh ${all_files[@]}
 
 
-
-# export REPO=/nfs/arxiv/emilio/github/metagear-pipeline
-# export NXF_SINGULARITY_CACHEDIR=/nfs/data/database/singularity
-
-# INPUT_FILE=/nfs/data/projects/Core_Pipelines/configurations/input/kch_pilot/clean_for_metaphlan.csv
-# RESULTS_DIR=/nfs/arxiv/emilio/results/metagear
-# WORK_DIR=/nfs/arxiv/emilio/nf_work/metagear
-
-# mkdir -p $RESULTS_DIR $WORK_DIR && cd $WORK_DIR
-
-# clear && nextflow $REPO/main.nf -c $REPO/metagear_run.config -profile singularity,singularity_schirmer -resume -w $WORK_DIR
-
-# nextflow $REPO/main.nf -c $REPO/metagear_run.config -profile singularity,singularity_schirmer -resume -w $WORK_DIR
+# Run nextflow here... TODO
