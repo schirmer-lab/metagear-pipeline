@@ -88,3 +88,35 @@ process HUMANN_MERGE_PROFILES {
     END_VERSIONS
     """
 }
+
+process HUMANN_DATABASES {
+    tag "$database"
+    label 'process_medium'
+
+    conda "bioconda::humann"
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/humann:3.9--py312hdfd78af_0' :
+        'biocontainers/humann:3.9--py312hdfd78af_0' }"
+
+    input:
+        tuple val(database), val(build)
+
+    output:
+        tuple val(database), path("humann_*/$database"), emit: database
+        path "versions.yml", emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def args = task.ext.args ?: ''
+
+    """
+    humann_databases --download $database $build ./humann_$database $args
+
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        humann3: \$(humann --version 2>&1 | grep 'v3' | cut -d' ' -f2)
+    END_VERSIONS
+    """
+}

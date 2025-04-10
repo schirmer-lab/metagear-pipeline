@@ -8,7 +8,7 @@ config=""
 
 # Support vairables
 script_dir="$(cd "$(dirname "$0")" && pwd)"
-calling_dir="$PWD"
+launch_dir="$PWD"
 
 # Parse the single command-line argument.
 # Only one of these is expected.
@@ -34,7 +34,7 @@ for arg in "$@"; do
 done
 
 # Write the structure with the provided value into params.txt
-cat <<EOF > $calling_dir/metagear_run.config
+cat <<EOF > $launch_dir/metagear_entrypoint.config
 params {
     module = "$module"
     subworkflow = "$subworkflow"
@@ -42,13 +42,27 @@ params {
 }
 EOF
 
-additional_files=(  $script_dir/conf/metagear/$config $script_dir/metagear.config $calling_dir/metagear_user.config $calling_dir/metagear_run.config )
-config_files=( $script_dir/conf/metagear/*.config )
-all_files=( "${config_files[@]}" "${additional_files[@]}" )
+# Create user config file if it does not exist
+if [ ! -f "$launch_dir/metagear_user.config" ]; then
+    cp $script_dir/metagear.config $launch_dir/metagear_user.config
+    echo ""
+    echo "Configuration file was not found. New file is created.."
+    echo "Please edit this file before continuing: $launch_dir/metagear_user.config"
+    echo ""
+    exit 0
+fi
 
-./metagear_configure.sh ${all_files[@]}
 
-$more_args=""
+if [ ! -f "$launch_dir/metagear_run.config" ]; then
+    additional_files=(  $script_dir/conf/metagear/$config $script_dir/metagear.config $launch_dir/metagear_user.config $launch_dir/metagear_entrypoint.config )
+    config_files=( $script_dir/conf/metagear/*.config )
+    all_files=( "${config_files[@]}" "${additional_files[@]}" )
+    $script_dir/metagear_configure.sh ${all_files[@]}
+fi
+
+
+
+more_args=""
 # Dummy input if workflow is setup
 if [[ "$workflow" == "setup" ]]; then
     temp_file=$(mktemp)
@@ -56,5 +70,10 @@ if [[ "$workflow" == "setup" ]]; then
     more_args="--input=$temp_file"
 fi
 
+if [ ! -f "$launch_dir/metagear_run.sh" ]; then
+    $script_dir/metagear_initialize.sh $launch_dir $script_dir
+fi
 
-nextflow run $script_dir/main.nf -c $calling_dir/metagear_run.config -profile docker $more_args
+echo "Starting Nextflow pipeline..."
+$launch_dir/metagear_run.sh $more_args -resume
+
