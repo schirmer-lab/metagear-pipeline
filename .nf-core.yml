@@ -1,45 +1,45 @@
 bump_version: null
 lint:
   files_exist:
-  - conf/igenomes.config
-  - conf/igenomes_ignored.config
-  - conf/igenomes.config
-  - conf/igenomes_ignored.config
-  - CODE_OF_CONDUCT.md
-  - assets/nf-core-metagear_logo_light.png
-  - docs/images/nf-core-metagear_logo_light.png
-  - docs/images/nf-core-metagear_logo_dark.png
-  - .github/ISSUE_TEMPLATE/config.yml
-  - .github/workflows/awstest.yml
-  - .github/workflows/awsfulltest.yml
+    - conf/igenomes.config
+    - conf/igenomes_ignored.config
+    - conf/igenomes.config
+    - conf/igenomes_ignored.config
+    - CODE_OF_CONDUCT.md
+    - assets/nf-core-metagear_logo_light.png
+    - docs/images/nf-core-metagear_logo_light.png
+    - docs/images/nf-core-metagear_logo_dark.png
+    - .github/ISSUE_TEMPLATE/config.yml
+    - .github/workflows/awstest.yml
+    - .github/workflows/awsfulltest.yml
   files_unchanged:
-  - CODE_OF_CONDUCT.md
-  - assets/nf-core-metagear_logo_light.png
-  - docs/images/nf-core-metagear_logo_light.png
-  - docs/images/nf-core-metagear_logo_dark.png
-  - .github/ISSUE_TEMPLATE/bug_report.yml
+    - CODE_OF_CONDUCT.md
+    - assets/nf-core-metagear_logo_light.png
+    - docs/images/nf-core-metagear_logo_light.png
+    - docs/images/nf-core-metagear_logo_dark.png
+    - .github/ISSUE_TEMPLATE/bug_report.yml
   multiqc_config:
-  - report_comment
+    - report_comment
   nextflow_config:
-  - manifest.name
-  - manifest.homePage
-  - validation.help.beforeText
-  - validation.help.afterText
-  - validation.summary.beforeText
-  - validation.summary.afterText
+    - manifest.name
+    - manifest.homePage
+    - validation.help.beforeText
+    - validation.help.afterText
+    - validation.summary.beforeText
+    - validation.summary.afterText
 nf_core_version: 3.0.2
 org_path: null
 repository_type: pipeline
 template:
   author: Shen Jin, Emilio Rios, Svenja Schorlemmer
-  description: 'MetaGEAR Pipeline: Gene centric approach'
-  force: true
+  description: "MetaGEAR Pipeline: Gene centric approach"
+  force: false
   is_nfcore: false
   name: metagear
   org: schirmer-lab
   outdir: .
   skip_features:
-  - igenomes
-  - fastqc
+    - igenomes
+    - fastqc
   version: 1.0.0dev
 update: null
