@@ -33,7 +33,7 @@ repository_type: pipeline
 template:
   author: Shen Jin, Emilio Rios, Svenja Schorlemmer
   description: "MetaGEAR Pipeline: Gene centric approach"
-  force: true
+  force: false
   is_nfcore: false
   name: metagear
   org: schirmer-lab
