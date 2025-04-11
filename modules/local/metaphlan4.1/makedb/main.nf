@@ -7,8 +7,8 @@ process METAPHLAN_MAKEDB {
         'biocontainers/metaphlan:4.1.1--pyhdfd78af_0' }"
 
     output:
-    path "metaphlan_db_latest"      , emit: db
-    path "versions.yml"         , emit: versions
+    tuple val("metaphlan"), path("metaphlan_db_latest"), emit: database
+    path "versions.yml", emit: versions
 
     when:
     task.ext.when == null || task.ext.when

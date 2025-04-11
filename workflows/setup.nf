@@ -1,18 +1,17 @@
-/* --- IMPORT LOCAL SUBWORKFLOWS --- */
+/* --- IMPORTS --- */
 
-include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
+include { DATABASES } from "$projectDir/subworkflows/local/setup/databases"
 include { SUMMARY } from "$projectDir/subworkflows/local/common/summary"
 
-/* --- RUN MAIN WORKFLOW --- */
-workflow METAGEAR {
-
-    take:
-        ch_input // channel: samplesheet read in from --input
+/* --- MAIN WORKFLOW --- */
+workflow SETUP {
 
     main:
 
         ch_versions = Channel.empty()
         summary_data = Channel.empty()
+
+        DATABASES ( )
 
         SUMMARY ( ch_versions, summary_data )
 

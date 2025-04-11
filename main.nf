@@ -14,6 +14,7 @@
 */
 
 include { METAGEAR  } from "$projectDir/workflows/metagear"
+include { SETUP  } from "$projectDir/workflows/setup"
 include { PIPELINE_INITIALISATION } from "$projectDir/subworkflows/local/utils_nfcore_metagear_pipeline"
 include { PIPELINE_COMPLETION } from "$projectDir/subworkflows/local/utils_nfcore_metagear_pipeline"
 
@@ -46,7 +47,10 @@ workflow SCHIRMERLAB_METAGEAR {
 
         }
         else if( params.workflow != "" ) {
-
+            if ( params.workflow == "setup" ) {
+                SETUP ( )
+                // ch_multiqc_report = MICROBIAL_PROFILES.out.multiqc_report
+            }
         }
         else{
             // WORKFLOW: Run pipeline
