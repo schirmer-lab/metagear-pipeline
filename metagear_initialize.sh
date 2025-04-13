@@ -8,7 +8,7 @@ pipeline_direcory=$2
 default_singularity_cache_dir="./nfx_singularity_cache"
 default_results_dir="./results"
 default_work_dir="./nf_work"
-default_profile="docker,test"
+default_profile="docker,docker_custom"
 
 resolve_path() {
     local dir="$1"

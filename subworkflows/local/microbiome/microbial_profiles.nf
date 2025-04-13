@@ -10,18 +10,42 @@ include { HUMANN_FUNCTION; HUMANN_MERGE_PROFILES } from "$projectDir/modules/loc
 
 include { SUMMARY } from "$projectDir/subworkflows/local/common/summary"
 
-/* --- RUN MAIN WORKFLOW --- */
+/* --- INITIALIZATION FOR STANDALONE RUN --- */
+workflow MICROBIAL_PROFILES_INIT {
+
+    main:
+
+        if ( params.input ) { ch_input = file(params.input) } else { exit 1, 'Input samplesheet not specified!' }
+
+        INPUT_CHECK ( file(params.input), "reads" )
+        ch_versions = ch_versions.mix(INPUT_CHECK.out.versions)
+
+        metaphlan_db = Channel.fromPath("${params.metaphlan_db}", checkIfExists: true).first()
+        uniref90_db = Channel.fromPath("${params.humann3_uniref90}", checkIfExists: true).first()
+        chocoplhan_db = Channel.fromPath("${params.humann3_nucleo}", checkIfExists: true).first()
+
+    emit:
+        validated_input = INPUT_CHECK.out.validated_input
+        metaphlan_db
+        uniref90_db
+        chocoplhan_db
+        ch_versions
+}
+
+/* --- MAIN WORKFLOW --- */
 workflow MICROBIAL_PROFILES {
 
     take:
-        ch_input // channel: samplesheet read in from --input
+        validated_input // channel: validated_input from INPUT_CHECK or Upstream workflow
+        metaphlan_db
+        humann3_uniref90_db
+        humann3_chocoplhan_db
 
     main:
 
         ch_versions = Channel.empty()
-        summary_data = Channel.empty()
 
-        METAPHLAN_METAPHLAN ( ch_input, file(params.metaphlan_db) )
+        METAPHLAN_METAPHLAN ( validated_input, metaphlan_db )
 
         ch_all_microbial_profiles = METAPHLAN_METAPHLAN.out.microbial_profile
                                     .map { [ [id: 'microbial'], it[1] ] }
@@ -29,9 +53,9 @@ workflow MICROBIAL_PROFILES {
 
         METAPHLAN_MERGE_PROFILES( ch_all_microbial_profiles )
 
-        ch_reads_profiles = ch_input.join (METAPHLAN_METAPHLAN.out.microbial_profile, by: 0)
+        ch_reads_profiles = validated_input.join (METAPHLAN_METAPHLAN.out.microbial_profile, by: 0)
 
-        HUMANN_FUNCTION ( ch_reads_profiles, file(params.humann3_uniref90), file(params.humann3_nucleo) )
+        HUMANN_FUNCTION ( ch_reads_profiles, humann3_uniref90_db, humann3_chocoplhan_db )
 
         ch_all_gene_families = HUMANN_FUNCTION.out.gene_family
                                 .map { [ [id: 'gene_families'], it[1] ] }
@@ -47,9 +71,7 @@ workflow MICROBIAL_PROFILES {
                         .mix( METAPHLAN_MERGE_PROFILES.out.versions.first() )
                         .mix( HUMANN_FUNCTION.out.versions.first() )
 
-        SUMMARY ( ch_versions, summary_data )
-
     emit:
-        multiqc_report = SUMMARY.out.multiqc_report
+        ch_versions
 
 }

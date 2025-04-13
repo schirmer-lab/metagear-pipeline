@@ -1,22 +1,49 @@
 /* --- IMPORT LOCAL SUBWORKFLOWS --- */
 
+include { SETUP } from "$projectDir/workflows/setup"
+
 include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
-include { SUMMARY } from "$projectDir/subworkflows/local/common/summary"
+
+include { QUALITY_CONTROL_INIT; QUALITY_CONTROL } from "$projectDir/subworkflows/local/common/quality_control"
+include { MICROBIAL_PROFILES_INIT; MICROBIAL_PROFILES  } from "$projectDir/subworkflows/local/microbiome/microbial_profiles"
+
 
 /* --- RUN MAIN WORKFLOW --- */
 workflow METAGEAR {
 
-    take:
-        ch_input // channel: samplesheet read in from --input
-
     main:
 
         ch_versions = Channel.empty()
-        summary_data = Channel.empty()
+        ch_summary_data = Channel.empty()
 
-        SUMMARY ( ch_versions, summary_data )
+        if (params.workflow == null || params.workflow.trim().isEmpty()) {
+            INPUT_CHECK ( file(params.input), "reads" )
+        }
+
+        // Setup handler
+        if ( params.workflow == "setup" ) {
+            SETUP ( )
+            ch_versions = SETUP.out.versions
+        }
+
+        // Quality Control handler
+        if ( params.workflow.startsWith("qc_") ) {
+            init = QUALITY_CONTROL_INIT ( ).out
+            QUALITY_CONTROL ( init.validated_input, init.kneaddata_refdb )
+            ch_versions = QUALITY_CONTROL.out.versions
+        }
+
+        // Microbial profiles
+        if ( params.workflow == "microbial_profiles" ) {
+            init = MICROBIAL_PROFILES_INIT ( ).out
+            MICROBIAL_PROFILES ( init.validated_input, init.metaphlan_db, init.uniref90_db, init.chocoplhan_db )
+            ch_versions = MICROBIAL_PROFILES.out.versions
+        }
+
+
 
     emit:
-        multiqc_report = SUMMARY.out.multiqc_report
+        versions = ch_versions
+        summary_data = ch_summary_data
 
 }

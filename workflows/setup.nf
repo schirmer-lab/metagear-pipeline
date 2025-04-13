@@ -1,6 +1,6 @@
 /* --- IMPORTS --- */
 
-include { DATABASES } from "$projectDir/subworkflows/local/setup/databases"
+include { DATABASES; DATABASES_INIT } from "$projectDir/subworkflows/local/setup/databases"
 include { SUMMARY } from "$projectDir/subworkflows/local/common/summary"
 
 /* --- MAIN WORKFLOW --- */
@@ -11,11 +11,12 @@ workflow SETUP {
         ch_versions = Channel.empty()
         summary_data = Channel.empty()
 
-        DATABASES ( )
+        init = DATABASES_INIT ( ).out
+        DATABASES ( init.kneaddata_databases, init.humann_databases, init.database_destinations )
 
-        SUMMARY ( ch_versions, summary_data )
+        ch_versions = DATABASES.out.versions
 
     emit:
-        multiqc_report = SUMMARY.out.multiqc_report
+        ch_versions
 
 }
