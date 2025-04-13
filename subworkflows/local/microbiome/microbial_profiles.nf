@@ -18,7 +18,7 @@ workflow MICROBIAL_PROFILES_INIT {
         if ( params.input ) { ch_input = file(params.input) } else { exit 1, 'Input samplesheet not specified!' }
 
         INPUT_CHECK ( file(params.input), "reads" )
-        ch_versions = ch_versions.mix(INPUT_CHECK.out.versions)
+        ch_versions = INPUT_CHECK.out.versions.first()
 
         metaphlan_db = Channel.fromPath("${params.metaphlan_db}", checkIfExists: true).first()
         uniref90_db = Channel.fromPath("${params.humann3_uniref90}", checkIfExists: true).first()
@@ -29,7 +29,7 @@ workflow MICROBIAL_PROFILES_INIT {
         metaphlan_db
         uniref90_db
         chocoplhan_db
-        ch_versions
+        versions = ch_versions
 }
 
 /* --- MAIN WORKFLOW --- */
@@ -72,6 +72,6 @@ workflow MICROBIAL_PROFILES {
                         .mix( HUMANN_FUNCTION.out.versions.first() )
 
     emit:
-        ch_versions
+        versions = ch_versions
 
 }

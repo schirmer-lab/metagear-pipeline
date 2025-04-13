@@ -35,7 +35,8 @@ workflow METAGEAR {
 
         // Microbial profiles
         if ( params.workflow == "microbial_profiles" ) {
-            init = MICROBIAL_PROFILES_INIT ( ).out
+            MICROBIAL_PROFILES_INIT ( )
+            init = MICROBIAL_PROFILES_INIT.out
             MICROBIAL_PROFILES ( init.validated_input, init.metaphlan_db, init.uniref90_db, init.chocoplhan_db )
             ch_versions = MICROBIAL_PROFILES.out.versions
         }
