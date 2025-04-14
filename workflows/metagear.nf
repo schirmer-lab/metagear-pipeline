@@ -28,15 +28,18 @@ workflow METAGEAR {
 
         // Quality Control handler
         if ( params.workflow.startsWith("qc_") ) {
-            init = QUALITY_CONTROL_INIT ( ).out
+            init = QUALITY_CONTROL_INIT ( )
             QUALITY_CONTROL ( init.validated_input, init.kneaddata_refdb )
             ch_versions = QUALITY_CONTROL.out.versions
+            
+            ch_summary_data = QUALITY_CONTROL.out.fastqc_zip_pre.collect{it[1]}.ifEmpty([])
+                    .mix(QUALITY_CONTROL.out.fastqc_zip_post.collect{it[1]}.ifEmpty([]))
+                    .mix(QUALITY_CONTROL.out.summary_plot.collect{it}.ifEmpty([]))
         }
 
         // Microbial profiles
         if ( params.workflow == "microbial_profiles" ) {
-            MICROBIAL_PROFILES_INIT ( )
-            init = MICROBIAL_PROFILES_INIT.out
+            init = MICROBIAL_PROFILES_INIT ( )
             MICROBIAL_PROFILES ( init.validated_input, init.metaphlan_db, init.uniref90_db, init.chocoplhan_db )
             ch_versions = MICROBIAL_PROFILES.out.versions
         }

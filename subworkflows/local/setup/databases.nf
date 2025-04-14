@@ -38,23 +38,21 @@ workflow DATABASES {
     main:
         ch_versions = Channel.empty()
 
-        KNEADDATA_DATABASE( ch_kneaddata_databases )
+        kneaddata = KNEADDATA_DATABASE( ch_kneaddata_databases )
+        metaphlan = METAPHLAN_MAKEDB ( )
+        humann = HUMANN_DATABASES ( ch_humann_databases )
 
-        METAPHLAN_MAKEDB ( )
-
-        HUMANN_DATABASES ( ch_humann_databases )
-
-        ch_databases_data = METAPHLAN_MAKEDB.out.database.concat( HUMANN_DATABASES.out.database )
-                                            .concat( KNEADDATA_DATABASE.out.database )
+        ch_databases_data = metaphlan.database.concat( humann.database )
+                                            .concat( kneaddata.database )
 
         ch_databases_data_and_destination = ch_databases_data.join( ch_database_destinations, by: 0 )
                                                 .map { [ [id: it[0]], it[1], it[2] ] }
 
         EXPORT_DATABASES ( ch_databases_data_and_destination )
 
-        ch_versions = KNEADDATA_DATABASE.out.versions.first()
-                        .mix( METAPHLAN_MAKEDB.out.versions.first() )
-                        .mix( HUMANN_DATABASES.out.versions.first() )
+        ch_versions = kneaddata.versions.first()
+                        .mix( metaphlan.versions.first() )
+                        .mix( humann.versions.first() )
                         .mix( EXPORT_DATABASES.out.versions.first() )
 
     emit:

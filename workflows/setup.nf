@@ -8,15 +8,12 @@ workflow SETUP {
 
     main:
 
-        ch_versions = Channel.empty()
-        summary_data = Channel.empty()
-
-        init = DATABASES_INIT ( ).out
+        init = DATABASES_INIT ( )
         DATABASES ( init.kneaddata_databases, init.humann_databases, init.database_destinations )
 
         ch_versions = DATABASES.out.versions
 
     emit:
-        ch_versions
+        versions = ch_versions
 
 }
