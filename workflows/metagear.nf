@@ -31,7 +31,7 @@ workflow METAGEAR {
             init = QUALITY_CONTROL_INIT ( )
             QUALITY_CONTROL ( init.validated_input, init.kneaddata_refdb )
             ch_versions = QUALITY_CONTROL.out.versions
-            
+
             ch_summary_data = QUALITY_CONTROL.out.fastqc_zip_pre.collect{it[1]}.ifEmpty([])
                     .mix(QUALITY_CONTROL.out.fastqc_zip_post.collect{it[1]}.ifEmpty([]))
                     .mix(QUALITY_CONTROL.out.summary_plot.collect{it}.ifEmpty([]))

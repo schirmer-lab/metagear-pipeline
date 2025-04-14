@@ -47,7 +47,7 @@ workflow SUMMARY {
         ch_multiqc_files = Channel.empty()
         ch_multiqc_files = ch_multiqc_files.mix(ch_collated_versions)
 
-        ch_multiqc_files = ch_multiqc_files.mix( ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml') )       
+        ch_multiqc_files = ch_multiqc_files.mix( ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml') )
         ch_multiqc_files = ch_multiqc_files.mix( ch_methods_description.collectFile( name: 'methods_description_mqc.yaml', sort: true ) )
         ch_multiqc_files = ch_multiqc_files.mix( ch_summary_data.collect() )
 
