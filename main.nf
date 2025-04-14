@@ -14,11 +14,9 @@
 */
 
 include { METAGEAR  } from "$projectDir/workflows/metagear"
-include { SETUP  } from "$projectDir/workflows/setup"
 include { PIPELINE_INITIALISATION } from "$projectDir/subworkflows/local/utils_nfcore_metagear_pipeline"
 include { PIPELINE_COMPLETION } from "$projectDir/subworkflows/local/utils_nfcore_metagear_pipeline"
-
-include { MICROBIAL_PROFILES } from "$projectDir/subworkflows/local/microbiome/microbial_profiles"
+include { SUMMARY } from "$projectDir/subworkflows/local/common/summary"
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     NAMED WORKFLOWS FOR PIPELINE
@@ -26,42 +24,15 @@ include { MICROBIAL_PROFILES } from "$projectDir/subworkflows/local/microbiome/m
 */
 
 // WORKFLOW: Run main analysis pipeline depending on type of input
-workflow SCHIRMERLAB_METAGEAR {
-
-    take:
-        samplesheet // channel: samplesheet read in from --input
+workflow SCHIRMERLAB {
 
     main:
 
-        ch_multiqc_report = Channel.empty()
-
-        if ( params.module != "" ) {
-
-        }
-        else if ( params.subworkflow != "" ) {
-
-            if ( params.subworkflow == "microbial_profiles" ) {
-                MICROBIAL_PROFILES ( samplesheet )
-                ch_multiqc_report = MICROBIAL_PROFILES.out.multiqc_report
-            }
-
-        }
-        else if( params.workflow != "" ) {
-            if ( params.workflow == "setup" ) {
-                SETUP ( )
-                // ch_multiqc_report = MICROBIAL_PROFILES.out.multiqc_report
-            }
-        }
-        else{
-            // WORKFLOW: Run pipeline
-            METAGEAR ( samplesheet )
-            ch_multiqc_report = METAGEAR.out.multiqc_report
-        }
-
-
+        METAGEAR (  )
 
     emit:
-        multiqc_report = ch_multiqc_report // channel: /path/to/multiqc_report.html
+        versions = METAGEAR.out.versions  // channel: /path/to/multiqc_report.html
+        summary_data = METAGEAR.out.summary_data // channel: [ val(meta), [ etc ] ]
 }
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -80,16 +51,15 @@ workflow {
             params.validate_params,
             params.monochrome_logs,
             args,
-            params.outdir,
-            params.input
+            params.outdir
         )
 
         //
         // WORKFLOW: Run main workflow
         //
-        SCHIRMERLAB_METAGEAR (
-            PIPELINE_INITIALISATION.out.samplesheet
-        )
+        SCHIRMERLAB ( )
+        SUMMARY ( SCHIRMERLAB.out.versions, SCHIRMERLAB.out.summary_data )
+
         //
         // SUBWORKFLOW: Run completion tasks
         //
@@ -100,7 +70,7 @@ workflow {
             params.outdir,
             params.monochrome_logs,
             params.hook_url,
-            SCHIRMERLAB_METAGEAR.out.multiqc_report
+            SUMMARY.out.multiqc_report
         )
 }
 

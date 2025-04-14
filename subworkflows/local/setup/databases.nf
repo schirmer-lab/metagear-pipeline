@@ -5,38 +5,57 @@ include { HUMANN_DATABASES } from "$projectDir/modules/local/humann3/main"
 
 include { EXPORT_DATABASES } from "$projectDir/modules/local/metagear/export_databases"
 
-/* ---  MAIN WORKFLOW --- */
-workflow DATABASES {
-
+/* ---  INITIALIZATION WORKFLOW --- */
+workflow DATABASES_INIT {
     main:
-        ch_versions = Channel.empty()
 
         ch_kneaddata_databases = Channel.from( [ ['human_genome', 'bowtie2'] ] )
 
-        KNEADDATA_DATABASE( ch_kneaddata_databases )
-
-        METAPHLAN_MAKEDB ( )
-
         ch_humann_databases = Channel.from( ['chocophlan', 'full'], ['uniref', 'uniref90_diamond'] )
 
-        HUMANN_DATABASES ( ch_humann_databases )
-
-
-        ch_databases_locations = Channel.from( ['metaphlan', file( params.metaphlan_db ) ],
+        ch_database_destinations = Channel.from( ['metaphlan', file( params.metaphlan_db ) ],
                                             ['chocophlan', file( params.humann3_nucleo ) ],
                                             ['uniref', file( params.humann3_uniref90 ) ],
                                             ['human_genome', file( params.kneaddata_refdb[0] ) ] )
 
-        ch_databases_data = METAPHLAN_MAKEDB.out.database.concat( HUMANN_DATABASES.out.database )
-                                            .concat( KNEADDATA_DATABASE.out.database )
-
-        ch_databases_export = ch_databases_data.join( ch_databases_locations, by: 0 )
-                                                .map { [ [id: it[0]], it[1], it[2] ] }
-
-        EXPORT_DATABASES ( ch_databases_export )
+        //TODO: Currently only 1 kneaddata database is supported. Ensure ch_kneaddata_databases keep consistent with ch_database_destinations.
 
     emit:
-        metaphlan_db = METAPHLAN_MAKEDB.out.database
+        kneaddata_databases = ch_kneaddata_databases
+        humann_databases = ch_humann_databases
+        database_destinations = ch_database_destinations
+
+}
+
+
+/* ---  MAIN WORKFLOW --- */
+workflow DATABASES {
+    take:
+        ch_kneaddata_databases
+        ch_humann_databases
+        ch_database_destinations
+
+    main:
+        ch_versions = Channel.empty()
+
+        kneaddata = KNEADDATA_DATABASE( ch_kneaddata_databases )
+        metaphlan = METAPHLAN_MAKEDB ( )
+        humann = HUMANN_DATABASES ( ch_humann_databases )
+
+        ch_databases_data = metaphlan.database.concat( humann.database )
+                                            .concat( kneaddata.database )
+
+        ch_databases_data_and_destination = ch_databases_data.join( ch_database_destinations, by: 0 )
+                                                .map { [ [id: it[0]], it[1], it[2] ] }
+
+        EXPORT_DATABASES ( ch_databases_data_and_destination )
+
+        ch_versions = kneaddata.versions.first()
+                        .mix( metaphlan.versions.first() )
+                        .mix( humann.versions.first() )
+                        .mix( EXPORT_DATABASES.out.versions.first() )
+
+    emit:
         versions = ch_versions
 
 }

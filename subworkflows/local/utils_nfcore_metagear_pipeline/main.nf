@@ -33,11 +33,8 @@ workflow PIPELINE_INITIALISATION {
     monochrome_logs   // boolean: Do not use coloured log outputs
     nextflow_cli_args //   array: List of positional nextflow CLI args
     outdir            //  string: The output directory where the results will be saved
-    input             //  string: Path to input samplesheet
 
     main:
-
-    ch_versions = Channel.empty()
 
     //
     // Print version and exit if required and dump pipeline parameters to JSON file
@@ -65,18 +62,6 @@ workflow PIPELINE_INITIALISATION {
         nextflow_cli_args
     )
 
-    //
-    // SUB WORKFLOW: Read in sample sheet, validate and stage input files ---------
-    //
-    INPUT_CHECK (
-        file(params.input),
-        "reads"
-    )
-    ch_versions = ch_versions.mix(INPUT_CHECK.out.versions)
-
-    emit:
-    samplesheet = INPUT_CHECK.out.validated_input
-    versions    = ch_versions
 }
 
 /*
