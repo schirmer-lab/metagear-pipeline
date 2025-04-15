@@ -1,11 +1,11 @@
 #!/bin/bash
-# metagear_configure.sh (Bash 3 Compatible)
-# Usage: ./metagear_configure.sh file1 file2 [file3 ...]
+# merge_configuration.sh (Bash 3 Compatible)
+# Usage: ./merge_configuration.sh file1 file2 [file3 ...]
 # Merges configuration files in order; later file values/blocks override earlier ones.
 # Supports three sections: params, profiles, and process.
 
 if [ "$#" -lt 1 ]; then
-    echo "Usage: $0 file1 file2 [file3 ...]"
+    echo "Usage: $0 file1 file2 [file3 ...]" >&2
     exit 1
 fi
 
@@ -150,7 +150,7 @@ for file in "$@"; do
 done
 
 # Write the merged configuration to the output file
-output_file="metagear_run.config"
+
 {
     echo "params {"
     for i in "${!params_keys[@]}"; do
@@ -169,6 +169,5 @@ output_file="metagear_run.config"
         echo "${proc_values[$i]}"
     done
     echo "}"
-} > "$output_file"
+}
 
-echo "Merged configuration saved to $output_file"
