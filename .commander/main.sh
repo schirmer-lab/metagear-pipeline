@@ -29,7 +29,7 @@ $SCRIPT_DIR/lib/merge_configuration.sh ${all_config_files[@]} > $LAUNCH_DIR/.met
 nf_cmd_workflow_part=$(run_workflows $COMMAND $@)
 
 cat $HOME/.metagear/metagear.env > $LAUNCH_DIR/metagear_$COMMAND.sh
-echo "nextflow run $SCRIPT_DIR/../main.nf -c $LAUNCH_DIR/.metagear/$COMMAND.config \$RUN_PROFILES -w $LAUNCH_DIR/.nf_work $nf_cmd_workflow_part" >> $LAUNCH_DIR/metagear_$COMMAND.sh
+echo "nextflow run $SCRIPT_DIR/../main.nf -c $LAUNCH_DIR/.metagear/$COMMAND.config \$RUN_PROFILES -w \$NF_WORK $nf_cmd_workflow_part -resume" >> $LAUNCH_DIR/metagear_$COMMAND.sh
 chmod +x $LAUNCH_DIR/metagear_$COMMAND.sh
 
 $LAUNCH_DIR/metagear_$COMMAND.sh
