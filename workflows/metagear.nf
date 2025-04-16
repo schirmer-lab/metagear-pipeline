@@ -21,7 +21,7 @@ workflow METAGEAR {
         }
 
         // Setup handler
-        if ( params.workflow == "setup" ) {
+        if ( params.workflow == "download_databases" ) {
             SETUP ( )
             ch_versions = SETUP.out.versions
         }

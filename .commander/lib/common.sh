@@ -5,12 +5,14 @@ SCRIPT_DIR="$(dirname "$(realpath "$0")")"
 
 source $SCRIPT_DIR/lib/system_utils.sh
 
+
 declare -A commands=(
     [download_databases]="Install Databases (Kneaddata, Metaphlan, Humann)"
     [qc_dna]="Quality Control for DNA"
     [qc_rna]="Quality Control for RNA"
     [microbial_profiles]="Get microbial profiles with Metaphlan and Humann"
 )
+
 
 # Usage message
 function usage() {
@@ -24,6 +26,7 @@ function usage() {
     exit 1
 }
 
+
 function check_command {
     # Check if the command exists in the commands array
     if [[ -z "${commands[$1]}" ]]; then
@@ -32,6 +35,37 @@ function check_command {
         exit 1
     fi
 }
+
+
+check_requirements() {
+    # Array to store error messages.
+    local errors=()
+
+    # Check Bash version 4+.
+    if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
+        errors+=("Bash version 4 or higher is required (found version ${BASH_VERSINFO[0]}).")
+    fi
+
+    # Check for nextflow.
+    if ! command -v nextflow >/dev/null 2>&1; then
+        errors+=("Nextflow is not installed.")
+    fi
+
+    # Check for a container engine: either singularity or docker.
+    if ! command -v singularity >/dev/null 2>&1 && ! command -v docker >/dev/null 2>&1; then
+        errors+=("Neither Singularity nor Docker is installed (one is required).")
+    fi
+
+    # If there are missing requirements, report them and exit.
+    if [ ${#errors[@]} -gt 0 ]; then
+        echo "The following requirements are missing:" >&2
+        for error in "${errors[@]}"; do
+            echo " - $error" >&2
+        done
+    fi
+
+}
+
 
 function check_metagear_home() {
 
@@ -60,16 +94,38 @@ function check_metagear_home() {
         cp $1/templates/metagear.env $user_env_file
 
         echo ""
-        echo "-> It seems this is the first timeMetaGEAR is running in this system."
+        echo "It seems this is the first timeMetaGEAR.."
+        echo ""
+        check_requirements
+        echo ""
         echo "   - User configuration was created in ~/.metagear/metagear.config"
         echo "   - Environment file was created in ~/.metagear/metagear.env"
         echo ""
-        echo "Please review these file before re-launching the MetaGEAR pipeline."
+        echo "IMPORTANT: Please review these file before re-launching the MetaGEAR pipeline."
         echo ""
+
+        check_requirements
+
         exit 0
 
     fi
 
 }
 
+
+detect_container_tool() {
+    # Check for singularity first and return it if found.
+    if command -v singularity >/dev/null 2>&1; then
+        echo "singularity"
+    # Else check for docker and return it if found.
+    elif command -v docker >/dev/null 2>&1; then
+        echo "docker"
+    # Return "none" if neither is available.
+    else
+        echo "Error: MetaGEAR requires Singularity (recommended) or Docker. Please install one of those in your system." >&2
+        echo "  Singularity: https://docs.sylabs.io/guides/3.0/user-guide/installation.html" >&2
+        echo "  Docker: https://docs.docker.com/engine/install/" >&2
+        exit 1
+    fi
+}
 
