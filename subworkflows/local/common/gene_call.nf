@@ -6,6 +6,8 @@ include { MEGAHIT } from "$projectDir/modules/local/megahit/main"
 include { PRODIGAL } from "$projectDir/modules/nf-core/prodigal"
 include { FILTER_PRODIGAL } from "$projectDir/modules/local/metagear/utils/filter_prodigal"
 
+include { VAMB_CONCATENATE_FASTA } from "$projectDir/modules/local/vamb/main"
+
 include { CDHIT_CDHITEST } from "$projectDir/modules/local/cdhit/cdhitest/main"
 
 /* --- Initialization for standalone process --- */
@@ -38,14 +40,18 @@ workflow GENE_CALL {
 
         FILTER_PRODIGAL ( PRODIGAL.out.nucleotide_fasta )
 
-        // FILTER_PRODIGAL.out.filtered_fasta
+        ch_merged_genes = FILTER_PRODIGAL.out.filtered_fasta.map{ it -> it[1] }
+                .collect()
+                .map{ it -> [ [id: "merged_genes"], it ] }
 
-        // CDHIT_CDHITEST (  )
+        VAMB_CONCATENATE_FASTA ( ch_merged_genes )
 
-        // ch_derreplicated_genes = CDHIT_CDHITEST.out.fasta
+        CDHIT_CDHITEST ( VAMB_CONCATENATE_FASTA.out.catalog )
 
         ch_versions = MEGAHIT.out.versions.first()
                         .mix(PRODIGAL.out.versions.first())
+                        .mix(FILTER_PRODIGAL.out.versions.first())
+                        .mix(VAMB_CONCATENATE_FASTA.out.versions)
                         .mix(CDHIT_CDHITEST.out.versions)
 
 
