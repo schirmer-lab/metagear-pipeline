@@ -8,6 +8,7 @@ declare -A require_input=(
     [qc_dna]="true"
     [qc_rna]="true"
     [microbial_profiles]="true"
+    [gene_call]="true"
 )
 
 # Prompt user with a default value if input is not provided.

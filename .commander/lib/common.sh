@@ -11,6 +11,7 @@ declare -A commands=(
     [qc_dna]="Quality Control for DNA"
     [qc_rna]="Quality Control for RNA"
     [microbial_profiles]="Get microbial profiles with Metaphlan and Humann"
+    [gene_call]="Assemble contigs and predict genes with Megahit and Prodigal"
 )
 
 

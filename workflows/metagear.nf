@@ -6,6 +6,7 @@ include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
 
 include { QUALITY_CONTROL_INIT; QUALITY_CONTROL } from "$projectDir/subworkflows/local/common/quality_control"
 include { MICROBIAL_PROFILES_INIT; MICROBIAL_PROFILES  } from "$projectDir/subworkflows/local/microbiome/microbial_profiles"
+include { GENE_CALL_INIT; GENE_CALL } from "$projectDir/subworkflows/local/common/gene_call"
 
 
 /* --- RUN MAIN WORKFLOW --- */
@@ -44,7 +45,12 @@ workflow METAGEAR {
             ch_versions = MICROBIAL_PROFILES.out.versions
         }
 
-
+        // Gene Call
+        if ( params.workflow == "gene_call" ) {
+            init = GENE_CALL_INIT ( )
+            GENE_CALL ( init.validated_input )
+            ch_versions = GENE_CALL.out.versions
+        }
 
     emit:
         versions = ch_versions
