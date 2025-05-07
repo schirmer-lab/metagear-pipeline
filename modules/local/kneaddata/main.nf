@@ -53,7 +53,7 @@ process PARSE_KNEADDATA {
     conda "conda-forge::python=3.10"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://github.com/schirmer-lab/singularity-images/releases/download/23.11.22/python_3.10.sif' :
-        'docker.io/biocontainers/python:3.10' }"
+        'docker.io/raphsoft/python_base:3.10-R4' }"
 
 
     input:
