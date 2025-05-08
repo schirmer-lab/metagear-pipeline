@@ -13,33 +13,26 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { METAGEAR  } from './workflows/metagear'
-include { PIPELINE_INITIALISATION } from './subworkflows/local/utils_nfcore_metagear_pipeline'
-include { PIPELINE_COMPLETION     } from './subworkflows/local/utils_nfcore_metagear_pipeline'
+include { METAGEAR  } from "$projectDir/workflows/metagear"
+include { PIPELINE_INITIALISATION } from "$projectDir/subworkflows/local/utils_nfcore_metagear_pipeline"
+include { PIPELINE_COMPLETION } from "$projectDir/subworkflows/local/utils_nfcore_metagear_pipeline"
+include { SUMMARY } from "$projectDir/subworkflows/local/common/summary"
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     NAMED WORKFLOWS FOR PIPELINE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-//
 // WORKFLOW: Run main analysis pipeline depending on type of input
-//
-workflow SCHIRMERLAB_METAGEAR {
-
-    take:
-    samplesheet // channel: samplesheet read in from --input
+workflow SCHIRMERLAB {
 
     main:
 
-    //
-    // WORKFLOW: Run pipeline
-    //
-    METAGEAR (
-        samplesheet
-    )
+        METAGEAR (  )
+
     emit:
-    multiqc_report = METAGEAR.out.multiqc_report // channel: /path/to/multiqc_report.html
+        versions = METAGEAR.out.versions  // channel: /path/to/multiqc_report.html
+        summary_data = METAGEAR.out.summary_data // channel: [ val(meta), [ etc ] ]
 }
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -50,36 +43,35 @@ workflow SCHIRMERLAB_METAGEAR {
 workflow {
 
     main:
-    //
-    // SUBWORKFLOW: Run initialisation tasks
-    //
-    PIPELINE_INITIALISATION (
-        params.version,
-        params.validate_params,
-        params.monochrome_logs,
-        args,
-        params.outdir,
-        params.input
-    )
+        //
+        // SUBWORKFLOW: Run initialisation tasks
+        //
+        PIPELINE_INITIALISATION (
+            params.version,
+            params.validate_params,
+            params.monochrome_logs,
+            args,
+            params.outdir
+        )
 
-    //
-    // WORKFLOW: Run main workflow
-    //
-    SCHIRMERLAB_METAGEAR (
-        PIPELINE_INITIALISATION.out.samplesheet
-    )
-    //
-    // SUBWORKFLOW: Run completion tasks
-    //
-    PIPELINE_COMPLETION (
-        params.email,
-        params.email_on_fail,
-        params.plaintext_email,
-        params.outdir,
-        params.monochrome_logs,
-        params.hook_url,
-        SCHIRMERLAB_METAGEAR.out.multiqc_report
-    )
+        //
+        // WORKFLOW: Run main workflow
+        //
+        SCHIRMERLAB ( )
+        SUMMARY ( SCHIRMERLAB.out.versions, SCHIRMERLAB.out.summary_data )
+
+        //
+        // SUBWORKFLOW: Run completion tasks
+        //
+        PIPELINE_COMPLETION (
+            params.email,
+            params.email_on_fail,
+            params.plaintext_email,
+            params.outdir,
+            params.monochrome_logs,
+            params.hook_url,
+            SUMMARY.out.multiqc_report
+        )
 }
 
 /*
