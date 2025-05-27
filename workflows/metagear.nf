@@ -7,7 +7,7 @@ include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
 include { QUALITY_CONTROL_INIT; QUALITY_CONTROL } from "$projectDir/subworkflows/local/common/quality_control"
 include { MICROBIAL_PROFILES_INIT; MICROBIAL_PROFILES  } from "$projectDir/subworkflows/local/microbiome/microbial_profiles"
 include { GENE_CALL_INIT; GENE_CALL } from "$projectDir/subworkflows/local/common/gene_call"
-
+include { GENE_PROFILE_INIT; GENE_PROFILE } from "$projectDir/subworkflows/local/common/gene_profile"
 
 /* --- RUN MAIN WORKFLOW --- */
 workflow METAGEAR {
@@ -50,6 +50,13 @@ workflow METAGEAR {
             init = GENE_CALL_INIT ( )
             GENE_CALL ( init.validated_input )
             ch_versions = GENE_CALL.out.versions
+        }
+
+        // Gene profile: generate abundance profile tables [count, RPKM, TPM] and run MSPminer
+        if ( params.workflow == "gene_profile" ) {
+            init = GENE_PROFILE_INIT( )
+            GENE_PROFILE("gene_profile", init.validated_input, init.catalog_input)
+            ch_versions = GENE_PROFILE.out.versions
         }
 
     emit:
