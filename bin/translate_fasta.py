@@ -8,9 +8,9 @@ from Bio import SeqIO
 from Bio.Data.CodonTable import TranslationError
 from Bio.SeqRecord import SeqRecord
 
-DEFAULT_TRANSLATION_TABLES = [11, 4] # default translation table for microbiome data
+DEFAULT_TRANSLATION_TABLES = [11, 4]  # default translation table for microbiome data
 
-'''
+"""
 1. The Standard Code
 2. The Vertebrate Mitochondrial Code
 3. The Yeast Mitochondrial Code
@@ -38,22 +38,24 @@ DEFAULT_TRANSLATION_TABLES = [11, 4] # default translation table for microbiome 
 31. Blastocrithidia Nuclear Code
 32. Balanophoraceae Plastid Code
 33. Cephalodiscidae Mitochondrial UAA-Tyr Code
-'''
+"""
 
 
 def translate(fna: str, out: str, translation_tables: List[int]):
     """
     Translate a FASTA file with nucleotide sequences to amino acid sequences.
     """
-    with open(out, 'w') as faa:
+    with open(out, "w") as faa:
         record: SeqRecord
         for record in tqdm.tqdm(SeqIO.parse(fna, "fasta")):
             failed = True
             for translation_table in translation_tables:
                 try:
-                    translated: SeqRecord = record.translate(table=translation_table, stop_symbol='', cds=True)
+                    translated: SeqRecord = record.translate(
+                        table=translation_table, stop_symbol="", cds=True
+                    )
                     translated.id = record.id
-                    translated.description = ''
+                    translated.description = ""
                     SeqIO.write(translated, faa, "fasta")
                     failed = False
                     break
@@ -63,15 +65,11 @@ def translate(fna: str, out: str, translation_tables: List[int]):
             if failed:
                 logging.warning(f"Translation failed for {record.id}")
 
+
 # usage:
 # python /data/translate_fasta.py ${input_fp} ${output_fp}
 
 if __name__ == "__main__":
-    input_fp = sys.argv[1] # fasta format DNA sequence
-    sfp = sys.argv[2] # fasta format DNA sequence
+    input_fp = sys.argv[1]  # fasta format DNA sequence
+    sfp = sys.argv[2]  # fasta format DNA sequence
     translate(input_fp, sfp, DEFAULT_TRANSLATION_TABLES)
-
-
-
-
-    #

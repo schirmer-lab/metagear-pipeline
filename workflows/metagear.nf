@@ -52,7 +52,7 @@ workflow METAGEAR {
             GENE_CALL ( init.validated_input )
             ch_versions = GENE_CALL.out.versions
         }
-        
+
         // profile protein catalog
         if ( params.workflow == "protein_profile" ) {
             init = PROTEIN_PROFILE_INIT ( )

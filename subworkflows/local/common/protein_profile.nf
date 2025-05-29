@@ -17,7 +17,6 @@ workflow PROTEIN_PROFILE_INIT {
 }
 
 
-
 workflow PROTEIN_PROFILE {
 
     take:
@@ -33,7 +32,7 @@ workflow PROTEIN_PROFILE {
 
         // split protein sequences into 1000 fasta files
         SPLIT_FASTA ( CDHIT_CDHIT.out.fasta.map(it -> [it[0],it[1],1000]) )
-        // 
+
         SPLIT_FASTA.out.prot_fasta_split
             .flatMap { dir ->
                 // Expand all .faa files in that directory
@@ -47,7 +46,7 @@ workflow PROTEIN_PROFILE {
         // annotate each splited files using interproscan
         INTERPROSCAN (ch_interproscan_input, "tsv")
 
-        // create a new channel to collect all interproscan files 
+        // create a new channel to collect all interproscan files
         ch_merged_interproscan = INTERPROSCAN.out.tsv.map(it -> it[1]).collect().map(it -> [ ["id": "merged_interproscan_ann"], it])
         ch_merged_interproscan.view()
         FUNCTIONALGROUP_ANNOTATION ( ch_merged_interproscan )
@@ -65,6 +64,3 @@ workflow PROTEIN_PROFILE {
         hits_channel = INTERPROSCAN.out.tsv
         versions = ch_versions
 }
-
-
-

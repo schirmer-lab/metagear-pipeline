@@ -44,8 +44,7 @@ workflow GENE_PROFILE {
             .collect()
             .map { it -> tuple([id: label], it)}
             .set { ch_coverm_contig }
-        
-        
+
         // generate summary table, e.g. count, rpkm, tpm
         // more information about coverm: https://wwood.github.io/CoverM/coverm-contig.html
         COVERM_CONTIG ( ch_coverm_contig )

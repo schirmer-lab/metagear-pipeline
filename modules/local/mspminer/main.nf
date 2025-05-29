@@ -1,19 +1,22 @@
 process MSPMINER_MSPMINER{
     // to review: (1) label? (2) mspminer version hardcoded
     label 'process_medium'
-    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ? 
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://github.com/schirmer-lab/singularity-images/releases/download/25.06.05/mspminer_1.1.3.sif':
         'docker.io/schirmerlab/mspminer:1.1.3' }"
-    
+
     input:
         tuple val(meta), path(count_fp)
+
     output:
-        tuple val(meta), path("raw")   ,                emit: mspminer_result
-        tuple val(meta), path("raw/all_msps.tsv")   ,                emit: mspminer_main_table
-        path "versions.yml"              ,                emit: versions
+        tuple val(meta), path("raw"), emit: mspminer_result
+        tuple val(meta), path("raw/all_msps.tsv"), emit: mspminer_main_table
+        path "versions.yml", emit: versions
+
     script:
-        def args = task.ext.args ?: '' // to move 
+        def args = task.ext.args ?: ''
         def mspminer_result_dir = "raw"
+
         """
         echo RUNNING MSPMINER $meta.id
         mkdir -p ${mspminer_result_dir}
