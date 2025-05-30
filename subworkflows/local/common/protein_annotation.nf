@@ -19,12 +19,12 @@ workflow PROTEIN_ANNOTATION_INIT {
 workflow PROTEIN_ANNOTATION {
 
     take:
-        input_gene_catalog // [meta, PATH (DNA sequences of gene catalog)]
+        protein_catalog // [meta, PATH (DNA sequences of gene catalog)]
 
     main:
 
         // generate protein catalog
-        CDHIT_CDHIT ( ch_cdhit_input )
+        CDHIT_CDHIT ( protein_catalog )
 
         // split protein sequences into 1000 fasta files
         SEQKIT_SPLIT2 ( CDHIT_CDHIT.out.fasta )

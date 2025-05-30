@@ -29,17 +29,15 @@ workflow GENE_ANALYSIS_INIT {
 workflow GENE_ANALYSIS {
 
     take:
-        label
         clean_reads // [meta, reads]
-        catalog // [ meta, path ]
 
     main:
 
         GENE_CALL ( clean_reads )
 
-        GENE_ABUNDANCE (label, reads, GENE_CALL.out.genes )
+        GENE_ABUNDANCE ("label", clean_reads, GENE_CALL.out.genes )
 
-        MSPMINER_MSPMINER ( ABUNDANCE.out.abundance_count )
+        MSPMINER_MSPMINER ( GENE_ABUNDANCE.out.abundance_count )
 
         // translate DNA to protein
         TRANSLATE_DNA2PROT ( GENE_CALL.out.genes )
@@ -49,7 +47,7 @@ workflow GENE_ANALYSIS {
 
         // summary channel version
         ch_versions = GENE_CALL.out.versions
-                        .mix(ABUNDANCE.out.versions)
+                        .mix(GENE_ABUNDANCE.out.versions)
                         .mix(MSPMINER_MSPMINER.out.versions)
                         .mix(TRANSLATE_DNA2PROT.out.versions)
                         .mix(PROTEIN_ANNOTATION.out.versions)

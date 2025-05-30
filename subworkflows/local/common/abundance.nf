@@ -17,7 +17,7 @@ workflow ABUNDANCE {
         ch_index = BWA_INDEX.out.index.map {[it[1]]}
         ch_make = reads.combine(ch_index)
 
-        COVERM_MAKE ( ch_make )
+        COVERM_MAKE ( ch_make, true )
 
         COVERM_MAKE.out.alignments
             .map { it -> it[1] }
