@@ -57,5 +57,6 @@ workflow GENE_CALL {
 
     emit:
         contigs = MEGAHIT.out.contigs
+        genes = CDHIT_CDHITEST.out.fasta
         versions = ch_versions
 }
