@@ -1,47 +1,3 @@
-process COVERM_BREADTH {
-    tag "$meta.id"
-    label 'process_medium'
-
-    conda "bioconda::coverm==0.7.0--hb4818e0_2"
-    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'docker.io/schirmerlab/coverm_bwamem2:0.7.0' :
-        'docker.io/schirmerlab/coverm_bwamem2:0.7.0' }"
-    // container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-    //     'https://depot.galaxyproject.org/singularity/coverm:0.7.0--hb4818e0_2' :
-    //     'biocontainers/coverm:0.7.0--hb4818e0_2' }"
-
-    input:
-    tuple val(meta), path(bams)
-
-    output:
-    tuple val(meta), path("*.count.tsv"), emit: count
-    tuple val(meta), path("*.coverage.tsv"), emit: coverage
-
-    path("versions.yml"), emit: versions
-
-    when:
-    task.ext.when == null || task.ext.when
-
-    script:
-    def prefix = task.ext.prefix ?: "${meta.id}"
-    def args = task.ext.args ?: ''
-    def args2 = task.ext.args2 ?: ''
-    """
-    echo $bams
-    coverm contig --methods count --bam-files $bams -t $task.cpus $args 1> ${prefix}.count.tsv 2> log_count.txt
-    sed -i '1 s/ Read Count//g' ${prefix}.count.tsv
-
-    coverm contig --methods mean covered_fraction --bam-files $bams -t $task.cpus $args 1> ${prefix}.coverage.tsv 2> log_coverage.txt
-    sed -i '1 s/ Coverage//g' ${prefix}.coverage.tsv
-
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        CoverM: \$(coverm --version | cut -d' ' -f2)
-    END_VERSIONS
-    """
-}
-
-
 process COVERM_CONTIG {
     tag "$meta.id"
     label 'process_medium'
@@ -147,7 +103,7 @@ process COVERM_CONTIG_BATCH {
 }
 
 
-process COVERM_CONTIG_MERGE {
+process COVERM_CONTIG_BATCH_MERGE {
     tag "$meta.id"
     label 'process_medium'
 

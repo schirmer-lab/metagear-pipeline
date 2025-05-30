@@ -1,7 +1,7 @@
 include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
 
 include { COVERM_MAKE } from "$projectDir/modules/local/coverm/make"
-include { COVERM_CONTIG_BATCH as COVERM_CONTIG; COVERM_CONTIG_MERGE as MERGE_COUNT; COVERM_CONTIG_MERGE as MERGE_RPKM } from "$projectDir/modules/local/coverm/contig"
+include { COVERM_CONTIG_BATCH; COVERM_CONTIG_BATCH_MERGE as MERGE_COUNT; COVERM_CONTIG_BATCH_MERGE as MERGE_RPKM } from "$projectDir/modules/local/coverm/contig"
 include { MSPMINER_MSPMINER } from "$projectDir/modules/local/mspminer"
 
 
@@ -46,8 +46,7 @@ workflow GENE_PROFILE {
             .set { ch_coverm_contig }
 
         // generate summary table, e.g. count, rpkm, tpm
-        // more information about coverm: https://wwood.github.io/CoverM/coverm-contig.html
-        COVERM_CONTIG ( ch_coverm_contig )
+        COVERM_CONTIG_BATCH ( ch_coverm_contig )
 
         ch_coverm_contig_merge_count = COVERM_CONTIG.out.abundance_count.map { it -> tuple( [id: it[0].id + '_count'], it[1] ) }
         MERGE_COUNT ( ch_coverm_contig_merge_count )

@@ -5,9 +5,6 @@ process COVERM_FILTER {
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'docker.io/schirmerlab/coverm_bwamem2:0.7.0' :
         'docker.io/schirmerlab/coverm_bwamem2:0.7.0' }"
-    // container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-    //     'https://depot.galaxyproject.org/singularity/coverm:0.6.1--hc216eb9_0' :
-    //     'biocontainers/coverm:0.6.1--hc216eb9_0' }"
 
     input:
     tuple val(meta), path(bam_file)
