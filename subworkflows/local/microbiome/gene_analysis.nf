@@ -12,16 +12,11 @@ workflow GENE_ANALYSIS_INIT {
 
     main:
         if ( params.input ) { ch_input = file(params.input) } else { exit 1, 'Input samplesheet not specified!' }
-        // if ( params.catalog ) { ch_catalog = file(params.catalog) } else { exit 1, 'Input catalog file [fasta format] not specified!' }
 
         INPUT_CHECK ( ch_input, "reads" )
 
-        // ch_catalog = Channel.fromPath("${params.catalog}", checkIfExists: true).first()
-            // .map { it -> [ [id: "gene_catalog"], it] }
-
     emit:
         validated_input = INPUT_CHECK.out.validated_input
-        // catalog_input = ch_catalog
         versions = INPUT_CHECK.out.versions
 }
 

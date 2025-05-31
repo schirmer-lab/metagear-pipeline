@@ -26,15 +26,13 @@ process COVERM_MAKE {
     input = meta.single_end ? "--single ${reads}" : "-1 ${reads[0]} -2 ${reads[1]}"
     out = meta.label ?: 'out'
     """
-    if ${ref_is_index} {
+    if [[ "${ref_is_index}" == "true" ]]; then
         # reference is a bwa/bwamem2 index
         REFERENCE=`find -L ./ -name "*.amb" | sed 's/\\.amb\$//'`
-    } else {
+    else
         # reference is a fasta file
-        REFERENCE=${ref}
-    }
-
-
+        REFERENCE="${ref}"
+    fi
 
     TMPDIR=./coverm_tmp
     echo \${REFERENCE}

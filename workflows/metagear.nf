@@ -54,21 +54,6 @@ workflow METAGEAR {
         }
 
 
-
-        // // Gene Call
-        // if ( params.workflow == "gene_call" ) {
-        //     init = GENE_CALL_INIT ( )
-        //     GENE_CALL ( init.validated_input )
-        //     ch_versions = GENE_CALL.out.versions
-        // }
-
-        // // profile protein catalog
-        // if ( params.workflow == "protein_profile" ) {
-        //     init = PROTEIN_PROFILE_INIT ( )
-        //     PROTEIN_PROFILE ( init.catalog_input )
-        //     // ch_versions = PROTEIN_PROFILE.out.versions
-        // }
-
     emit:
         versions = ch_versions
         summary_data = ch_summary_data
