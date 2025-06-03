@@ -11,6 +11,8 @@ include { MICROBIAL_PROFILES_INIT; MICROBIAL_PROFILES  } from "$projectDir/subwo
 
 include { GENE_ANALYSIS_INIT; GENE_ANALYSIS } from "$projectDir/subworkflows/local/microbiome/gene_analysis"
 
+include { VIRAL_ANALYSIS_INIT; VIRAL_ANALYSIS } from "$projectDir/subworkflows/local/microbiome/viral_analysis"
+
 /* --- RUN MAIN WORKFLOW --- */
 workflow METAGEAR {
 
@@ -51,6 +53,12 @@ workflow METAGEAR {
             init = GENE_ANALYSIS_INIT ( )
             GENE_ANALYSIS ( init.validated_input )
             ch_versions = GENE_ANALYSIS.out.versions
+        }
+
+        if ( params.workflow == "viral_analysis" ) {
+            init = VIRAL_ANALYSIS_INIT ( )
+            VIRAL_ANALYSIS ( init.validated_input )
+            ch_versions = VIRAL_ANALYSIS.out.versions
         }
 
 
