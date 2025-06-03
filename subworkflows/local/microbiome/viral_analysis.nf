@@ -37,7 +37,7 @@ workflow VIRAL_ANALYSIS {
 
         genomad_db = Channel.fromPath("${params.genomad_db}", checkIfExists: true).first()
         checkv_db = Channel.fromPath("${params.checkv_db}", checkIfExists: true).first()
-        
+
 
         VIRAL_DETECTION ( MEGAHIT.out.contigs, genomad_db, checkv_db )
 

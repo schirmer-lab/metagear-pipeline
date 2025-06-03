@@ -5,7 +5,9 @@ include { GENOMAD_ENDTOEND as GENOMAD_PASS1; GENOMAD_ENDTOEND as GENOMAD_PASS2 }
 include { CHECKV_ENDTOEND as CHECKV_PASS1; CHECKV_ENDTOEND as CHECKV_PASS2} from "$projectDir/modules/nf-core/checkv/endtoend"
 
 include { CHECKV_ADAPT_OUTPUT } from "$projectDir/modules/local/checkv/adapt"
-include { CREATE_TABLES } from "$projectDir/modules/local/mvip/create_tables"
+include { MERGE_VIRUS_TABLES } from "$projectDir/modules/local/mvip/create_tables"
+
+include { SEQTK_SUBSEQ } from "$projectDir/modules/local/seqtk/subseq/main"
 
 workflow VIRAL_DETECTION {
 
@@ -31,31 +33,23 @@ workflow VIRAL_DETECTION {
         // 4. Final CheckV on non-empty geNomad2-detected viral contigs
         checkv2 = CHECKV_PASS2 ( ch_pass2_viruses, checkv_db )
 
-        // 5. Collect all summary files (2 or 4) for each sample
-        ch_pass1_virus_summary = GENOMAD_PASS1.out.virus_summary.map { [ it[0], [ it[1], "virus" ] ] }
-        ch_checkv1_summary = CHECKV_PASS1.out.quality_summary.map { [ it[0], [ it[1], "virus" ] ] }
-        ch_pass2_virus_summary = GENOMAD_PASS2.out.virus_summary.map { [ it[0], [ it[1], "provirus" ] ] }
-        ch_checkv2_summary = CHECKV_PASS2.out.quality_summary.map { [ it[0], [ it[1], "provirus" ] ] }
-
-
-        ch_all_summaries = ch_pass1_virus_summary
-                            .mix(ch_checkv1_summary)
-                            .mix(ch_pass2_virus_summary)
-                            .mix(ch_checkv2_summary)
+        // 5. Adapt CheckV and geNomad channel outputs to allow merging
+        ch_all_summaries = GENOMAD_PASS1.out.virus_summary.map { [ it[0], [ it[1], "virus" ] ] }
+                            .mix(CHECKV_PASS1.out.quality_summary.map { [ it[0], [ it[1], "virus" ] ] })
+                            .mix(GENOMAD_PASS2.out.virus_summary.map { [ it[0], [ it[1], "provirus" ] ] })
+                            .mix(CHECKV_PASS2.out.quality_summary.map { [ it[0], [ it[1], "provirus" ] ] })
                             .groupTuple( by: 0 )
 
-        ch_all_summaries.view()
-
         def ictv_taxonomy = Channel.fromPath("$projectDir/assets/metagear/ICTV_Taxonomy_List.tsv", checkIfExists: true).first()
-        CREATE_TABLES ( ch_all_summaries, ictv_taxonomy )
-        // ch_grouped = ch_all_summaries
-        //     .groupTuple {  }   // group by sample_id
-        //     .map { sample, items -> tuple(sample, items.collect { it[1] }) }
+        MERGE_VIRUS_TABLES ( ch_all_summaries, ictv_taxonomy )
 
-        // ch_grouped.view()
-        // Feed grouped files into CREATE_TABLES
-        // CREATE_TABLES(ch_grouped)
+        joint = GENOMAD_PASS1.out.virus_fasta
+            .mix ( GENOMAD_PASS2.out.virus_fasta )
+            .groupTuple( by: 0 )
+            .join ( MERGE_VIRUS_TABLES.out.sequence_ids, by: 0 )
 
+        // joint.view()
+        SEQTK_SUBSEQ ( joint )
 
     emit:
         //TODO:...

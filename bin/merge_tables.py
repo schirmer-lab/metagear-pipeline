@@ -34,14 +34,14 @@ def taxon_to_host_type(taxonomy, ictv_taxonomy_df):
 
 
 def rename_sequence(sequence_name):
-    sequence_name = sequence_name.replace("provirus_", "")
-    sequence_name = sequence_name.rsplit("/", 1)[0]
-    sequence_name = (
-        sequence_name.replace("|", "_")
-        .replace("-", "_")
-        .replace("/", "_")
-        .replace(":", "_")
-    )
+    # sequence_name = sequence_name.replace("provirus_", "")
+    # sequence_name = sequence_name.rsplit("/", 1)[0]
+    # sequence_name = (
+    #     sequence_name.replace("|", "_")
+    #     .replace("/", "_")
+    #     .replace(":", "_")
+    #     # .replace("-", "_")
+    # )
     return sequence_name
 
 
@@ -50,7 +50,7 @@ def rename_sequence(sequence_name):
     "--sample-name", "-s", required=True, help="Name of the sample (used in output)."
 )
 @click.option(
-    "--virus-checkv",
+    "--viral-checkv",
     required=True,
     type=click.Path(exists=True),
     help="Path to the virus CheckV quality_summary.tsv file.",
@@ -62,7 +62,7 @@ def rename_sequence(sequence_name):
     help="Path to the provirus CheckV quality_summary.tsv file.",
 )
 @click.option(
-    "--virus-genomad",
+    "--viral-genomad",
     required=True,
     type=click.Path(exists=True),
     help="Path to the virus Genomad summary TSV file.",
@@ -80,6 +80,20 @@ def rename_sequence(sequence_name):
     help="Full path to the ICTV_Taxonomy_List.tsv file.",
 )
 @click.option(
+    "--viral-min-genes",
+    type=int,
+    default=1,
+    show_default=True,
+    help="Minimum number of viral genes for filtering."
+)
+@click.option(
+    "--host-viral-genes-ratio",
+    type=int,
+    default=1,
+    show_default=True,
+    help="Maximum ratio of host to viral genes for filtering."
+)
+@click.option(
     "--output-file",
     "-o",
     required=True,
@@ -88,22 +102,25 @@ def rename_sequence(sequence_name):
 )
 def main(
     sample_name,
-    virus_checkv,
+    viral_checkv,
     provirus_checkv,
-    virus_genomad,
+    viral_genomad,
     provirus_genomad,
     ictv_taxonomy,
+    viral_min_genes,
+    host_viral_genes_ratio,
     output_file,
 ):
     """
     Merge CheckV and Genomad outputs for viruses and proviruses, annotate genome and host types, and write a merged summary TSV.
+    Also apply filtering based on viral_genes and host_genes/viral_genes ratio.
     """
     # Load ICTV taxonomy
     ictv_df = pd.read_csv(ictv_taxonomy, sep="\t")
 
     # Load CheckV tables
     df_virus_CHECKV = pd.read_csv(
-        virus_checkv,
+        viral_checkv,
         sep="\t",
         usecols=[
             "contig_id",
@@ -149,7 +166,7 @@ def main(
 
     # Load Genomad tables
     df_virus_GENOMAD = pd.read_csv(
-        virus_genomad,
+        viral_genomad,
         sep="\t",
         usecols=[
             "seq_name",
@@ -241,10 +258,27 @@ def main(
     if output_dir and not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    # Write to TSV
+    # Write unfiltered TSV
     merged_df.to_csv(output_file, sep="\t", index=False)
-
     click.echo(f"Merged summary written to {output_file}")
+
+    # Apply filtering based on viral_genes and host/viral ratio
+    # Ensure numeric types for filtering
+    merged_df["viral_genes"] = pd.to_numeric(merged_df["viral_genes"], errors="coerce").fillna(0).astype(int)
+    merged_df["host_genes"] = pd.to_numeric(merged_df["host_genes"], errors="coerce").fillna(0).astype(int)
+
+    filtered_df = merged_df.loc[merged_df["viral_genes"] >= viral_min_genes]
+    filtered_df = filtered_df.loc[
+        (filtered_df["host_genes"] / filtered_df["viral_genes"]) <= host_viral_genes_ratio
+    ]
+
+    # Construct filtered output file name
+    root, ext = os.path.splitext(output_file)
+    filtered_output_file = root + ".filtered" + ext
+
+    # Write filtered TSV
+    filtered_df.to_csv(filtered_output_file, sep="\t", index=False)
+    click.echo(f"Filtered summary written to {filtered_output_file}")
 
 
 if __name__ == "__main__":

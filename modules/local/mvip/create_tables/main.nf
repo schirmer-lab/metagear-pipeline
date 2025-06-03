@@ -1,4 +1,4 @@
-process CREATE_TABLES {
+process MERGE_VIRUS_TABLES {
     tag "$meta.id"
     label 'process_medium'
 
@@ -13,6 +13,8 @@ process CREATE_TABLES {
 
     output:
     tuple val(meta), path("*_Merged_Genomad_CheckV_Summary.tsv"), emit: merged_tables
+    tuple val(meta), path("*_Merged_Genomad_CheckV_Summary.filtered.tsv"), emit: filtered_tables
+    tuple val(meta), path("*_viral_ids_to_keep.txt"), emit: sequence_ids
     path "versions.yml", emit: versions
 
     when:
@@ -30,12 +32,15 @@ process CREATE_TABLES {
     $staged_files
 
     merge_tables.py --sample-name ${prefix} \\
-        --virus-checkv virus.quality_summary.tsv \\
+        --viral-checkv virus.quality_summary.tsv \\
         --provirus-checkv provirus.quality_summary.tsv \\
-        --virus-genomad virus.${prefix}.contigs_virus_summary.tsv \\
+        --viral-genomad virus.${prefix}.contigs_virus_summary.tsv \\
         --provirus-genomad provirus.proviruses_virus_summary.tsv \\
         --ictv-taxonomy ${ictv_taxonomy} \\
         --output-file ./${prefix}_Merged_Genomad_CheckV_Summary.tsv
+
+    # Create list of id to keep
+    cat ./${prefix}_Merged_Genomad_CheckV_Summary.filtered.tsv | grep -v virus_id | cut -f2 > ${prefix}_viral_ids_to_keep.txt
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
