@@ -48,15 +48,13 @@ workflow VIRAL_DETECTION {
             .groupTuple( by: 0 )
             .join ( MERGE_VIRUS_TABLES.out.sequence_ids, by: 0 )
 
-        // joint.view()
         SEQTK_SUBSEQ ( joint )
 
     ch_versions = GENOMAD_PASS1.out.versions.first()
                     .mix(CHECKV_PASS1.out.versions.first())
-                    .mix(GENOMAD_PASS2.out.versions.first())
-                    .mix(CHECKV_PASS2.out.versions.first())
-                    .mix(MERGE_VIRUS_TABLES.out.versions)
-                    .mix(SEQTK_SUBSEQ.out.versions)
+                    .mix(SEQTK_SUBSEQ.out.versions.first())
+                    // .mix(MERGE_VIRUS_TABLES.out.versions.first()) //TODO: versions is not being generated correctly, skipping for now
+
 
     emit:
         merged_tables   = MERGE_VIRUS_TABLES.out.merged_tables

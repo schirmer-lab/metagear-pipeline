@@ -2,7 +2,6 @@
 
 include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
 
-include { MEGAHIT } from "$projectDir/modules/local/megahit/main"
 include { PRODIGAL } from "$projectDir/modules/nf-core/prodigal"
 include { FILTER_PRODIGAL } from "$projectDir/modules/local/metagear/utils/filter_prodigal"
 
@@ -28,15 +27,11 @@ workflow GENE_CALL_INIT {
 workflow GENE_CALL {
 
     take:
-        ch_clean_reads // meta, reads
+        sequences // meta, reads
 
     main:
 
-        MEGAHIT (
-            ch_clean_reads.map { meta, fastq -> [ meta, fastq ] }
-        )
-
-        PRODIGAL ( MEGAHIT.out.contigs, "gff" )
+        PRODIGAL ( sequences, "gff" )
 
         FILTER_PRODIGAL ( PRODIGAL.out.nucleotide_fasta )
 
@@ -48,15 +43,13 @@ workflow GENE_CALL {
 
         CDHIT_CDHITEST ( VAMB_CONCATENATE_FASTA.out.catalog )
 
-        ch_versions = MEGAHIT.out.versions.first()
-                        .mix(PRODIGAL.out.versions.first())
+        ch_versions = PRODIGAL.out.versions.first()
                         .mix(FILTER_PRODIGAL.out.versions.first())
                         .mix(VAMB_CONCATENATE_FASTA.out.versions)
                         .mix(CDHIT_CDHITEST.out.versions)
 
 
     emit:
-        contigs = MEGAHIT.out.contigs
         genes = CDHIT_CDHITEST.out.fasta
         versions = ch_versions
 }

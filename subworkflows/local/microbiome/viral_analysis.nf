@@ -1,6 +1,8 @@
 include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
 
-// include { GENE_CALL } from "$projectDir/subworkflows/local/common/gene_call"
+include { ASSEMBLY } from "$projectDir/subworkflows/local/common/assembly"
+include { VIRAL_DETECTION } from "$projectDir/subworkflows/local/virus/detection"
+include { GENE_CALL } from "$projectDir/subworkflows/local/common/gene_call"
 // include { ABUNDANCE as GENE_ABUNDANCE } from "$projectDir/subworkflows/local/common/abundance"
 
 // include { MSPMINER_MSPMINER } from "$projectDir/modules/local/mspminer"
@@ -8,9 +10,7 @@ include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
 
 // include { PROTEIN_ANNOTATION } from "$projectDir/subworkflows/local/common/protein_annotation"
 
-include { MEGAHIT } from "$projectDir/modules/local/megahit/main"
 
-include { VIRAL_DETECTION } from "$projectDir/subworkflows/local/virus/detection"
 include { VAMB_CONCATENATE_FASTA } from "$projectDir/modules/local/vamb/main"
 include { CLUSTER_SEQUENCES } from "$projectDir/subworkflows/local/common/clustering"
 include { ABUNDANCE } from "$projectDir/subworkflows/local/common/abundance"
@@ -36,13 +36,12 @@ workflow VIRAL_ANALYSIS {
 
     main:
 
-        MEGAHIT ( clean_reads )
+        ASSEMBLY ( clean_reads )
 
         genomad_db = Channel.fromPath("${params.genomad_db}", checkIfExists: true).first()
         checkv_db = Channel.fromPath("${params.checkv_db}", checkIfExists: true).first()
 
-
-        VIRAL_DETECTION ( MEGAHIT.out.contigs, genomad_db, checkv_db )
+        VIRAL_DETECTION ( ASSEMBLY.out.contigs, genomad_db, checkv_db )
 
         ch_catalog_input = VIRAL_DETECTION.out.sequences
                                 .map{ it -> it[1] }
@@ -55,8 +54,7 @@ workflow VIRAL_ANALYSIS {
 
         ABUNDANCE ( 'votus', clean_reads, CLUSTER_SEQUENCES.out.clustered )
 
-
-        // GENE_CALL ( clean_reads )
+        GENE_CALL ( CLUSTER_SEQUENCES.out.clustered )
 
         // GENE_ABUNDANCE ("label", clean_reads, GENE_CALL.out.genes )
 
@@ -75,13 +73,14 @@ workflow VIRAL_ANALYSIS {
         //                 .mix(TRANSLATE_DNA2PROT.out.versions)
         //                 .mix(PROTEIN_ANNOTATION.out.versions)
 
-        ch_versions = MEGAHIT.out.versions.first()
+        ch_versions = ASSEMBLY.out.versions
                         .mix(VIRAL_DETECTION.out.versions)
-                        .mix(VAMB_CONCATENATE_FASTA.out.versions)
-                        .mix(CLUSTER_SEQUENCES.out.versions)
-                        .mix(ABUNDANCE.out.versions)
+        //                 .mix(VAMB_CONCATENATE_FASTA.out.versions)
+        //                 .mix(CLUSTER_SEQUENCES.out.versions)
+        //                 .mix(ABUNDANCE.out.versions)
 
     emit:
 
         versions = ch_versions
+        // versions = []
 }
