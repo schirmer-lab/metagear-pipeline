@@ -1,5 +1,5 @@
 process SEQTK_SUBSEQ {
-    tag "$sequences"
+    tag "$meta.id"
     label 'process_single'
 
     conda "bioconda::seqtk=1.4"
