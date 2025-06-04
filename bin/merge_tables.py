@@ -57,8 +57,9 @@ def rename_sequence(sequence_name):
 )
 @click.option(
     "--provirus-checkv",
-    required=True,
-    type=click.Path(exists=True),
+    required=False,
+    type=click.Path(exists=False),
+    default=None,
     help="Path to the provirus CheckV quality_summary.tsv file.",
 )
 @click.option(
@@ -69,8 +70,9 @@ def rename_sequence(sequence_name):
 )
 @click.option(
     "--provirus-genomad",
-    required=True,
-    type=click.Path(exists=True),
+    required=False,
+    type=click.Path(exists=False),
+    default=None,
     help="Path to the provirus Genomad summary TSV file.",
 )
 @click.option(
@@ -119,42 +121,36 @@ def main(
     ictv_df = pd.read_csv(ictv_taxonomy, sep="\t")
 
     # Load CheckV tables
+    checkv_cols = [
+        "contig_id",
+        "contig_length",
+        "provirus",
+        "proviral_length",
+        "gene_count",
+        "viral_genes",
+        "host_genes",
+        "checkv_quality",
+        "miuvig_quality",
+        "completeness",
+        "completeness_method",
+        "kmer_freq",
+    ]
+
     df_virus_CHECKV = pd.read_csv(
         viral_checkv,
         sep="\t",
-        usecols=[
-            "contig_id",
-            "contig_length",
-            "provirus",
-            "proviral_length",
-            "gene_count",
-            "viral_genes",
-            "host_genes",
-            "checkv_quality",
-            "miuvig_quality",
-            "completeness",
-            "completeness_method",
-            "kmer_freq",
-        ],
+        usecols=checkv_cols,
     )
-    df_provirus_CHECKV = pd.read_csv(
-        provirus_checkv,
-        sep="\t",
-        usecols=[
-            "contig_id",
-            "contig_length",
-            "provirus",
-            "proviral_length",
-            "gene_count",
-            "viral_genes",
-            "host_genes",
-            "checkv_quality",
-            "miuvig_quality",
-            "completeness",
-            "completeness_method",
-            "kmer_freq",
-        ],
-    )
+
+    if provirus_checkv and os.path.exists(provirus_checkv) and os.path.getsize(provirus_checkv) > 0:
+        df_provirus_CHECKV = pd.read_csv(
+            provirus_checkv,
+            sep="\t",
+            usecols=checkv_cols,
+        )
+    else:
+        click.echo("Provirus CheckV file missing or empty. Continuing without it.")
+        df_provirus_CHECKV = pd.DataFrame(columns=checkv_cols)
 
     # Filter out provirus lines from virus CHECKV
     df_virus_CHECKV = df_virus_CHECKV[df_virus_CHECKV["provirus"] != "Yes"]
@@ -165,36 +161,33 @@ def main(
     )
 
     # Load Genomad tables
+    genomad_cols = [
+        "seq_name",
+        "topology",
+        "n_genes",
+        "genetic_code",
+        "virus_score",
+        "n_hallmarks",
+        "marker_enrichment",
+        "taxonomy",
+        "coordinates",
+    ]
+
     df_virus_GENOMAD = pd.read_csv(
         viral_genomad,
         sep="\t",
-        usecols=[
-            "seq_name",
-            "topology",
-            "n_genes",
-            "genetic_code",
-            "virus_score",
-            "n_hallmarks",
-            "marker_enrichment",
-            "taxonomy",
-            "coordinates",
-        ],
+        usecols=genomad_cols,
     )
-    df_provirus_GENOMAD = pd.read_csv(
-        provirus_genomad,
-        sep="\t",
-        usecols=[
-            "seq_name",
-            "topology",
-            "n_genes",
-            "genetic_code",
-            "virus_score",
-            "n_hallmarks",
-            "marker_enrichment",
-            "taxonomy",
-            "coordinates",
-        ],
-    )
+
+    if provirus_genomad and os.path.exists(provirus_genomad) and os.path.getsize(provirus_genomad) > 0:
+        df_provirus_GENOMAD = pd.read_csv(
+            provirus_genomad,
+            sep="\t",
+            usecols=genomad_cols,
+        )
+    else:
+        click.echo("Provirus Genomad file missing or empty. Continuing without it.")
+        df_provirus_GENOMAD = pd.DataFrame(columns=genomad_cols)
 
     # Merge virus and provirus Genomad DataFrames
     genomad_merged_df = pd.concat(
