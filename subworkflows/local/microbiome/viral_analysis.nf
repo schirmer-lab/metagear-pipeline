@@ -11,6 +11,9 @@ include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
 include { MEGAHIT } from "$projectDir/modules/local/megahit/main"
 
 include { VIRAL_DETECTION } from "$projectDir/subworkflows/local/virus/detection"
+include { VAMB_CONCATENATE_FASTA } from "$projectDir/modules/local/vamb/main"
+include { CLUSTER_SEQUENCES } from "$projectDir/subworkflows/local/common/clustering"
+include { ABUNDANCE } from "$projectDir/subworkflows/local/common/abundance"
 
 
 workflow VIRAL_ANALYSIS_INIT {
@@ -41,6 +44,16 @@ workflow VIRAL_ANALYSIS {
 
         VIRAL_DETECTION ( MEGAHIT.out.contigs, genomad_db, checkv_db )
 
+        ch_catalog_input = VIRAL_DETECTION.out.sequences
+                                .map{ it -> it[1] }
+                                .collect()
+                                .map{ seqs -> tuple([id: 'votus'], seqs) }
+
+        VAMB_CONCATENATE_FASTA ( ch_catalog_input )
+
+        CLUSTER_SEQUENCES ( VAMB_CONCATENATE_FASTA.out.catalog, 'mmseqs2' )
+
+        ABUNDANCE ( 'votus', clean_reads, CLUSTER_SEQUENCES.out.clustered )
 
 
         // GENE_CALL ( clean_reads )
@@ -62,7 +75,11 @@ workflow VIRAL_ANALYSIS {
         //                 .mix(TRANSLATE_DNA2PROT.out.versions)
         //                 .mix(PROTEIN_ANNOTATION.out.versions)
 
-        ch_versions = Channel.empty()
+        ch_versions = MEGAHIT.out.versions.first()
+                        .mix(VIRAL_DETECTION.out.versions)
+                        .mix(VAMB_CONCATENATE_FASTA.out.versions)
+                        .mix(CLUSTER_SEQUENCES.out.versions)
+                        .mix(ABUNDANCE.out.versions)
 
     emit:
 
