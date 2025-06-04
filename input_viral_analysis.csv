@@ -1,3 +1,0 @@
-sample,fastq_1,fastq_2
-F-210,/nfs/data/cohorts/internal/kch_pilot/clean_reads/vmx/F-210-V_paired_1.fastq.gz,/nfs/data/cohorts/internal/kch_pilot/clean_reads/vmx/F-210-V_paired_2.fastq.gz
-S-072,/nfs/data/cohorts/internal/kch_pilot/clean_reads/vmx/S-072-V_paired_1.fastq.gz,/nfs/data/cohorts/internal/kch_pilot/clean_reads/vmx/S-072-V_paired_2.fastq.gz

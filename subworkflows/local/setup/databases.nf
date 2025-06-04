@@ -64,7 +64,7 @@ workflow DATABASES {
                                 .concat( kneaddata.database )
                                 .concat( ch_genomad_database )
                                 .concat( ch_checkv_database )
-        
+
         ch_databases_data_and_destination = ch_databases_data.join( ch_database_destinations, by: 0 )
                                                 .map { [ [id: it[0]], it[1], it[2] ] }
 

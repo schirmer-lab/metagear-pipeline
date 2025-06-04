@@ -1,4 +1,4 @@
-process CHECKV_ADAPT_OUTPUT {    
+process CHECKV_ADAPT_OUTPUT {
     tag "$meta.id"
     label 'process_low'
 
