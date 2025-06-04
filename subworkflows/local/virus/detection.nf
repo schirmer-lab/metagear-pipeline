@@ -20,15 +20,19 @@ workflow VIRAL_DETECTION {
 
         // 1. Initial geNomad pass
         GENOMAD_PASS1 ( contigs, genomad_db )
-        ch_pass1_viruses = GENOMAD_PASS1.out.virus_fasta.filter { file -> file.size() > 0 }
+        ch_pass1_viruses = GENOMAD_PASS1.out.virus_fasta.filter { meta, fna -> fna.toFile().length() > 0 }
 
         // 2. CheckV on viruses from geNomad
         CHECKV_PASS1 (ch_pass1_viruses, checkv_db)
-        ch_pass1_proviruses = CHECKV_PASS1.out.proviruses.filter { file -> file.size() > 0 }
-
+        ch_pass1_proviruses = CHECKV_PASS1.out.proviruses.filter { meta, fna -> fna.toFile().length() > 0 }
+    
         // 3. Second geNomad pass on trimmed provirus
         GENOMAD_PASS2( ch_pass1_proviruses, genomad_db )
-        ch_pass2_viruses = GENOMAD_PASS2.out.virus_fasta.filter { file -> file.size() > 0 }
+        // ch_pass2_viruses = GENOMAD_PASS2.out.virus_fasta.filter { meta, fna -> fna.toFile().length() > 0 }
+        ch_pass2_viruses = GENOMAD_PASS2.out.virus_fasta.filter { meta, gz ->
+                                new java.util.zip.GZIPInputStream(gz.toFile().newInputStream())
+                                    .withCloseable { it.read() != -1 }
+                            }
 
         // 4. Final CheckV on non-empty geNomad2-detected viral contigs
         checkv2 = CHECKV_PASS2 ( ch_pass2_viruses, checkv_db )

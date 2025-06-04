@@ -1,7 +1,7 @@
 include {BWA_INDEX} from "$projectDir/modules/nf-core/bwa/index"
 
 include { COVERM_MAKE } from "$projectDir/modules/local/coverm/make"
-include { COVERM_CONTIG_BATCH; COVERM_CONTIG_BATCH_MERGE as COVERM_BATCH_MERGE_COUNT; COVERM_CONTIG_BATCH_MERGE as COVERM_BATCH_MERGE_RPKM } from "$projectDir/modules/local/coverm/contig"
+include { COVERM_CONTIG_BATCH; COVERM_CONTIG_BATCH_MERGE as COVERM_BATCH_MERGE_COUNT; COVERM_CONTIG_BATCH_MERGE as COVERM_BATCH_MERGE_RPKM; COVERM_CONTIG_BATCH_MERGE as COVERM_BATCH_MERGE_TPM } from "$projectDir/modules/local/coverm/contig"
 
 
 workflow ABUNDANCE {
@@ -33,6 +33,9 @@ workflow ABUNDANCE {
 
         ch_coverm_contig_merge_rpkm = COVERM_CONTIG_BATCH.out.abundance_rpkm.map { it -> tuple( [id: it[0].id + '_rpkm'], it[1] ) }
         COVERM_BATCH_MERGE_RPKM ( ch_coverm_contig_merge_rpkm)
+
+        ch_coverm_contig_merge_tpm = COVERM_CONTIG_BATCH.out.abundance_tpm.map { it -> tuple( [id: it[0].id + '_tpm'], it[1] ) }
+        COVERM_BATCH_MERGE_TPM ( ch_coverm_contig_merge_tpm)
 
         // summary channel versions
         ch_versions = BWA_INDEX.out.versions

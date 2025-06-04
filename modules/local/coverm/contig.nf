@@ -31,14 +31,8 @@ process COVERM_CONTIG {
     coverm contig --methods trimmed_mean --bam-files $bams -t $task.cpus $args2 1> ${prefix}.abundance_trimmed_mean.tsv 2> log_trimmed_mean.txt
     sed -i '1 s/ Trimmed Mean//g' ${prefix}.abundance_trimmed_mean.tsv
 
-    #coverm contig --methods trimmed_mean --bam-files $bams -t $task.cpus 1> ${prefix}.abundance_trimmed_mean_unfiltered.tsv 2> log_trimmed_mean_unfiltered.txt
-    #sed -i '1 s/ Trimmed Mean//g' ${prefix}.abundance_trimmed_mean_unfiltered.tsv
-
     coverm contig --methods rpkm --bam-files $bams -t $task.cpus $args2 1> ${prefix}.abundance_rpkm.tsv 2> log_rpkm.txt
     sed -i '1 s/ RPKM//g' ${prefix}.abundance_rpkm.tsv
-
-    #coverm contig --methods rpkm --bam-files $bams -t $task.cpus 1> ${prefix}.abundance_rpkm_unfiltered.tsv 2> log_rpkm_unfiltered.txt
-    #sed -i '1 s/ RPKM//g' ${prefix}.abundance_rpkm_unfiltered.tsv
 
     coverm contig --methods tpm --bam-files $bams -t $task.cpus $args2 1> ${prefix}.abundance_tpm.tsv 2> log_tpm.txt
     sed -i '1 s/ TPM//g' ${prefix}.abundance_tpm.tsv
@@ -65,6 +59,7 @@ process COVERM_CONTIG_BATCH {
     output:
     tuple val(meta), path("*.abundance_count.tsv"), emit: abundance_count
     tuple val(meta), path("*.abundance_rpkm.tsv"), emit: abundance_rpkm
+    tuple val(meta), path("*.abundance_tpm.tsv"), emit: abundance_tpm
     path("versions.yml"), emit: versions
 
     when:
@@ -89,6 +84,9 @@ process COVERM_CONTIG_BATCH {
 
         coverm contig --methods rpkm --bam-files \$batch_files -t $task.cpus $args2 1> \${batch_prefix}.abundance_rpkm.tsv 2> \${batch_prefix}_log_rpkm.txt
         sed -i '1 s/ RPKM//g' \${batch_prefix}.abundance_rpkm.tsv
+
+        coverm contig --methods tpm --bam-files \$batch_files -t $task.cpus $args2 1> \${batch_prefix}.abundance_tpm.tsv 2> \${batch_prefix}_log_tpm.txt
+        sed -i '1 s/ TPM//g' \${batch_prefix}.abundance_tpm.tsv
 
     done
 
