@@ -84,14 +84,14 @@ def rename_sequence(sequence_name):
     type=int,
     default=1,
     show_default=True,
-    help="Minimum number of viral genes for filtering."
+    help="Minimum number of viral genes for filtering.",
 )
 @click.option(
     "--host-viral-genes-ratio",
     type=int,
     default=1,
     show_default=True,
-    help="Maximum ratio of host to viral genes for filtering."
+    help="Maximum ratio of host to viral genes for filtering.",
 )
 @click.option(
     "--output-file",
@@ -264,12 +264,17 @@ def main(
 
     # Apply filtering based on viral_genes and host/viral ratio
     # Ensure numeric types for filtering
-    merged_df["viral_genes"] = pd.to_numeric(merged_df["viral_genes"], errors="coerce").fillna(0).astype(int)
-    merged_df["host_genes"] = pd.to_numeric(merged_df["host_genes"], errors="coerce").fillna(0).astype(int)
+    merged_df["viral_genes"] = (
+        pd.to_numeric(merged_df["viral_genes"], errors="coerce").fillna(0).astype(int)
+    )
+    merged_df["host_genes"] = (
+        pd.to_numeric(merged_df["host_genes"], errors="coerce").fillna(0).astype(int)
+    )
 
     filtered_df = merged_df.loc[merged_df["viral_genes"] >= viral_min_genes]
     filtered_df = filtered_df.loc[
-        (filtered_df["host_genes"] / filtered_df["viral_genes"]) <= host_viral_genes_ratio
+        (filtered_df["host_genes"] / filtered_df["viral_genes"])
+        <= host_viral_genes_ratio
     ]
 
     # Construct filtered output file name

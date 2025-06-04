@@ -1,5 +1,6 @@
 include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
 
+include { ASSEMBLY } from "$projectDir/subworkflows/local/common/assembly"
 include { GENE_CALL } from "$projectDir/subworkflows/local/common/gene_call"
 include { ABUNDANCE as GENE_ABUNDANCE } from "$projectDir/subworkflows/local/common/abundance"
 
@@ -28,7 +29,9 @@ workflow GENE_ANALYSIS {
 
     main:
 
-        GENE_CALL ( clean_reads )
+        ASSEMBLY ( clean_reads )
+
+        GENE_CALL ( ASSEMBLY.out.contigs )
 
         GENE_ABUNDANCE ("label", clean_reads, GENE_CALL.out.genes )
 
