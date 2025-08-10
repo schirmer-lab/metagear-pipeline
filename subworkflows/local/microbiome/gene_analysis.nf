@@ -30,9 +30,9 @@ workflow GENE_ANALYSIS {
 
         GENE_CALL ( clean_reads )
 
-        GENE_ABUNDANCE ("abundance_genes", clean_reads, GENE_CALL.out.genes )
+        GENE_ABUNDANCE ("gene_abundance", clean_reads, GENE_CALL.out.gene_catalog )
 
-        MSPMINER_MSPMINER ( GENE_ABUNDANCE.out.abundance_count )
+        MSPMINER_MSPMINER ( GENE_ABUNDANCE.out.count )
 
         // MSPMINER_MSPMINER.out.mspminer_main_table -> tuple val(meta), path("raw/all_msps.tsv")
         // GENE_CALL.out.genes -> tuple val(meta), path("*.{fa,fq}")
@@ -40,14 +40,14 @@ workflow GENE_ANALYSIS {
         // Needed: tuple val(meta), path(gene_catalog), path(all_msps)
         // POST_MSPMINER ( MSPMINER_MSPMINER.out.mspminer_main_table )
 
-        MSPMINER_MSPMINER.out.mspminer_main_table.view()
-        GENE_CALL.out.genes.view()
+        // MSPMINER_MSPMINER.out.mspminer_main_table.view()
+        // GENE_CALL.out.genes.view()
 
         // translate DNA to protein
-        TRANSLATE_DNA2PROT ( GENE_CALL.out.genes )
-        ch_cdhit_input = TRANSLATE_DNA2PROT.out.prot_fasta_output.map(it -> [[id: "cohort"],it[1]])
+        TRANSLATE_DNA2PROT ( GENE_CALL.out.gene_catalog )
+        ch_protein_annotation_input = TRANSLATE_DNA2PROT.out.prot_fasta_output.map(it -> [[id: "protein_catalog"],it[1]])
 
-        PROTEIN_ANNOTATION ( ch_cdhit_input )
+        PROTEIN_ANNOTATION ( ch_protein_annotation_input )
 
         // summary channel version
         ch_versions = GENE_CALL.out.versions

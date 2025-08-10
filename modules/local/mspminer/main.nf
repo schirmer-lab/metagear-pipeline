@@ -1,4 +1,5 @@
 process MSPMINER_MSPMINER{
+    tag "$meta.id"
     // to review: (1) label? (2) mspminer version hardcoded
     label 'process_medium'
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
@@ -56,8 +57,7 @@ process MSPMINER_MSPMINER{
 
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
-            mspminer:1.1.3
+            mspminer: 1.1.3
         END_VERSIONS
-
         """
 }

@@ -32,25 +32,24 @@ workflow PROTEIN_ANNOTATION {
             return tuple(newMeta, path)
         }
 
-        // split protein sequences into 1000 fasta files
+        // split protein sequences into chunks with n sequences (see config, default 5K)
         SEQKIT_SPLIT2 ( ch_split )
 
-        // Take the one emission from SEQKIT_SPLIT2.out.reads, which is [ metaMap, List<File> ],
-        // and emit [ [id: chunkName], File ] for each .faa.gz in that List.
         SEQKIT_SPLIT2.out.reads
-            .flatMap { metaMap, gzFiles ->
-                gzFiles.collect { file ->
-                    // strip off “.faa.gz” to get a clean chunk ID
-                    def chunkId = file.name.replaceFirst(/\.faa\.gz$/, '')
-                    tuple([ id: chunkId ], file)
+            .flatMap { meta, gz ->
+                def files = (gz instanceof java.nio.file.Path) ? [gz] : (gz as List)
+                files.collect { f ->
+                    def fn = f.getFileName().toString()
+                    def chunkId = fn.replaceFirst(/\.faa\.gz$/, '')
+                    tuple([ id: "${chunkId}" ], f)   // keep full path as Path
                 }
             }
             .set { ch_interproscan_input }
 
-        INTERPROSCAN(ch_interproscan_input, "tsv")
+        INTERPROSCAN ( ch_interproscan_input, "tsv" )
 
         // // create a new channel to collect all interproscan files
-        ch_merged_interproscan = INTERPROSCAN.out.tsv.map(it -> it[1]).collect().map(it -> [ ["id": "merged_interproscan_ann"], it])
+        ch_merged_interproscan = INTERPROSCAN.out.tsv.map( it -> it[1] ).collect().map(it -> [ ["id": "merged_interproscan_ann"], it])
 
         FUNCTIONALGROUP_ANNOTATION ( ch_merged_interproscan )
 
