@@ -24,6 +24,8 @@ process MEGAHIT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     if (meta.single_end) {
         """
+        rm -rf megahit_out
+
         megahit \\
             -r ${reads} \\
             -t $task.cpus \\
@@ -48,6 +50,8 @@ process MEGAHIT {
         """
     } else {
         """
+        rm -rf megahit_out
+
         megahit \\
             -1 ${reads[0]} \\
             -2 ${reads[1]} \\

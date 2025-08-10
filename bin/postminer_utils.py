@@ -38,7 +38,7 @@ def _load_msp_gc_id(all_msps_fp,sel_category={"core","accessory","shared_core","
     df = pd.read_csv(all_msps_fp, sep='\t', usecols=["msp_name", "gene_category", "gene_id", "gene_name"])
 
     # Filter the selected category
-    sel_df = df[df["gene_category"].isin(sel_category)] 
+    sel_df = df[df["gene_category"].isin(sel_category)]
 
     # Group by msp_name and aggregate gene_id into lists
     gene_dict = sel_df.groupby("msp_name")["gene_name"].apply(list).to_dict()
@@ -63,7 +63,7 @@ def _calculate_sample_means(data_file, id_list, output_file=None, sep='\t',chunk
     target_ids = set(id_list)
 
     # Use chunks to handle large files
-    
+
     chunks = pd.read_csv(data_file, sep=sep, index_col=0, chunksize=chunk_size)
 
     mean_sum = None
@@ -170,19 +170,19 @@ def get_msp_abd(rpkm_fp, all_msps_fp, save_fp, method):
     # check if input method is valid
     if method not in {"median","mean"}:
         print("invalid method: {0}, please select from [median or mean]".format(method))
-        return 
-    
+        return
+
     core_gene_dic = _load_msp_gc_id(all_msps_fp,sel_category={"core"})
     msp_id_lst = list(core_gene_dic.keys())
     msp_id_lst.sort()
 
     merged_abd = pd.DataFrame()
-    for ii, cur_msp_id in enumerate(msp_id_lst): 
+    for ii, cur_msp_id in enumerate(msp_id_lst):
         if ii%100==0:
             print(ii,round(100*ii/len(msp_id_lst)))
         # cur_abd: a Series or single-column DataFrame with sample IDs as index
         if method=="median":
-            cur_abd = calculate_sample_medians(rpkm_fp, core_gene_dic[cur_msp_id])
+            cur_abd = _calculate_sample_medians(rpkm_fp, core_gene_dic[cur_msp_id])
         elif method=="mean":
             cur_abd = _calculate_sample_means(rpkm_fp, core_gene_dic[cur_msp_id])
         else:
@@ -197,7 +197,7 @@ def get_msp_abd(rpkm_fp, all_msps_fp, save_fp, method):
         # Concatenate along columns (axis=1)
         merged_abd = pd.concat([merged_abd, cur_abd], axis=1)
 
-   
+
     rotated_merged_abd = merged_abd.T
 
     # Save to file, including row and column names
@@ -213,15 +213,15 @@ def get_msp_abd(rpkm_fp, all_msps_fp, save_fp, method):
 @click.option('--msp-pangenome-dir', default=False, type=str, help="folder to save the output pangenome files [msp_id+.pangenome.fasta]")
 def get_msp_pangenome(gene_catalog_fp, all_msps_fp, msp_pangenome_dir):
     all_gene_dic = _load_msp_gc_id(all_msps_fp,sel_category={"core","accessory","shared_core","shared_accessory"})
-    msp_id_lst = list(core_gene_dic.keys())
+    msp_id_lst = list(all_gene_dic.keys())
     msp_id_lst.sort()
     for ii,cur_msp in enumerate(msp_id_lst):
         if ii%100==0:
             print("{}%% done".format(round(100.*ii/len(msp_id_lst))))
         cur_sfp = os.path.join(msp_pangenome_dir,cur_msp+".pangenome.fasta")
         cur_gc_lst = all_gene_dic[cur_msp]
-        extract_fasta_by_ids_fast(gc_seq_fp, cur_gc_lst, cur_sfp)
-    return  
+        _extract_fasta_by_ids(gene_catalog_fp, cur_gc_lst, cur_sfp)
+    return
 
 
 
@@ -232,4 +232,4 @@ if __name__ == '__main__':
     # msp_abd_sfp = "/nfs/arxiv/shen/CLD_KCH_2025/analysis/gene_profile/results/mspminer/msp_abundance.median.RPKM.txt"
     # gc_seq_fp = "/nfs/arxiv/shen/CLD_KCH_2025/analysis/gene_call/results/cdhit/merged_genes.nr_95_90.fa"
     # msp_pangenome_dir = "/nfs/arxiv/shen/CLD_KCH_2025/analysis/gene_profile/results/mspminer/pangenome"
-	
+

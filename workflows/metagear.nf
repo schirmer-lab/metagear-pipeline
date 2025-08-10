@@ -6,8 +6,6 @@ include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
 
 include { QUALITY_CONTROL_INIT; QUALITY_CONTROL } from "$projectDir/subworkflows/local/common/quality_control"
 include { MICROBIAL_PROFILES_INIT; MICROBIAL_PROFILES  } from "$projectDir/subworkflows/local/microbiome/microbial_profiles"
-// include { GENE_CALL_INIT; GENE_CALL } from "$projectDir/subworkflows/local/common/gene_call"
-// include { PROTEIN_PROFILE_INIT; PROTEIN_PROFILE } from "$projectDir/subworkflows/local/common/protein_annotation"
 
 include { GENE_ANALYSIS_INIT; GENE_ANALYSIS } from "$projectDir/subworkflows/local/microbiome/gene_analysis"
 
