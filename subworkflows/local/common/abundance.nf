@@ -64,7 +64,7 @@ workflow ABUNDANCE {
     emit:
         catalog_index = BWA_INDEX.out.index
         alignments = COVERM_MAKE.out.alignments
-    tpm = ch_tpm
+        tpm = ch_tpm
         rpkm = ch_rpkm
         count = ch_count
         versions = ch_versions

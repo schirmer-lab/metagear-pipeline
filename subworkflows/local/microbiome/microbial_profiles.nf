@@ -72,6 +72,7 @@ workflow MICROBIAL_PROFILES {
                         .mix( HUMANN_FUNCTION.out.versions.first() )
 
     emit:
+        // TODO: implement emission of all relevant channels
         versions = ch_versions
 
 }

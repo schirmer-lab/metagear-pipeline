@@ -2,16 +2,13 @@ process GTDBTK_CLASSIFYWF {
     tag "${meta.id}"
     label 'process_high_memory'
 
-    // conda "${moduleDir}/environment.yml"
-    // container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-    //     'https://depot.galaxyproject.org/singularity/gtdbtk:2.4.1--pyhdfd78af_1':
-    //     'biocontainers/gtdbtk:2.4.1--pyhdfd78af_1' }"
-    container 'biocontainers/gtdbtk:2.4.1--pyhdfd78af_1'
+    conda "${moduleDir}/environment.yml"
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/gtdbtk:2.3.0--pyhdfd78af_0':
+        'biocontainers/gtdbtk:2.4.1--pyhdfd78af_1' }"
 
     input:
-    tuple val(meta)   , path(input_genomes)
-    tuple val(meta), path(db)
-    path genome_dir
+    tuple val(meta), path(genome_dir), val(db)
     val use_pplacer_scratch_dir
     // path mash_db
 
@@ -33,17 +30,15 @@ process GTDBTK_CLASSIFYWF {
 
     script:
     def args            = task.ext.args ?: ''
-    def prefix          = task.ext.prefix ?: "${meta.id}"
+    prefix              = task.ext.prefix ?: "${meta.id}"
     def pplacer_scratch = use_pplacer_scratch_dir ? "--scratch_dir pplacer_tmp" : ""
     // def mash_mode       = mash_db ? "--mash_db ${mash_db}" : "--skip_ani_screen"
     def mash_mode       = "--skip_ani_screen"
     // ${task.cpus} to fix!
-    
-    // permission issue to fix!
-    // export GTDBTK_DATA_PATH="\$(find -L ${db} -name 'metadata' -type d -exec dirname {} \\;)" 
+
+    // export GTDBTK_DATA_PATH="\$(find -L ${db} -name 'metadata' -type d -exec dirname {} \\;)"
     """
-    echo  ${db}
-    export GTDBTK_DATA_PATH=${db}/metadata
+    export GTDBTK_DATA_PATH=${db}
     if [ "${pplacer_scratch}" != "" ] ; then
         mkdir pplacer_tmp
     fi
@@ -53,7 +48,8 @@ process GTDBTK_CLASSIFYWF {
         --genome_dir ${genome_dir} \\
         --prefix "${prefix}" \\
         --out_dir ${prefix} \\
-        --cpus 80 \\
+        --cpus $task.cpus \\
+        --extension fasta \\
         ${mash_mode} \\
         ${pplacer_scratch}
 

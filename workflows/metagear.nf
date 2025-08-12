@@ -47,7 +47,7 @@ workflow METAGEAR {
 
         if ( params.workflow == "gene_analysis" ) {
             init = GENE_ANALYSIS_INIT ( )
-            GENE_ANALYSIS ( init.validated_input )
+            GENE_ANALYSIS ( init.validated_input, init.gtdb_tk_db )
             ch_versions = GENE_ANALYSIS.out.versions
         }
 
