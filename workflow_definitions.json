@@ -40,8 +40,6 @@
           "parameters": [
             { "name": "input", "required": true, "description": "Input .csv file for gene analysis" },
             { "name": "contig_catalog", "required": false, "description": "Contigs catalog (if available)" },
-            { "name": "gene_catalog", "required": false, "description": "Gene catalog (if available)" },
-            { "name": "protein_catalog", "required": false, "description": "Protein catalog (if available)" },
             { "name": "metaphlan_profiles", "required": false, "description": "MetaPhlAn profiles (if available)" }
           ]
         }
