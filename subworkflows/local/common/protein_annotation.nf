@@ -4,9 +4,9 @@ include { FUNCTIONALGROUP_ANNOTATION } from "$projectDir/modules/local/metagear/
 
 workflow PROTEIN_ANNOTATION_INIT {
     main:
-        if (params.catalog) {ch_catalog = file(params.catalog)} else { exit 1, 'Input catalog file [fasta format with DNA sequences] not specified!' }
+        if (params.protein_catalog) {ch_catalog = file(params.protein_catalog)} else { exit 1, 'Input catalog file [fasta format with DNA sequences] not specified!' }
 
-        ch_catalog = Channel.fromPath("${params.catalog}", checkIfExists: true).first()
+        ch_catalog = Channel.fromPath("${params.protein_catalog}", checkIfExists: true).first()
             .map { it -> [ [id: "gene_catalog"], it] }
 
     emit:
