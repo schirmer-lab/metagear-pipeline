@@ -42,11 +42,13 @@ workflow GENE_CALL {
 
         ch_merged_genes = FILTER_PRODIGAL.out.filtered_fasta.map{ it -> it[1] }
                 .collect()
-                .map{ it -> [ [id: "merged_genes"], it ] }
+                .map{ it -> [ [id: "genes"], it ] }
 
         VAMB_CONCATENATE_FASTA ( ch_merged_genes )
 
-        CDHIT_CDHITEST ( VAMB_CONCATENATE_FASTA.out.catalog )
+        ch_input_catalog = VAMB_CONCATENATE_FASTA.out.catalog.map { it -> tuple([id: "gene_catalog"], it[1]) }
+
+        CDHIT_CDHITEST ( ch_input_catalog )
 
         ch_versions = MEGAHIT.out.versions.first()
                         .mix(PRODIGAL.out.versions.first())
@@ -57,5 +59,6 @@ workflow GENE_CALL {
 
     emit:
         contigs = MEGAHIT.out.contigs
+        gene_catalog = CDHIT_CDHITEST.out.fasta
         versions = ch_versions
 }

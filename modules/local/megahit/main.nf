@@ -12,7 +12,7 @@ process MEGAHIT {
 
     output:
     tuple val(meta), path("*.contigs.fa.gz"), emit: contigs
-    tuple val(meta), path("*.fastg")        , emit: graph
+    tuple val(meta), path("*.fastg.gz")        , emit: graph
     path "versions.yml"                     , emit: versions
 
     when:
@@ -24,6 +24,8 @@ process MEGAHIT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     if (meta.single_end) {
         """
+        rm -rf megahit_out
+
         megahit \\
             -r ${reads} \\
             -t $task.cpus \\
@@ -37,9 +39,9 @@ process MEGAHIT {
         KMER_NUM=\${KMER_SRT#*k}
 
         megahit_core contig2fastg \${KMER_NUM} megahit_out/intermediate_contigs/\${KMER_SRT}.contigs.fa > ${prefix}.\${KMER_SRT}.fastg
+        gzip ${prefix}.\${KMER_SRT}.fastg
 
-        gzip \\
-            megahit_out/intermediate_contigs/*.fa
+        gzip megahit_out/intermediate_contigs/*.fa
 
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
@@ -48,6 +50,8 @@ process MEGAHIT {
         """
     } else {
         """
+        rm -rf megahit_out
+
         megahit \\
             -1 ${reads[0]} \\
             -2 ${reads[1]} \\
@@ -62,9 +66,9 @@ process MEGAHIT {
         KMER_NUM=\${KMER_SRT#*k}
 
         megahit_core contig2fastg \${KMER_NUM} megahit_out/intermediate_contigs/\${KMER_SRT}.contigs.fa > ${prefix}.\${KMER_SRT}.fastg
+        gzip ${prefix}.\${KMER_SRT}.fastg
 
-        gzip \\
-            megahit_out/intermediate_contigs/*.fa
+        gzip megahit_out/intermediate_contigs/*.fa
 
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
