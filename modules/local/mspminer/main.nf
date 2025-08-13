@@ -1,4 +1,5 @@
 process MSPMINER_MSPMINER{
+    tag "$meta.id"
     // to review: (1) label? (2) mspminer version hardcoded
     label 'process_medium'
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
@@ -9,15 +10,19 @@ process MSPMINER_MSPMINER{
         tuple val(meta), path(count_fp)
 
     output:
-        tuple val(meta), path("raw"), emit: mspminer_result
-        tuple val(meta), path("raw/all_msps.tsv"), emit: mspminer_main_table
+        tuple val(meta), path("mspminer"), emit: mspminer_result
+        tuple val(meta), path("mspminer/all_msps.tsv"), emit: mspminer_main_table
         path "versions.yml", emit: versions
 
     script:
         def args = task.ext.args ?: ''
-        def mspminer_result_dir = "raw"
-
+        def mspminer_result_dir = "mspminer"
         """
+
+        export OMP_NUM_THREADS=${task.cpus}
+        export OPENBLAS_NUM_THREADS=1
+        export MKL_NUM_THREADS=1
+
         echo RUNNING MSPMINER $meta.id
         mkdir -p ${mspminer_result_dir}
         echo "[input]
@@ -56,8 +61,7 @@ process MSPMINER_MSPMINER{
 
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
-            mspminer:1.1.3
+            mspminer: 1.1.3
         END_VERSIONS
-
         """
 }

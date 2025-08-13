@@ -103,7 +103,7 @@ process COVERM_CONTIG_BATCH {
 }
 
 
-process COVERM_CONTIG_BATCH_MERGE {
+process COVERM_CONTIG_MERGE {
     tag "$meta.id"
     label 'process_medium'
 
@@ -115,7 +115,7 @@ process COVERM_CONTIG_BATCH_MERGE {
     tuple val(meta), path(tsv_files)
 
     output:
-    tuple val(meta), path("*_merged.tsv"), emit: abundance_count
+    tuple val(meta), path("*_merged.tsv"), emit: abundance_merged
     path("versions.yml"), emit: versions
 
     when:

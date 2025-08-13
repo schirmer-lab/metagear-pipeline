@@ -11,13 +11,14 @@ process FUNCTIONALGROUP_ANNOTATION {
     tuple val(meta), path(input_fp_lst)
 
     output:
-    path("FG_interproscan_Pfam.tsv"), emit: fg_ann_fp
+    path("*.FG_IPS_Pfam.tsv"), emit: fg_ann_fp
+    path("*.annotations.tsv"), emit: combined_annotations
     path "versions.yml", emit: versions
 
     script:
     def file_name = input_fp_lst.first().getName()
     def args = task.ext.args ?: ''
-
+    prefix = task.ext.prefix ?: "${meta.id}"
     // cat $input_fp_lst > interproscan_annotation_combined.tsv replaced into a better way
     """
     mkdir tmp_batches
@@ -29,9 +30,9 @@ process FUNCTIONALGROUP_ANNOTATION {
         tmp_fp=tmp_batches/batch_\${i}.tsv
         cat \$batch_files > \$tmp_fp
     done
-    cat tmp_batches/batch_*.tsv > interproscan_annotation_combined.tsv
+    cat tmp_batches/batch_*.tsv > ${prefix}.annotations.tsv
 
-    functional_group_annotation.py interproscan_annotation_combined.tsv FG_interproscan_Pfam.tsv
+    functional_group_annotation.py ${prefix}.annotations.tsv ${prefix}.FG_IPS_Pfam.tsv
     rm -rf tmp_batches # remove the temp folder after running
 
     cat <<-END_VERSIONS > versions.yml
