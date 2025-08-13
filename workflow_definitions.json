@@ -1,0 +1,57 @@
+{
+    "metagear": {
+        "workflows": {
+            "global_parameters": [
+                { "name": "outdir", "required": false, "default": "results", "description": "Output directory" },
+                { "name": "help", "required": false, "description": "Display help information" },
+                { "name": "debug", "required": false, "default": false, "description": "Enable debug mode" },
+                { "name": "config", "required": false, "description": "Custom configuration file" }
+            ],
+            "definitions": [
+                {
+                    "name": "download_databases",
+                    "description": "Install Databases (Kneaddata, MetaPhlAn, HUMAnN)",
+                    "parameters": []
+                },
+                {
+                    "name": "qc_dna",
+                    "description": "Quality Control for DNA",
+                    "parameters": [
+                        { "name": "input", "required": true, "description": "Input .csv file for quality control" }
+                    ]
+                },
+                {
+                    "name": "qc_rna",
+                    "description": "Quality Control for RNA",
+                    "parameters": [
+                        { "name": "input", "required": true, "description": "Input .csv file for quality control" }
+                    ]
+                },
+                {
+                    "name": "microbial_profiles",
+                    "description": "Get microbial profiles with MetaPhlAn and HUMAnN",
+                    "parameters": [
+                        { "name": "input", "required": true, "description": "Input .csv file for microbial profiles" }
+                    ]
+                },
+                {
+                    "name": "gene_analysis",
+                    "description": "Gene centric analysis workflow",
+                    "parameters": [
+                        { "name": "input", "required": true, "description": "Input .csv file for gene analysis" },
+                        {
+                            "name": "contig_catalog",
+                            "required": false,
+                            "description": "Contigs catalog (if available)"
+                        },
+                        {
+                            "name": "metaphlan_profiles",
+                            "required": false,
+                            "description": "MetaPhlAn profiles (if available)"
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}

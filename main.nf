@@ -57,8 +57,8 @@ workflow {
         //
         // WORKFLOW: Run main workflow
         //
-        SCHIRMERLAB ( )
-        SUMMARY ( SCHIRMERLAB.out.versions, SCHIRMERLAB.out.summary_data )
+        METAGEAR (  )
+        SUMMARY ( METAGEAR.out.versions, METAGEAR.out.summary_data )
 
         //
         // SUBWORKFLOW: Run completion tasks

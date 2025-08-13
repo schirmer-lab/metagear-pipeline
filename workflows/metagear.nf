@@ -5,9 +5,9 @@ include { SETUP } from "$projectDir/workflows/setup"
 include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
 
 include { QUALITY_CONTROL_INIT; QUALITY_CONTROL } from "$projectDir/subworkflows/local/common/quality_control"
-include { MICROBIAL_PROFILES_INIT; MICROBIAL_PROFILES  } from "$projectDir/subworkflows/local/microbiome/microbial_profiles"
-include { GENE_CALL_INIT; GENE_CALL } from "$projectDir/subworkflows/local/common/gene_call"
+include { MICROBIAL_PROFILES_INIT; MICROBIAL_PROFILES; METAPHLAN_PROFILES  } from "$projectDir/subworkflows/local/microbiome/microbial_profiles"
 
+include { GENE_ANALYSIS_INIT; GENE_ANALYSIS } from "$projectDir/subworkflows/local/microbiome/gene_analysis"
 
 /* --- RUN MAIN WORKFLOW --- */
 workflow METAGEAR {
@@ -45,12 +45,19 @@ workflow METAGEAR {
             ch_versions = MICROBIAL_PROFILES.out.versions
         }
 
-        // Gene Call
-        if ( params.workflow == "gene_call" ) {
-            init = GENE_CALL_INIT ( )
-            GENE_CALL ( init.validated_input )
-            ch_versions = GENE_CALL.out.versions
+        if ( params.workflow == "gene_analysis" ) {
+            init = GENE_ANALYSIS_INIT ( )
+
+            ch_metaphlan_profiles = Channel.empty()
+            if ( init.metaphlan_profiles ) {
+                METAPHLAN_PROFILES( init.validated_input, init.metaphlan_db )
+                ch_metaphlan_profiles = METAPHLAN_PROFILES.out.merged_profiles.map{ it[1] }
+            }
+
+            GENE_ANALYSIS ( init.validated_input, ch_metaphlan_profiles, init.gtdb_tk_db )
+            ch_versions = GENE_ANALYSIS.out.versions
         }
+
 
     emit:
         versions = ch_versions
