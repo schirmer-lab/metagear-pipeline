@@ -74,6 +74,7 @@ jobs:
       - name: Download the pipeline
         env:
           NXF_SINGULARITY_CACHEDIR: ./singularity_container_images
+          GITHUB_TOKEN: ${{ secrets.NF_CORE_BOT_AUTH_TOKEN }}
         run: |
           nf-core pipelines download ${{ needs.configure.outputs.REPO_LOWERCASE }} \
           --revision ${{ needs.configure.outputs.REPO_BRANCH }} \
