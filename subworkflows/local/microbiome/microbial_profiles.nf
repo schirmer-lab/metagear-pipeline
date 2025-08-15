@@ -72,6 +72,38 @@ workflow MICROBIAL_PROFILES {
                         .mix( HUMANN_FUNCTION.out.versions.first() )
 
     emit:
+        // TODO: implement emission of all relevant channels
+        merged_profiles = METAPHLAN_MERGE_PROFILES.out.merged_profiles
         versions = ch_versions
 
 }
+
+
+/* --- METAPHLAN-ONLY WORKFLOW --- */
+workflow METAPHLAN_PROFILES {
+
+    take:
+        validated_input // channel: validated_input from INPUT_CHECK or Upstream workflow
+        metaphlan_db
+
+    main:
+
+        ch_versions = Channel.empty()
+
+        METAPHLAN_METAPHLAN ( validated_input, metaphlan_db )
+
+        ch_all_microbial_profiles = METAPHLAN_METAPHLAN.out.microbial_profile
+                                    .map { [ [id: 'microbial'], it[1] ] }
+                                    .groupTuple(by: 0)
+
+        METAPHLAN_MERGE_PROFILES( ch_all_microbial_profiles )
+
+        ch_versions = METAPHLAN_METAPHLAN.out.versions.first()
+                        .mix( METAPHLAN_MERGE_PROFILES.out.versions.first() )
+
+    emit:
+        merged_profiles = METAPHLAN_MERGE_PROFILES.out.merged_profiles
+        versions = ch_versions
+
+}
+
