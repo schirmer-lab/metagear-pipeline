@@ -9,8 +9,6 @@ include { PROTEIN_ANNOTATION } from "$projectDir/subworkflows/local/common/prote
 
 include { MSP } from "$projectDir/subworkflows/local/pangenome/msp"
 
-// include { GTDBTK_CLASSIFYWF } from "$projectDir/modules/local/gtdbtk/classifywf"
-
 workflow GENE_ANALYSIS_INIT {
 
     main:
