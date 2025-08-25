@@ -1,5 +1,6 @@
 include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
 
+include { ASSEMBLY } from "$projectDir/subworkflows/local/common/assembly"
 include { GENE_CALL } from "$projectDir/subworkflows/local/common/gene_call"
 include { PROTEIN_CALL } from "$projectDir/subworkflows/local/common/protein_call"
 
@@ -8,8 +9,6 @@ include { ABUNDANCE as GENE_ABUNDANCE } from "$projectDir/subworkflows/local/com
 include { PROTEIN_ANNOTATION } from "$projectDir/subworkflows/local/common/protein_annotation"
 
 include { MSP } from "$projectDir/subworkflows/local/pangenome/msp"
-
-// include { GTDBTK_CLASSIFYWF } from "$projectDir/modules/local/gtdbtk/classifywf"
 
 workflow GENE_ANALYSIS_INIT {
 
@@ -46,11 +45,13 @@ workflow GENE_ANALYSIS {
 
     main:
 
-        GENE_CALL ( clean_reads )
+        ASSEMBLY ( clean_reads )
+
+        GENE_CALL ( "gene_catalog", ASSEMBLY.out.contigs )
 
         GENE_ABUNDANCE ("gene_abundance", clean_reads, GENE_CALL.out.gene_catalog )
 
-        PROTEIN_CALL ( GENE_CALL.out.gene_catalog )
+        PROTEIN_CALL ( "protein_catalog", GENE_CALL.out.gene_catalog )
 
         PROTEIN_ANNOTATION ( PROTEIN_CALL.out.protein_catalog )
 

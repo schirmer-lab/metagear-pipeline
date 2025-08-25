@@ -3,7 +3,7 @@
 include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
 
 include { METAPHLAN_METAPHLAN } from "$projectDir/modules/local/metaphlan4.1/metaphlan/main"
-include { METAPHLAN_MERGE_PROFILES } from "$projectDir/modules/local/metaphlan4.1/metaphlan/main"
+include { METAPHLAN_MERGE_PROFILES as MERGE_MICROBIAL_PROFILES; METAPHLAN_MERGE_PROFILES as MERGE_VIRAL_PROFILES } from "$projectDir/modules/local/metaphlan4.1/metaphlan/main"
 
 include { HUMANN_FUNCTION; HUMANN_MERGE_PROFILES } from "$projectDir/modules/local/humann3/main"
 
@@ -51,7 +51,15 @@ workflow MICROBIAL_PROFILES {
                                     .map { [ [id: 'microbial'], it[1] ] }
                                     .groupTuple(by: 0)
 
-        METAPHLAN_MERGE_PROFILES( ch_all_microbial_profiles )
+        MERGE_MICROBIAL_PROFILES( ch_all_microbial_profiles )
+
+        if ( params.include_viral ) {
+            ch_all_viral_profiles = METAPHLAN_METAPHLAN.out.viral_profile
+                                    .map { [ [id: 'viral'], it[1] ] }
+                                    .groupTuple(by: 0)
+
+            MERGE_VIRAL_PROFILES( ch_all_viral_profiles )
+        } 
 
         ch_reads_profiles = validated_input.join (METAPHLAN_METAPHLAN.out.microbial_profile, by: 0)
 
@@ -68,12 +76,12 @@ workflow MICROBIAL_PROFILES {
         HUMANN_MERGE_PROFILES ( ch_all_gene_families.concat( ch_all_path_abundances ) )
 
         ch_versions = METAPHLAN_METAPHLAN.out.versions.first()
-                        .mix( METAPHLAN_MERGE_PROFILES.out.versions.first() )
+                        .mix( MERGE_MICROBIAL_PROFILES.out.versions.first() )
                         .mix( HUMANN_FUNCTION.out.versions.first() )
 
     emit:
         // TODO: implement emission of all relevant channels
-        merged_profiles = METAPHLAN_MERGE_PROFILES.out.merged_profiles
+        merged_profiles = MERGE_MICROBIAL_PROFILES.out.merged_profiles
         versions = ch_versions
 
 }
@@ -96,13 +104,13 @@ workflow METAPHLAN_PROFILES {
                                     .map { [ [id: 'microbial'], it[1] ] }
                                     .groupTuple(by: 0)
 
-        METAPHLAN_MERGE_PROFILES( ch_all_microbial_profiles )
+        MERGE_MICROBIAL_PROFILES( ch_all_microbial_profiles )
 
         ch_versions = METAPHLAN_METAPHLAN.out.versions.first()
-                        .mix( METAPHLAN_MERGE_PROFILES.out.versions.first() )
+                        .mix( MERGE_MICROBIAL_PROFILES.out.versions.first() )
 
     emit:
-        merged_profiles = METAPHLAN_MERGE_PROFILES.out.merged_profiles
+        merged_profiles = MERGE_MICROBIAL_PROFILES.out.merged_profiles
         versions = ch_versions
 
 }

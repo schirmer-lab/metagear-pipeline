@@ -2,7 +2,6 @@
 
 include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
 
-include { MEGAHIT } from "$projectDir/modules/local/megahit/main"
 include { PRODIGAL } from "$projectDir/modules/nf-core/prodigal"
 include { FILTER_PRODIGAL } from "$projectDir/modules/local/metagear/utils/filter_prodigal"
 
@@ -28,37 +27,46 @@ workflow GENE_CALL_INIT {
 workflow GENE_CALL {
 
     take:
-        ch_clean_reads // meta, reads
+        label // val (label)
+        sequences // tuple (meta, reads)
 
     main:
 
-        MEGAHIT (
-            ch_clean_reads.map { meta, fastq -> [ meta, fastq ] }
-        )
+        // Check if pre-built gene catalog is provided
+        if ( params.gene_catalog && file(params.gene_catalog).exists() ) {
 
-        PRODIGAL ( MEGAHIT.out.contigs, "gff" )
+            // Use existing gene catalog
+            ch_gene_catalog = Channel.fromPath(params.gene_catalog)
+                .map { it -> tuple([id: label], it) }
 
-        FILTER_PRODIGAL ( PRODIGAL.out.nucleotide_fasta )
+            ch_versions = Channel.empty()
 
-        ch_merged_genes = FILTER_PRODIGAL.out.filtered_fasta.map{ it -> it[1] }
-                .collect()
-                .map{ it -> [ [id: "genes"], it ] }
+        } else {
 
-        VAMB_CONCATENATE_FASTA ( ch_merged_genes )
+            // Build gene catalog from scratch
+            PRODIGAL ( sequences, "gff" )
 
-        ch_input_catalog = VAMB_CONCATENATE_FASTA.out.catalog.map { it -> tuple([id: "gene_catalog"], it[1]) }
+            FILTER_PRODIGAL ( PRODIGAL.out.nucleotide_fasta )
 
-        CDHIT_CDHITEST ( ch_input_catalog )
+            ch_merged_genes = FILTER_PRODIGAL.out.filtered_fasta.map{ it -> it[1] }
+                    .collect()
+                    .map{ it -> [ [id: label], it ] }
 
-        ch_versions = MEGAHIT.out.versions.first()
-                        .mix(PRODIGAL.out.versions.first())
-                        .mix(FILTER_PRODIGAL.out.versions.first())
-                        .mix(VAMB_CONCATENATE_FASTA.out.versions)
-                        .mix(CDHIT_CDHITEST.out.versions)
+            VAMB_CONCATENATE_FASTA ( ch_merged_genes )
 
+            ch_input_catalog = VAMB_CONCATENATE_FASTA.out.catalog.map { it -> tuple([id: label], it[1]) }
+
+            CDHIT_CDHITEST ( ch_input_catalog )
+
+            ch_gene_catalog = CDHIT_CDHITEST.out.fasta
+
+            ch_versions = PRODIGAL.out.versions.first()
+                            .mix(FILTER_PRODIGAL.out.versions.first())
+                            .mix(VAMB_CONCATENATE_FASTA.out.versions)
+                            .mix(CDHIT_CDHITEST.out.versions)
+        }
 
     emit:
-        contigs = MEGAHIT.out.contigs
-        gene_catalog = CDHIT_CDHITEST.out.fasta
+        gene_catalog = ch_gene_catalog
         versions = ch_versions
 }

@@ -34,7 +34,9 @@ process COVERM_MAKE {
         REFERENCE="${ref}"
     fi
 
-    TMPDIR=./coverm_tmp
+    mkdir -p \$PWD/coverm_tmp
+    export TMPDIR=\$PWD/coverm_tmp
+
     echo \${REFERENCE}
     coverm make $args -t $task.cpus -r \${REFERENCE} $input -o $out
     mv $out/*$prefix*.bam $out/${prefix}.bam

@@ -9,6 +9,8 @@ include { MICROBIAL_PROFILES_INIT; MICROBIAL_PROFILES; METAPHLAN_PROFILES  } fro
 
 include { GENE_ANALYSIS_INIT; GENE_ANALYSIS } from "$projectDir/subworkflows/local/microbiome/gene_analysis"
 
+include { VIRAL_ANALYSIS_INIT; VIRAL_ANALYSIS } from "$projectDir/subworkflows/local/microbiome/viral_analysis"
+
 /* --- RUN MAIN WORKFLOW --- */
 workflow METAGEAR {
 
@@ -56,6 +58,21 @@ workflow METAGEAR {
 
             GENE_ANALYSIS ( init.validated_input, ch_metaphlan_profiles, init.gtdb_tk_db )
             ch_versions = GENE_ANALYSIS.out.versions
+        }
+
+        if ( params.workflow == "viral_analysis" ) {
+            init = VIRAL_ANALYSIS_INIT ( )
+
+            VIRAL_ANALYSIS ( init.reads )
+            ch_versions = VIRAL_ANALYSIS.out.versions
+        }
+
+        //TODO: Temporary, remove later
+        if ( params.workflow == "viral_annotation" ) {
+            init = VIRAL_ANNOTATION_INIT ( )
+
+            VIRAL_ANNOTATION ( init.catalog_input, init.protein_catalog, init.virsorter2_db, init.dram_db, init.iphop_db, init.amrfinder_db )
+            ch_versions = VIRAL_ANNOTATION.out.versions
         }
 
 

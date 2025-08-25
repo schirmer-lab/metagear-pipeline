@@ -40,7 +40,7 @@
                     "parameters": [
                         { "name": "input", "required": true, "description": "Input .csv file for gene analysis" },
                         {
-                            "name": "contig_catalog",
+                            "name": "contigs",
                             "required": false,
                             "description": "Contigs catalog (if available)"
                         },
@@ -48,6 +48,38 @@
                             "name": "metaphlan_profiles",
                             "required": false,
                             "description": "MetaPhlAn profiles (if available)"
+                        }
+                    ]
+                },
+                {
+                    "name": "viral_analysis",
+                    "description": "Viral analysis workflow",
+                    "parameters": [
+                        { "name": "input", "required": true, "description": "Input .csv file for viral analysis" },
+                        {
+                            "name": "contigs",
+                            "required": false,
+                            "description": "Contigs (DIRECTORY: if available). Folder containing SAMPLE_ID.contigs.fa.gz files"
+                        },
+                        {
+                            "name": "viral_genes",
+                            "required": false,
+                            "description": "Viral gene catalog (single .fa or fa.gz file if available)"
+                        },
+                        {
+                            "name": "viral_proteins",
+                            "required": false,
+                            "description": "Viral protein catalog (single .fa or fa.gz file if available)"
+                        },
+                        {
+                            "name": "all_genes",
+                            "required": false,
+                            "description": "Full gene catalog (single .fa or fa.gz file if available)"
+                        },
+                        {
+                            "name": "all_proteins",
+                            "required": false,
+                            "description": "Full protein catalog (single .faa or faa.gz file if available)"
                         }
                     ]
                 }

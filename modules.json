@@ -5,6 +5,11 @@
         "https://github.com/nf-core/modules.git": {
             "modules": {
                 "nf-core": {
+                    "amrfinderplus/run": {
+                        "branch": "master",
+                        "git_sha": "48c86d92fe761cb3faafdb38e4d8ca3bf6d1c657",
+                        "installed_by": ["modules"]
+                    },
                     "bwa/index": {
                         "branch": "master",
                         "git_sha": "a29f18660f5e3748d44d6f716241e70c942c065d",
@@ -15,9 +20,29 @@
                         "git_sha": "a29f18660f5e3748d44d6f716241e70c942c065d",
                         "installed_by": ["modules"]
                     },
+                    "checkv/downloaddatabase": {
+                        "branch": "master",
+                        "git_sha": "05954dab2ff481bcb999f24455da29a5828af08d",
+                        "installed_by": ["modules"]
+                    },
+                    "checkv/endtoend": {
+                        "branch": "master",
+                        "git_sha": "05954dab2ff481bcb999f24455da29a5828af08d",
+                        "installed_by": ["modules"]
+                    },
                     "fastqc": {
                         "branch": "master",
                         "git_sha": "b1966f36ec9de31927b2603d8f499960b2a4c294",
+                        "installed_by": ["modules"]
+                    },
+                    "genomad/download": {
+                        "branch": "master",
+                        "git_sha": "5c9c6d55abdc05dbe3dc81b1cf4997d605c13795",
+                        "installed_by": ["modules"]
+                    },
+                    "genomad/endtoend": {
+                        "branch": "master",
+                        "git_sha": "5c9c6d55abdc05dbe3dc81b1cf4997d605c13795",
                         "installed_by": ["modules"]
                     },
                     "multiqc": {

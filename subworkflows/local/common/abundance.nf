@@ -69,4 +69,3 @@ workflow ABUNDANCE {
         count = ch_count
         versions = ch_versions
 }
-

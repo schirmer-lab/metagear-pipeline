@@ -69,11 +69,14 @@ def create_input_channel(LinkedHashMap row, String input_type) {
     }
 
     def fastq_meta = []
+
     if (input_type == "contig") {
         fastq_meta = [ meta, file(row.contig) ]
     }
     else if ( input_type == "blast_seqs" ) {
         fastq_meta = [ meta, file(row.query_sequence), file(row.search_database) ]
+    }else if ( input_type == "contig_reads" ) {
+        fastq_meta = [ meta, file(row.contig), file(row.fastq_1), file(row.fastq_2) ]
     }else{
         if (row.fastq_2?.trim()) {
             fastq_meta = [ meta, file(row.fastq_1), file(row.fastq_2) ]

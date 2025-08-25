@@ -22,23 +22,39 @@ workflow PROTEIN_CALL_INIT {
 workflow PROTEIN_CALL {
 
     take:
+        label
         gene_catalog // meta, sequences
 
     main:
 
-        // translate DNA to protein
-        TRANSLATE_DNA2PROT ( gene_catalog )
+        // Check if pre-built protein_catalog catalog is provided
+        if ( params.protein_catalog && file(params.protein_catalog).exists() ) {
 
-        ch_protein_catalog = TRANSLATE_DNA2PROT.out.prot_fasta_output.map(it -> [[id: "protein_catalog"],it[1]])
+            // Use existing protein_catalog catalog
+            ch_protein_catalog = Channel.fromPath(params.protein_catalog)
+                .map { it -> [ [id: label ], it ] }
 
-        CDHIT_CDHIT ( ch_protein_catalog )
+            ch_protein_catalog_clusters = Channel.empty()
 
-        ch_versions = TRANSLATE_DNA2PROT.out.versions.first()
-                        .mix(CDHIT_CDHIT.out.versions.first())
+            ch_versions = Channel.empty()
 
+        } else {
+            // translate DNA to protein
+            TRANSLATE_DNA2PROT ( gene_catalog )
+
+            ch_protein_catalog_input = TRANSLATE_DNA2PROT.out.prot_fasta_output.map(it -> [ [id: label ], it[1]])
+
+            CDHIT_CDHIT ( ch_protein_catalog_input )
+
+            ch_protein_catalog = CDHIT_CDHIT.out.fasta
+            ch_protein_catalog_clusters = CDHIT_CDHIT.out.clusters
+
+            ch_versions = TRANSLATE_DNA2PROT.out.versions.first()
+                            .mix(CDHIT_CDHIT.out.versions.first())
+        }
 
     emit:
-        protein_catalog = CDHIT_CDHIT.out.fasta
-        protein_catalog_clusters = CDHIT_CDHIT.out.clusters
+        protein_catalog = ch_protein_catalog
+        protein_catalog_clusters = ch_protein_catalog_clusters
         versions = ch_versions
 }
