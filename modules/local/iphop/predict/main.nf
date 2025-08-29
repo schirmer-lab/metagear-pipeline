@@ -4,8 +4,8 @@ process IPHOP_PREDICT {
     //TODO: put this image somewhere on the internet
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        '/nfs/data/database/singularity/denglab-viroprofiler-host-v0.1.img':
-        'biocontainers/iphop:1.3.2--pyhdfd78af_0' }"
+        'quay.io/biocontainers/iphop:1.4.1--pyhdfd78af_0':
+        'quay.io/biocontainers/iphop:1.4.1--pyhdfd78af_0' }" //TODO: Update to the singularity image when availbale
 
     input:
     tuple val(meta), path(fasta)

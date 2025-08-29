@@ -7,7 +7,7 @@ process METAPHLAN_MAKEDB {
         'biocontainers/metaphlan:4.1.1--pyhdfd78af_0' }"
 
     output:
-    tuple val("metaphlan"), path("metaphlan_db_latest"), emit: database
+    tuple val("metaphlan"), path("metaphlan_db"), emit: database
     path "versions.yml", emit: versions
 
     when:
@@ -20,8 +20,10 @@ process METAPHLAN_MAKEDB {
     metaphlan \\
         --install \\
         --nproc $task.cpus \\
-        --bowtie2db metaphlan_db_latest \\
+        --bowtie2db mpa_vJun23_CHOCOPhlAnSGB_202403 \\
         $args
+
+    mv mpa_vJun23_CHOCOPhlAnSGB_202403 metaphlan_db
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

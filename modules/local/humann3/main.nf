@@ -102,7 +102,7 @@ process HUMANN_DATABASES {
         tuple val(database), val(build)
 
     output:
-        tuple val(database), path("humann_*/$database"), emit: database
+        tuple val(database), path("humann_*/${database}_db"), emit: database
         path "versions.yml", emit: versions
 
     when:
@@ -113,6 +113,8 @@ process HUMANN_DATABASES {
 
     """
     humann_databases --download $database $build ./humann_$database $args
+
+    mv ./humann_$database/$database ./humann_$database/${database}_db
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

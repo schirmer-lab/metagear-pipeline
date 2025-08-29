@@ -1,9 +1,9 @@
 process DRAMV {
     tag "$meta.id"
-    conda "conda-forge::dram==1.3--pyhdfd78af_0"
+    conda "bioconda::dram==1.5.0--pyhdfd78af_0"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://github.com/schirmer-lab/singularity-images/releases/download/23.11.19/dram_1.3.sif' :
-        'docker.io/denglab/viroprofiler-geneannot:v0.2' }"
+        'https://depot.galaxyproject.org/singularity/dram:1.5.0--pyhdfd78af_0' :
+        'quay.io/biocontainers/dram:1.5.0--pyhdfd78af_0' }"
 
     input:
     tuple val(meta), path(contigs), path(affi)
@@ -28,7 +28,7 @@ process DRAMV {
     """
     # Step 1: Ensure fully resolved absolute paths
     DB_PATH=\$(readlink -f ${dram_db})
-    
+
     rm -rf dram_db_link
     mkdir -p dram_db_link
     ln -s "\$DB_PATH" dram_db_link/dram

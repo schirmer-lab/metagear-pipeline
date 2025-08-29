@@ -1,0 +1,19 @@
+{
+    "kofam": "ABS_DB/kofam_profiles.hmm",
+    "kofam_ko_list": "ABS_DB/kofam_ko_list.tsv",
+    "pfam": "ABS_DB/pfam.mmspro",
+    "dbcan": "ABS_DB/dbCAN-HMMdb-V10.txt",
+    "viral": "ABS_DB/refseq_viral.20250827.mmsdb",
+    "peptidase": "ABS_DB/peptidases.20250827.mmsdb",
+    "vogdb": "ABS_DB/vog_latest_hmms.txt",
+    "pfam_hmm_dat": "ABS_DB/Pfam-A.hmm.dat.gz",
+    "dbcan_fam_activities": "ABS_DB/CAZyDB.07292021.fam-activities.txt",
+    "vog_annotations": "ABS_DB/vog_annotations_latest.tsv.gz",
+    "genome_summary_form": "ABS_DB/genome_summary_form.20250827.tsv",
+    "module_step_form": "ABS_DB/module_step_form.20250827.tsv",
+    "etc_module_database": "ABS_DB/etc_mdoule_database.20250827.tsv",
+    "function_heatmap_form": "ABS_DB/function_heatmap_form.20250827.tsv",
+    "amg_database": "ABS_DB/amg_database.20250827.tsv",
+    "description_db": "ABS_DB/description_db.sqlite",
+    "uniref": null
+}

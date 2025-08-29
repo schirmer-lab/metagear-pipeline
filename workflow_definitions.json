@@ -11,7 +11,9 @@
                 {
                     "name": "download_databases",
                     "description": "Install Databases (Kneaddata, MetaPhlAn, HUMAnN)",
-                    "parameters": []
+                    "parameters": [
+                        { "name": "databases", "required": false, "default": "all", "description": "Databases to install (default: all, gene_analysis, viral_analysis)" }
+                    ]
                 },
                 {
                     "name": "qc_dna",
