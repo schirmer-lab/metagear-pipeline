@@ -9,17 +9,17 @@ workflow VIRAL_ANNOTATION_INIT {
     main:
         if (params.input) {ch_catalog = file(params.input)} else { exit 1, 'Input catalog file [fasta format with DNA sequences] not specified!' }
 
-        ch_catalog = Channel.fromPath("${params.input}", checkIfExists: true).first()
+        ch_catalog = Channel.fromPath("${params.input}", checkIfExists: true)
             .map { it -> [ [id: "catalog"], it] }
 
-        ch_protein_catalog = Channel.fromPath("${params.protein_input}", checkIfExists: true).first()
+        ch_protein_catalog = Channel.fromPath("${params.protein_input}", checkIfExists: true)
             .map { it -> [ [id: "protein_catalog", is_proteins: true], it] }
 
-        virsorter2_db = Channel.fromPath("${params.virsorter2_db}", checkIfExists: true).first()
-        dram_db = Channel.fromPath("${params.dram_db}", checkIfExists: true).first()
-        iphop_db = Channel.fromPath("${params.iphop_db}", checkIfExists: true).first()
-        amrfinder_db = Channel.fromPath("${params.amrfinder_db}", checkIfExists: true).first()
-    
+        virsorter2_db = Channel.fromPath("${params.virsorter2_db}", checkIfExists: true)
+        dram_db = Channel.fromPath("${params.dram_db}", checkIfExists: true)
+        iphop_db = Channel.fromPath("${params.iphop_db}", checkIfExists: true)
+        amrfinder_db = Channel.fromPath("${params.amrfinder_db}", checkIfExists: true)
+
     emit:
         catalog_input = ch_catalog
         protein_catalog = ch_protein_catalog

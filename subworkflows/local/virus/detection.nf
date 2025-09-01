@@ -12,6 +12,8 @@ include { MERGE_VIRUS_TABLES } from "$projectDir/modules/local/mvip/create_table
 include { SEQTK_SUBSEQ } from "$projectDir/modules/local/seqtk/subseq/main"
 include { VAMB_CONCATENATE_FASTA } from "$projectDir/modules/local/vamb/main"
 
+include { COLLECT_TABLES } from "$projectDir/modules/local/metagear/mge/summarize"
+
 workflow VIRAL_DETECTION {
 
     take:
@@ -28,7 +30,7 @@ workflow VIRAL_DETECTION {
         // 2. CheckV on viruses from geNomad
         CHECKV_PASS1 (ch_pass1_viruses, checkv_db)
         ch_pass1_proviruses = CHECKV_PASS1.out.proviruses.filter { meta, fna -> fna.toFile().length() > 0 }
-    
+
         // 3. Second geNomad pass on trimmed provirus
         GENOMAD_PASS2( ch_pass1_proviruses, genomad_db )
         // ch_pass2_viruses = GENOMAD_PASS2.out.virus_fasta.filter { meta, fna -> fna.toFile().length() > 0 }
@@ -47,21 +49,31 @@ workflow VIRAL_DETECTION {
                             .mix(CHECKV_PASS2.out.quality_summary.map { [ it[0], [ it[1], "provirus" ] ] })
                             .groupTuple( by: 0, size: 4, remainder: true )
 
-        def ictv_taxonomy = Channel.fromPath("$projectDir/assets/metagear/ICTV_Taxonomy_List.tsv", checkIfExists: true).first()
+        def ictv_taxonomy = Channel.fromPath("$projectDir/assets/metagear/ICTV_Taxonomy_List.tsv", checkIfExists: true)
         MERGE_VIRUS_TABLES ( ch_all_summaries, ictv_taxonomy )
 
-        joint = GENOMAD_PASS1.out.virus_fasta
+        joint_virus = GENOMAD_PASS1.out.virus_fasta
             .mix ( GENOMAD_PASS2.out.virus_fasta )
             .groupTuple( by: 0, size: 2, remainder: true )
             .join ( MERGE_VIRUS_TABLES.out.sequence_ids, by: 0 )
 
-        SEQTK_SUBSEQ ( joint )
+        // Join virus and plasmid tables to collect
+        ch_all_summary_virus = MERGE_VIRUS_TABLES.out.merged_tables.map { [ it[1] ] }.collect().map{ [ [id: "all"], it ] }
+        ch_all_summary_plasmids = GENOMAD_PASS1.out.plasmid_summary.map { [ it[1] ] }
+                                .collect()
+                                .map{ [ [id: "all"], it ] }
+
+        COLLECT_TABLES ( ch_all_summary_virus.join(ch_all_summary_plasmids, by: 0) )
+
+        SEQTK_SUBSEQ ( joint_virus )
 
         // Create viral catalog (VOTUS)
         ch_catalog_input = SEQTK_SUBSEQ.out.sequences
                                 .map{ it -> it[1] }
                                 .collect()
                                 .map{ seqs -> tuple([id: 'virus_merged'], seqs) }
+
+        // joint_virus
 
         VAMB_CONCATENATE_FASTA ( ch_catalog_input )
 
@@ -70,7 +82,7 @@ workflow VIRAL_DETECTION {
 
         ch_versions = GENOMAD_PASS1.out.versions.first()
                         .mix(CHECKV_PASS1.out.versions.first())
-                        .mix(SEQTK_SUBSEQ.out.versions.first())
+                        .mix(SEQTK_SUBSEQ.out.versions)
                     // .mix(MERGE_VIRUS_TABLES.out.versions.first()) //TODO: versions is not being generated correctly, skipping for now
 
 
