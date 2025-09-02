@@ -1,10 +1,14 @@
 include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
 
 include { ASSEMBLY } from "$projectDir/subworkflows/local/common/assembly"
+
 include { GENE_CALL } from "$projectDir/subworkflows/local/common/gene_call"
+
+include {BWA_INDEX} from "$projectDir/modules/nf-core/bwa/index"
+
 include { PROTEIN_CALL } from "$projectDir/subworkflows/local/common/protein_call"
 
-include { ABUNDANCE as GENE_ABUNDANCE } from "$projectDir/subworkflows/local/common/abundance"
+include { ABUNDANCE } from "$projectDir/subworkflows/local/common/abundance"
 
 include { PROTEIN_ANNOTATION } from "$projectDir/subworkflows/local/common/protein_annotation"
 
@@ -47,22 +51,30 @@ workflow GENE_ANALYSIS {
 
         ASSEMBLY ( clean_reads )
 
-        GENE_CALL ( "gene_catalog", ASSEMBLY.out.contigs )
+        ch_gene_call = ASSEMBLY.out.contigs.map { [ [id: it[0].id + '.all.genes', label: 'all', src: it[0].id ], it[1] ] }
 
-        GENE_ABUNDANCE ("gene_abundance", clean_reads, GENE_CALL.out.gene_catalog )
+        GENE_CALL ( ch_gene_call )
 
-        PROTEIN_CALL ( "protein_catalog", GENE_CALL.out.gene_catalog )
+        BWA_INDEX ( GENE_CALL.out.gene_catalog )
+
+        ch_abundance_input = clean_reads.combine( BWA_INDEX.out.index )
+                                .map { meta_reads, reads, meta_index, index -> [ [id: meta_reads.id, label: meta_index.id ], reads, index ] }
+
+        ABUNDANCE ( ch_abundance_input )
+
+        PROTEIN_CALL ( GENE_CALL.out.gene_catalog )
 
         PROTEIN_ANNOTATION ( PROTEIN_CALL.out.protein_catalog )
 
-        MSP ( GENE_CALL.out.gene_catalog, GENE_ABUNDANCE.out.count, GENE_ABUNDANCE.out.rpkm, gtdb_tk_db, metaphlan_profiles )
+        MSP ( GENE_CALL.out.gene_catalog, ABUNDANCE.out.count, ABUNDANCE.out.rpkm, gtdb_tk_db, metaphlan_profiles )
 
         // summary channel version
-        ch_versions = GENE_CALL.out.versions
+        ch_versions = ASSEMBLY.out.versions
+                        .mix(GENE_CALL.out.versions)
+                        .mix(ABUNDANCE.out.versions)
                         .mix(PROTEIN_CALL.out.versions)
-                        .mix(GENE_ABUNDANCE.out.versions)
-                        .mix(MSP.out.versions)
                         .mix(PROTEIN_ANNOTATION.out.versions)
+                        // .mix(MSP.out.versions)
 
 
     emit:

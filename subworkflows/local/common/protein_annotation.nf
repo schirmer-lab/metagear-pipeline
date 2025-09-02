@@ -36,7 +36,7 @@ workflow PROTEIN_ANNOTATION {
                 files.collect { f ->
                     def fn = f.getFileName().toString()
                     def chunkId = fn.replaceFirst(/\.faa\.gz$/, '')
-                    tuple([ id: "${chunkId}" ], f)   // keep full path as Path
+                    tuple([ id: "${chunkId}", src: meta.id ], f)   // keep full path as Path
                 }
             }
             .set { ch_interproscan_input }
@@ -44,8 +44,10 @@ workflow PROTEIN_ANNOTATION {
         INTERPROSCAN ( ch_interproscan_input, "tsv" )
 
         // create a new channel to collect all interproscan files
-        ch_merged_interproscan = INTERPROSCAN.out.tsv.map( it -> it[1] ).collect().map(it -> [ ["id": "protein_catalog"], it])
-
+        ch_merged_interproscan = INTERPROSCAN.out.tsv
+                .map { meta, tsv -> [ [id: meta.src], tsv]}
+                .groupTuple(by: 0)
+        
         FUNCTIONALGROUP_ANNOTATION ( ch_merged_interproscan )
 
         ch_versions = SEQKIT_SPLIT2.out.versions

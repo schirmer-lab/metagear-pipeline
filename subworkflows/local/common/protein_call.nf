@@ -2,7 +2,9 @@
 
 include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
 
-include { CDHIT_CDHIT } from "$projectDir/modules/local/cdhit/cdhit"
+// include { CDHIT_CDHIT } from "$projectDir/modules/local/cdhit/cdhit"
+include { MMSEQS_EASY_CLUSTER } from "$projectDir/modules/local/mmseqs/easy_cluster/main"
+
 include { TRANSLATE_DNA2PROT } from "$projectDir/modules/local/metagear/utils/translate_dna2prot"
 
 /* --- Initialization for standalone process --- */
@@ -22,36 +24,24 @@ workflow PROTEIN_CALL_INIT {
 workflow PROTEIN_CALL {
 
     take:
-        label
         gene_catalog // meta, sequences
 
     main:
 
-        // Check if pre-built protein_catalog catalog is provided
-        if ( params.protein_catalog && file(params.protein_catalog).exists() ) {
+        // translate DNA to protein
+        TRANSLATE_DNA2PROT ( gene_catalog )
 
-            // Use existing protein_catalog catalog
-            ch_protein_catalog = Channel.fromPath(params.protein_catalog)
-                .map { it -> [ [id: label ], it ] }
+        ch_protein_catalog_input = TRANSLATE_DNA2PROT.out.prot_fasta_output.map(it -> [ [id: it[0].id.replace(".genes", ".proteins") ], it[1]])
 
-            ch_protein_catalog_clusters = Channel.empty()
+        // CDHIT_CDHIT ( ch_protein_catalog_input )
+        MMSEQS_EASY_CLUSTER ( ch_protein_catalog_input )
 
-            ch_versions = Channel.empty()
+        ch_protein_catalog = MMSEQS_EASY_CLUSTER.out.representatives
+        ch_protein_catalog_clusters = MMSEQS_EASY_CLUSTER.out.clusters_tsv
 
-        } else {
-            // translate DNA to protein
-            TRANSLATE_DNA2PROT ( gene_catalog )
+        ch_versions = TRANSLATE_DNA2PROT.out.versions.first()
+                        .mix(MMSEQS_EASY_CLUSTER.out.versions.first())
 
-            ch_protein_catalog_input = TRANSLATE_DNA2PROT.out.prot_fasta_output.map(it -> [ [id: label ], it[1]])
-
-            CDHIT_CDHIT ( ch_protein_catalog_input )
-
-            ch_protein_catalog = CDHIT_CDHIT.out.fasta
-            ch_protein_catalog_clusters = CDHIT_CDHIT.out.clusters
-
-            ch_versions = TRANSLATE_DNA2PROT.out.versions.first()
-                            .mix(CDHIT_CDHIT.out.versions.first())
-        }
 
     emit:
         protein_catalog = ch_protein_catalog

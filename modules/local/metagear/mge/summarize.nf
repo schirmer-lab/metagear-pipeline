@@ -8,11 +8,10 @@ process COLLECT_TABLES {
         'docker.io/raphsoft/python_base:3.10-R4' }"
 
     input:
-    tuple val(meta), path(merged_virus_tables), path(plasmid_tables)
+    tuple val(meta), path(merged_virus_tables)
 
     output:
     tuple val(meta), path("*_checkv_summary_taxa.tsv"), emit: summary_taxa
-    tuple val(meta), path("*_plasmid_summary.tsv"), emit: summary_plasmids
     path "versions.yml", emit: versions
 
     when:
@@ -21,17 +20,11 @@ process COLLECT_TABLES {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Join plasmid summary tables
+    # Join virus summary tables
     head -1 ${merged_virus_tables[0]} > ${prefix}_checkv_summary_taxa.tsv
 
     mkdir virus && mv *_Merged_Genomad_CheckV_Summary.tsv virus/ && cat virus/*_Merged_Genomad_CheckV_Summary.tsv | \\
         grep -v virus_id >> ${prefix}_checkv_summary_taxa.tsv
-
-    # Join plasmid summary tables
-    head -1 ${plasmid_tables[0]} > ${prefix}_plasmids.tsv
-
-    mkdir plasmids && mv *_plasmid_summary.tsv plasmids/ && cat plasmids/*_plasmid_summary.tsv | \\
-        grep -v seq_name >> ${prefix}_plasmids.tsv && mv ${prefix}_plasmids.tsv ${prefix}_plasmid_summary.tsv
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

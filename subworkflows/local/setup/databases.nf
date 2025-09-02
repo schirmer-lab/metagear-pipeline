@@ -67,6 +67,7 @@ workflow DATABASES {
             ch_versions = ch_versions.mix( humann.versions )
 
             gtdbtk = GTDBTK_DOWNLOAD_DB ( )
+            gtdbtk.database.view()
             gtdbtk_database = gtdbtk.database.map { [ "gtdb_tk", it ] }
             ch_versions = ch_versions.mix( gtdbtk.versions )
 

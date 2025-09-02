@@ -19,7 +19,7 @@ process SEQTK_SUBSEQ {
 
     script:
     def args   = task.ext.args   ?: ''
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = task.ext.prefix ?: meta.label ? "${meta.id}.${meta.label}" :"${meta.id}"
 
     def args2 = task.ext.args2 ?: '.default' // Name for the resulting contig
     def m = args2 =~ /--catalog_name\s+(\S+)/

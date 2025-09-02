@@ -7,7 +7,8 @@ include { FILTER_PRODIGAL } from "$projectDir/modules/local/metagear/utils/filte
 
 include { VAMB_CONCATENATE_FASTA } from "$projectDir/modules/local/vamb/main"
 
-include { CDHIT_CDHITEST } from "$projectDir/modules/local/cdhit/cdhitest/main"
+// include { CDHIT_CDHITEST } from "$projectDir/modules/local/cdhit/cdhitest/main"
+include { MMSEQS_EASY_CLUSTER } from "$projectDir/modules/local/mmseqs/easy_cluster/main"
 
 /* --- Initialization for standalone process --- */
 workflow GENE_CALL_INIT {
@@ -27,44 +28,30 @@ workflow GENE_CALL_INIT {
 workflow GENE_CALL {
 
     take:
-        label // val (label)
-        sequences // tuple (meta, reads)
+        sequences // tuple (meta, reads) -> [ [id: sample1_*plasmid|votu*, label: plasmid_genes|votu_genes|genes ], fasta ]
 
     main:
+        
+        // Build gene catalog from scratch
+        PRODIGAL ( sequences, "gff" )
 
-        // Check if pre-built gene catalog is provided
-        if ( params.gene_catalog && file(params.gene_catalog).exists() ) {
+        FILTER_PRODIGAL ( PRODIGAL.out.nucleotide_fasta )
 
-            // Use existing gene catalog
-            ch_gene_catalog = Channel.fromPath(params.gene_catalog)
-                .map { it -> tuple([id: label], it) }
+        ch_merged_genes = FILTER_PRODIGAL.out.filtered_fasta.map{ [[ id: it[0].label + '.genes' ], it[1] ] }
+                .groupTuple(by: 0)
 
-            ch_versions = Channel.empty()
+        VAMB_CONCATENATE_FASTA ( ch_merged_genes )
 
-        } else {
+        // CDHIT_CDHITEST ( VAMB_CONCATENATE_FASTA.out.catalog )
+        MMSEQS_EASY_CLUSTER ( VAMB_CONCATENATE_FASTA.out.catalog )
 
-            // Build gene catalog from scratch
-            PRODIGAL ( sequences, "gff" )
+        ch_gene_catalog = MMSEQS_EASY_CLUSTER.out.representatives
 
-            FILTER_PRODIGAL ( PRODIGAL.out.nucleotide_fasta )
-
-            ch_merged_genes = FILTER_PRODIGAL.out.filtered_fasta.map{ it -> it[1] }
-                    .collect()
-                    .map{ it -> [ [id: label], it ] }
-
-            VAMB_CONCATENATE_FASTA ( ch_merged_genes )
-
-            ch_input_catalog = VAMB_CONCATENATE_FASTA.out.catalog.map { it -> tuple([id: label], it[1]) }
-
-            CDHIT_CDHITEST ( ch_input_catalog )
-
-            ch_gene_catalog = CDHIT_CDHITEST.out.fasta
-
-            ch_versions = PRODIGAL.out.versions.first()
-                            .mix(FILTER_PRODIGAL.out.versions.first())
-                            .mix(VAMB_CONCATENATE_FASTA.out.versions)
-                            .mix(CDHIT_CDHITEST.out.versions)
-        }
+        ch_versions = PRODIGAL.out.versions.first()
+                        .mix(FILTER_PRODIGAL.out.versions.first())
+                        .mix(VAMB_CONCATENATE_FASTA.out.versions)
+                        .mix(MMSEQS_EASY_CLUSTER.out.versions)
+    
 
     emit:
         gene_catalog = ch_gene_catalog

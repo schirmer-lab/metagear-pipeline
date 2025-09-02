@@ -1,5 +1,5 @@
 process COVERM_MAKE {
-    tag "${meta.id}"
+    tag "${meta.label ? meta.id + ': ' + meta.label : meta.id}"
     label 'process_medium'
 
     conda "bioconda::coverm==0.7.0--hb4818e0_2"

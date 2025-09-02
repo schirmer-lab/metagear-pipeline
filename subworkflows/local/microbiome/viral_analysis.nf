@@ -5,15 +5,15 @@ include { ASSEMBLY } from "$projectDir/subworkflows/local/common/assembly"
 include { VIRAL_DETECTION } from "$projectDir/subworkflows/local/virus/detection"
 include { VIRAL_ANNOTATION } from "$projectDir/subworkflows/local/virus/annotation"
 
+include {BWA_INDEX} from "$projectDir/modules/nf-core/bwa/index"
+
 include { GENE_CALL } from "$projectDir/subworkflows/local/common/gene_call"
-include { PROTEIN_CALL } from "$projectDir/subworkflows/local/common/protein_call"
+include { PROTEIN_CALL; PROTEIN_CALL as PLASMID_PROTEIN_CALL } from "$projectDir/subworkflows/local/common/protein_call"
 
 include { PROTEIN_ANNOTATION } from "$projectDir/subworkflows/local/common/protein_annotation"
 
-// include { VAMB_CONCATENATE_FASTA } from "$projectDir/modules/local/vamb/main"
-// include { CLUSTER_SEQUENCES } from "$projectDir/subworkflows/local/common/clustering"
-include { ABUNDANCE as VOTU_ABUNDANCE; ABUNDANCE as GENE_ABUNDANCE } from "$projectDir/subworkflows/local/common/abundance"
-
+// include { ABUNDANCE as VOTU_ABUNDANCE; ABUNDANCE as GENE_ABUNDANCE; ABUNDANCE as PLASMID_ABUNDANCE; ABUNDANCE as PLASMID_GENE_ABUNDANCE } from "$projectDir/subworkflows/local/common/abundance"
+include { ABUNDANCE } from "$projectDir/subworkflows/local/common/abundance"
 
 workflow VIRAL_ANALYSIS_INIT {
 
@@ -51,26 +51,35 @@ workflow VIRAL_ANALYSIS {
 
         VIRAL_DETECTION ( ASSEMBLY.out.contigs, genomad_db, checkv_db )
 
-        VOTU_ABUNDANCE ( "votu_abundance", reads, VIRAL_DETECTION.out.viral_catalog )
+        // Modify sequences to append "viral_genes|plasmid_genes"
+        ch_gene_call = VIRAL_DETECTION.out.sequences.map { [ [id: it[0].id + '.' + it[0].label + '.genes', label: it[0].label, src: it[0].id ], it[1] ] }
 
-        GENE_CALL ( "votu_gene_catalog", VIRAL_DETECTION.out.viral_catalog )
+        GENE_CALL ( ch_gene_call )
 
-        GENE_ABUNDANCE ( "votu_gene_abundance", reads, GENE_CALL.out.gene_catalog )
+        // Build index for abundance estimation (only once)
+        BWA_INDEX ( VIRAL_DETECTION.out.catalogs.concat(GENE_CALL.out.gene_catalog) )
 
-        PROTEIN_CALL ( "votu_protein_catalog", GENE_CALL.out.gene_catalog )
+        ch_abundance_input = reads.combine( BWA_INDEX.out.index )
+                                .map { meta_reads, reads, meta_index, index -> [ [id: meta_reads.id, label: meta_index.id ], reads, index ] }
+
+        ABUNDANCE ( ch_abundance_input )
+
+        PROTEIN_CALL ( GENE_CALL.out.gene_catalog )
 
         PROTEIN_ANNOTATION ( PROTEIN_CALL.out.protein_catalog )
 
-        ch_protein_catalog = PROTEIN_CALL.out.protein_catalog.map { it -> [ [id: "votu_proteins", is_proteins: true], it[1] ] }
+        ch_protein_catalog = PROTEIN_CALL.out.protein_catalog
+                                    .filter { meta, _ -> meta.id == 'virus.proteins' }
+                                    .map { meta, fa -> [ [id: meta.id, is_proteins: true], fa ] }
+
 
         VIRAL_ANNOTATION ( VIRAL_DETECTION.out.viral_catalog, ch_protein_catalog, virsorter2_db, dram_db, iphop_db, amrfinder_db )
 
         // summary channel version
         ch_versions = ASSEMBLY.out.versions
                         .mix(VIRAL_DETECTION.out.versions)
-                        .mix(VOTU_ABUNDANCE.out.versions)
                         .mix(GENE_CALL.out.versions)
-                        .mix(GENE_ABUNDANCE.out.versions)
+                        .mix(ABUNDANCE.out.versions)
                         .mix(PROTEIN_CALL.out.versions)
                         .mix(PROTEIN_ANNOTATION.out.versions)
                         .mix(VIRAL_ANNOTATION.out.versions)

@@ -1,4 +1,4 @@
-process MERGE_VIRUS_TABLES {
+process MERGE_TABLES {
     tag "$meta.id"
     label 'process_medium'
 
@@ -8,13 +8,15 @@ process MERGE_VIRUS_TABLES {
         'docker.io/raphsoft/python_base:3.10-R4' }"
 
     input:
-    tuple val(meta), val(files_with_meta)
+    tuple val(meta), val(files_with_meta), path(plasmid_summary)
     path ictv_taxonomy
 
     output:
     tuple val(meta), path("*_Merged_Genomad_CheckV_Summary.tsv"), emit: merged_tables
     tuple val(meta), path("*_Merged_Genomad_CheckV_Summary.filtered.tsv"), emit: filtered_tables
     tuple val(meta), path("*_viral_ids_to_keep.txt"), emit: sequence_ids
+    tuple val(meta), path("*_Plasmid_Summary.filtered.tsv"), emit: plasmid_filtered_tables
+    tuple val(meta), path("*_plasmid_ids_to_keep.txt"), emit: plasmid_sequence_ids
     path "versions.yml", emit: versions
 
     when:
@@ -43,6 +45,16 @@ process MERGE_VIRUS_TABLES {
 
     # Create list of id to keep
     cat ./${prefix}_Merged_Genomad_CheckV_Summary.filtered.tsv | grep -v virus_id | cut -f2 > ${prefix}_viral_ids_to_keep.txt
+
+    # Filter plasmids using FDR and Hallmark genes:
+    awk -F'\\t' 'BEGIN{OFS="\\t"}
+    NR==1 { print; next } \\
+    ( \\
+    (\$2>=1000 && \$7<0.05 && \$3 ~ /DTR/) || \\
+    (\$2>=1000 && \$7<0.05 && \$3 !~ /DTR/ && (\$8+0) >= 1) \\
+    )' ${plasmid_summary} > ${prefix}_Plasmid_Summary.filtered.tsv
+
+    cut -f1 ${prefix}_Plasmid_Summary.filtered.tsv > ${prefix}_plasmid_ids_to_keep.txt
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

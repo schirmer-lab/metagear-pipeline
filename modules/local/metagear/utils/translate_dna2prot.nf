@@ -11,22 +11,34 @@ process TRANSLATE_DNA2PROT {
     tuple val(meta), path(input_fp)
 
     output:
-    tuple val(meta), path("*.prot.faa"), emit: prot_fasta_output
+    tuple val(meta), path("*.faa.gz"), emit: prot_fasta_output
     path "versions.yml", emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def base = input_fp.baseName
-    def output_fp = "${base}.prot.faa"
+    // def base = input_fp.baseName
+    // def output_fp = "${base}.faa"
+    // def output_fp = base.endsWith(".fa") ? base.substring(0, base.length()-3) : "${base}.faa"
     def args = task.ext.args ?: ''
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = task.ext.prefix ?: "${meta.id.replace(".genes", ".proteins")}"
 
     """
-    echo running translate_fasta $input_fp $output_fp
+
+    INPUT=$input_fp
+    if [[ $input_fp == *.gz ]]
+    then
+        gunzip -c $input_fp >| \$PWD/${prefix}_plain.fa
+        INPUT=\$PWD/${prefix}_plain.fa
+    fi
+
+    echo running translate_fasta \$INPUT "${prefix}.faa"
     # python /nfs/data/work/shen/github/metagear-pipeline-internal/bin/
-    translate_fasta.py $input_fp $output_fp
+    translate_fasta.py \$INPUT "${prefix}.faa"
+
+    gzip "${prefix}.faa"
+
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         Python: 3.8
