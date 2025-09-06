@@ -1,7 +1,7 @@
 include { VIRSORTER2 as VIRSORTER2_4DRAMV } from "$projectDir/modules/local/virsorter2/main"
 include { DRAMV } from "$projectDir/modules/local/dram/main"
 include { IPHOP_PREDICT } from "$projectDir/modules/local/iphop/predict/main"
-include { AMRFINDERPLUS_RUN } from "$projectDir/modules/nf-core/amrfinderplus/run/main"
+// include { AMRFINDERPLUS_RUN } from "$projectDir/modules/nf-core/amrfinderplus/run/main"
 include { SEQKIT_SPLIT2 } from "$projectDir/modules/nf-core/seqkit/split2"
 
 workflow VIRAL_ANNOTATION_INIT {
@@ -18,7 +18,6 @@ workflow VIRAL_ANNOTATION_INIT {
         virsorter2_db = Channel.fromPath("${params.virsorter2_db}", checkIfExists: true)
         dram_db = Channel.fromPath("${params.dram_db}", checkIfExists: true)
         iphop_db = Channel.fromPath("${params.iphop_db}", checkIfExists: true)
-        amrfinder_db = Channel.fromPath("${params.amrfinder_db}", checkIfExists: true)
 
     emit:
         catalog_input = ch_catalog
@@ -26,7 +25,6 @@ workflow VIRAL_ANNOTATION_INIT {
         virsorter2_db
         dram_db
         iphop_db
-        amrfinder_db
 }
 
 
@@ -34,11 +32,9 @@ workflow VIRAL_ANNOTATION {
 
     take:
         contigs // [meta, fasta]
-        proteins
         virsorter2_db
         dram_db
         iphop_db
-        amrfinder_db
 
     main:
         ch_versions = Channel.empty()
@@ -75,11 +71,9 @@ workflow VIRAL_ANNOTATION {
 
         IPHOP_PREDICT ( ch_virsorter2_chunks, iphop_db )
 
-        AMRFINDERPLUS_RUN ( proteins, amrfinder_db )
-
     emit:
 
-        amgs =  DRAMV.out.amg_summary
+        amgs = DRAMV.out.amg_summary
         iphop_genus = IPHOP_PREDICT.out.iphop_genus
         iphop_genomes = IPHOP_PREDICT.out.iphop_genome
         versions = ch_versions

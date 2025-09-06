@@ -56,24 +56,24 @@ workflow METAGEAR {
                 ch_metaphlan_profiles = METAPHLAN_PROFILES.out.merged_profiles.map{ it[1] }
             }
 
-            GENE_ANALYSIS ( init.validated_input, ch_metaphlan_profiles, init.gtdb_tk_db )
+            GENE_ANALYSIS ( init.validated_input, ch_metaphlan_profiles, init.gtdb_tk_db, init.amrfinder_db )
             ch_versions = GENE_ANALYSIS.out.versions
         }
 
         if ( params.workflow == "viral_analysis" ) {
             init = VIRAL_ANALYSIS_INIT ( )
 
-            VIRAL_ANALYSIS ( init.reads )
+            VIRAL_ANALYSIS ( init.reads, init.genomad_db, init.checkv_db, init.virsorter2_db, init.dram_db, init.iphop_db, init.amrfinder_db )
             ch_versions = VIRAL_ANALYSIS.out.versions
         }
 
-        //TODO: Temporary, remove later
-        if ( params.workflow == "viral_annotation" ) {
-            init = VIRAL_ANNOTATION_INIT ( )
+        // //TODO: Temporary, remove later
+        // if ( params.workflow == "viral_annotation" ) {
+        //     init = VIRAL_ANNOTATION_INIT ( )
 
-            VIRAL_ANNOTATION ( init.catalog_input, init.protein_catalog, init.virsorter2_db, init.dram_db, init.iphop_db, init.amrfinder_db )
-            ch_versions = VIRAL_ANNOTATION.out.versions
-        }
+        //     VIRAL_ANNOTATION ( init.catalog_input, init.protein_catalog, init.virsorter2_db, init.dram_db, init.iphop_db, init.amrfinder_db )
+        //     ch_versions = VIRAL_ANNOTATION.out.versions
+        // }
 
 
     emit:

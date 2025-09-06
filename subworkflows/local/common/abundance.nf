@@ -27,7 +27,7 @@ workflow ABUNDANCE {
                                 .map { meta, paths -> [ meta, paths.sort { it.toString() } ] }
                                 .flatMap { meta, bams ->
                                     // Split each per-label list into fixed-size chunks (keep remainder)
-                                    bams.collate(50)
+                                    bams.collate(params.files_batch_size)
                                         .withIndex()
                                         .collect { chunk, i ->
                                             def batch_id = "${meta.id}_${String.format('%03d', i+1)}"
@@ -37,7 +37,7 @@ workflow ABUNDANCE {
                                 }
 
         COVERM_CONTIG ( ch_coverm_contig )
-        
+
         // helper to prepare abundance channels -> [ [id: label_suffix], [files...] ]
         def prepare_merge_channels = { suffix, ch ->
             ch

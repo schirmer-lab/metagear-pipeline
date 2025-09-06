@@ -8,10 +8,10 @@ process COLLECT_TABLES {
         'docker.io/raphsoft/python_base:3.10-R4' }"
 
     input:
-    tuple val(meta), path(merged_virus_tables)
+    tuple val(meta), path(tables) // [ [id: virus|virus.filtered|plasmid|plasmid.filtered|dramv] path(files...) ]
 
     output:
-    tuple val(meta), path("*_checkv_summary_taxa.tsv"), emit: summary_taxa
+    tuple val(meta), path("*summary*tsv"), emit: summary_taxa
     path "versions.yml", emit: versions
 
     when:
@@ -20,11 +20,31 @@ process COLLECT_TABLES {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Join virus summary tables
-    head -1 ${merged_virus_tables[0]} > ${prefix}_checkv_summary_taxa.tsv
+    if [[ "${prefix}" == "virus" || "${prefix}" == "virus.filtered" ]]; then
+        # Join virus summary tables (geNomad, CheckV)
+        head -1 ${tables[0]} > ${prefix}_checkv_summary_taxa.tsv
 
-    mkdir virus && mv *_Merged_Genomad_CheckV_Summary.tsv virus/ && cat virus/*_Merged_Genomad_CheckV_Summary.tsv | \\
-        grep -v virus_id >> ${prefix}_checkv_summary_taxa.tsv
+        cat ${tables} | grep -v virus_id >> ${prefix}_checkv_summary_taxa.tsv
+    fi
+
+    if [[ "${prefix}" == "plasmid" ||  "${prefix}" == "plasmid.filtered" ]]; then
+        # Join plasmid tables (geNomad)
+        head -1 ${tables[0]} > ${prefix}_summary.tsv
+        cat ${tables} | grep -v seq_name >> ${prefix}_summary.tsv
+    fi
+
+    if [[ "${prefix}" == "amg" ]]; then
+        # Join AMG summary tables (DRAM-V)
+        head -1 ${tables[0]} > ${prefix}_summary.tsv
+        cat ${tables} | grep -v gene >> ${prefix}_summary.tsv
+    fi
+
+    if [[ "${prefix}" == "host.genus" || "${prefix}" == "host.genome" ]]; then
+        # Join hosts summary tables (iPhOP)
+        head -1 ${tables[0]} > ${prefix}_summary.tsv
+        cat ${tables} | grep -v Virus >> ${prefix}_summary.tsv
+    fi
+
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

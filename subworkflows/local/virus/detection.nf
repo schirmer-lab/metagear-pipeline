@@ -14,8 +14,6 @@ include { MERGE_TABLES } from "$projectDir/modules/local/mvip/create_tables"
 include { SEQTK_SUBSEQ as EXTRACT_SEQUENCES } from "$projectDir/modules/local/seqtk/subseq/main"
 include { VAMB_CONCATENATE_FASTA } from "$projectDir/modules/local/vamb/main"
 
-include { COLLECT_TABLES } from "$projectDir/modules/local/metagear/mge/summarize"
-
 workflow VIRAL_DETECTION {
 
     take:
@@ -93,5 +91,9 @@ workflow VIRAL_DETECTION {
         plasmid_catalog = MMSEQS_EASY_CLUSTER.out.representatives.filter { meta, _ -> meta.id == 'plasmid' }
         sequences = EXTRACT_SEQUENCES.out.sequences
         catalogs = MMSEQS_EASY_CLUSTER.out.representatives
+        virus_tables = MERGE_TABLES.out.merged_tables
+        virus_filtered_tables = MERGE_TABLES.out.filtered_tables
+        plasmid_tables = GENOMAD_PASS1.out.plasmid_summary
+        plasmid_filtered_tables = MERGE_TABLES.out.plasmid_filtered_tables
         versions = ch_versions
 }

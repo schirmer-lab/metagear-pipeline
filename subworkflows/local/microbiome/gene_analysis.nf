@@ -20,6 +20,8 @@ workflow GENE_ANALYSIS_INIT {
         if ( params.input ) { ch_input = file(params.input) } else { exit 1, 'Input samplesheet not specified!' }
 
         gtdb_tk_db = Channel.fromPath("${params.gtdb_tk_db}", checkIfExists: true)
+        amrfinder_db = Channel.fromPath("${params.amrfinder_db}", checkIfExists: true)
+
         metaphlan_db = Channel.empty()
 
         if ( params.metaphlan_profiles ) {
@@ -36,6 +38,7 @@ workflow GENE_ANALYSIS_INIT {
         metaphlan_profiles
         gtdb_tk_db
         metaphlan_db
+        amrfinder_db
         versions = INPUT_CHECK.out.versions
 }
 
@@ -46,6 +49,7 @@ workflow GENE_ANALYSIS {
         clean_reads // [meta, reads]
         metaphlan_profiles
         gtdb_tk_db
+        amrfinder_db
 
     main:
 
@@ -64,7 +68,7 @@ workflow GENE_ANALYSIS {
 
         PROTEIN_CALL ( GENE_CALL.out.gene_catalog )
 
-        PROTEIN_ANNOTATION ( PROTEIN_CALL.out.protein_catalog )
+        PROTEIN_ANNOTATION ( PROTEIN_CALL.out.protein_catalog, amrfinder_db )
 
         MSP ( GENE_CALL.out.gene_catalog, ABUNDANCE.out.count, ABUNDANCE.out.rpkm, gtdb_tk_db, metaphlan_profiles )
 

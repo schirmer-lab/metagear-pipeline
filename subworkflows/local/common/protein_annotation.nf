@@ -2,12 +2,16 @@ include { SEQKIT_SPLIT2 } from "$projectDir/modules/nf-core/seqkit/split2"
 include { INTERPROSCAN } from "$projectDir/modules/local/interproscan/main"
 include { FUNCTIONALGROUP_ANNOTATION } from "$projectDir/modules/local/metagear/utils/functional_group_annotation"
 
+include { AMRFINDERPLUS_RUN } from "$projectDir/modules/nf-core/amrfinderplus/run/main"
+
 workflow PROTEIN_ANNOTATION_INIT {
     main:
         if (params.protein_catalog) {ch_catalog = file(params.protein_catalog)} else { exit 1, 'Input catalog file [fasta format with DNA sequences] not specified!' }
 
         ch_catalog = Channel.fromPath("${params.protein_catalog}", checkIfExists: true).first()
             .map { it -> [ [id: "gene_catalog"], it] }
+
+        amrfinder_db = Channel.fromPath("${params.amrfinder_db}", checkIfExists: true)
 
     emit:
         catalog_input = ch_catalog
@@ -18,6 +22,7 @@ workflow PROTEIN_ANNOTATION {
 
     take:
         protein_catalog // [meta, PATH (DNA sequences of gene catalog)]
+        amrfinder_db
 
     main:
 
@@ -42,6 +47,10 @@ workflow PROTEIN_ANNOTATION {
             .set { ch_interproscan_input }
 
         INTERPROSCAN ( ch_interproscan_input, "tsv" )
+
+        // Scan for AMR genes
+        ch_amrfinder = protein_catalog.map { meta, fa -> [ [id: meta.id, is_proteins: true], fa ] }
+        AMRFINDERPLUS_RUN ( ch_amrfinder, amrfinder_db )
 
         // create a new channel to collect all interproscan files
         ch_merged_interproscan = INTERPROSCAN.out.tsv
