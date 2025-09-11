@@ -42,7 +42,7 @@
                     "parameters": [
                         { "name": "input", "required": true, "description": "Input .csv file for gene analysis" },
                         {
-                            "name": "contigs",
+                            "name": "contigs_dir",
                             "required": false,
                             "description": "Contigs catalog (if available)"
                         },
@@ -59,29 +59,39 @@
                     "parameters": [
                         { "name": "input", "required": true, "description": "Input .csv file for viral analysis" },
                         {
-                            "name": "contigs",
+                            "name": "contigs_dir",
                             "required": false,
-                            "description": "Contigs (DIRECTORY: if available). Folder containing SAMPLE_ID.contigs.fa.gz files"
+                            "description": "Contigs (DIRECTORY: optional). Folder containing SAMPLE_ID.contigs.fa.gz files"
                         },
                         {
-                            "name": "viral_genes",
+                            "name": "genes_dir",
                             "required": false,
-                            "description": "Viral gene catalog (single .fa or fa.gz file if available)"
-                        },
-                        {
-                            "name": "viral_proteins",
-                            "required": false,
-                            "description": "Viral protein catalog (single .fa or fa.gz file if available)"
+                            "description": "Genes (DIRECTORY: optional). Folder containing SAMPLE_ID.all.genes.filtered.fasta files"
                         },
                         {
                             "name": "all_genes",
                             "required": false,
-                            "description": "Full gene catalog (single .fa or fa.gz file if available)"
+                            "description": "All-genes catalog (FILE: optional). Concatenated genes from all samples."
                         },
                         {
-                            "name": "all_proteins",
+                            "name": "representative_genes",
                             "required": false,
-                            "description": "Full protein catalog (single .faa or faa.gz file if available)"
+                            "description": "Representative-genes catalog (FILE: optional). Dereplicated genes from all samples."
+                        },
+                        {
+                            "name": "representative_proteins",
+                            "required": false,
+                            "description": "Representative-proteins catalog (FILE: optional). Dereplicated proteins from all samples."
+                        },
+                        {
+                            "name": "representative_proteins_annotations",
+                            "required": false,
+                            "description": "Representative-proteins annotations (FILE: optional). Functional annotations for representative proteins."
+                        },
+                        {
+                            "name": "viral_annotation",
+                            "required": false,
+                            "description": "Perform viral annotation (default: true)."
                         }
                     ]
                 }

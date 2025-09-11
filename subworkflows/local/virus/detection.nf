@@ -74,9 +74,9 @@ workflow VIRAL_DETECTION {
                                 .groupTuple(by: 0) // collect all for the same id
                                 .map { meta, paths -> [ meta, paths.sort { it.toString() } ] }
 
-        VAMB_CONCATENATE_FASTA ( ch_catalog_input )
+        // VAMB_CONCATENATE_FASTA ( ch_catalog_input )
 
-        MMSEQS_EASY_CLUSTER ( VAMB_CONCATENATE_FASTA.out.catalog )
+        // MMSEQS_EASY_CLUSTER ( VAMB_CONCATENATE_FASTA.out.catalog )
 
         ch_versions = GENOMAD_PASS1.out.versions.first()
                         .mix(CHECKV_PASS1.out.versions.first())
@@ -86,14 +86,18 @@ workflow VIRAL_DETECTION {
 
     emit:
         viral_sequences =  EXTRACT_SEQUENCES.out.sequences.filter { meta, _ -> meta.label == 'virus' }
-        viral_catalog = MMSEQS_EASY_CLUSTER.out.representatives.filter { meta, _ -> meta.id == 'virus' }
+        viral_ids = MERGE_TABLES.out.sequence_ids
+
         plasmid_sequences = EXTRACT_SEQUENCES.out.sequences.filter { meta, _ -> meta.label == 'plasmid' }
-        plasmid_catalog = MMSEQS_EASY_CLUSTER.out.representatives.filter { meta, _ -> meta.id == 'plasmid' }
+        plasmid_ids =  MERGE_TABLES.out.plasmid_sequence_ids
+        
         sequences = EXTRACT_SEQUENCES.out.sequences
-        catalogs = MMSEQS_EASY_CLUSTER.out.representatives
+        
         virus_tables = MERGE_TABLES.out.merged_tables
         virus_filtered_tables = MERGE_TABLES.out.filtered_tables
+
         plasmid_tables = GENOMAD_PASS1.out.plasmid_summary
         plasmid_filtered_tables = MERGE_TABLES.out.plasmid_filtered_tables
+        
         versions = ch_versions
 }

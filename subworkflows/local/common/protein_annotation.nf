@@ -48,20 +48,21 @@ workflow PROTEIN_ANNOTATION {
 
         INTERPROSCAN ( ch_interproscan_input, "tsv" )
 
-        // Scan for AMR genes
-        ch_amrfinder = protein_catalog.map { meta, fa -> [ [id: meta.id, is_proteins: true], fa ] }
-        AMRFINDERPLUS_RUN ( ch_amrfinder, amrfinder_db )
-
         // create a new channel to collect all interproscan files
         ch_merged_interproscan = INTERPROSCAN.out.tsv
                 .map { meta, tsv -> [ [id: meta.src], tsv]}
                 .groupTuple(by: 0)
-        
+
         FUNCTIONALGROUP_ANNOTATION ( ch_merged_interproscan )
+
+        // Scan for AMR genes
+        ch_amrfinder = protein_catalog.map { meta, fa -> [ [id: meta.id, is_proteins: true], fa ] }
+        AMRFINDERPLUS_RUN ( ch_amrfinder, amrfinder_db )
 
         ch_versions = SEQKIT_SPLIT2.out.versions
                         .mix(INTERPROSCAN.out.versions.first())
                         .mix(FUNCTIONALGROUP_ANNOTATION.out.versions)
+                        .mix(AMRFINDERPLUS_RUN.out.versions)
 
     emit:
         hits_channel = INTERPROSCAN.out.tsv

@@ -27,24 +27,27 @@ workflow PROTEIN_CALL {
         gene_catalog // meta, sequences
 
     main:
+        ch_versions = Channel.empty()
 
         // translate DNA to protein
         TRANSLATE_DNA2PROT ( gene_catalog )
+        ch_versions =  ch_versions.mix(TRANSLATE_DNA2PROT.out.versions)
 
-        ch_protein_catalog_input = TRANSLATE_DNA2PROT.out.prot_fasta_output.map(it -> [ [id: it[0].id.replace(".genes", ".proteins") ], it[1]])
+        // ch_protein_catalog_input = TRANSLATE_DNA2PROT.out.prot_fasta_output.map(it -> [ [id: it[0].id.replace(".genes", ".proteins") ], it[1]])
 
         // CDHIT_CDHIT ( ch_protein_catalog_input )
-        MMSEQS_EASY_CLUSTER ( ch_protein_catalog_input )
+        // MMSEQS_EASY_CLUSTER ( ch_protein_catalog_input )
 
-        ch_protein_catalog = MMSEQS_EASY_CLUSTER.out.representatives
-        ch_protein_catalog_clusters = MMSEQS_EASY_CLUSTER.out.clusters_tsv
+        // ch_protein_catalog = MMSEQS_EASY_CLUSTER.out.representatives
+        // ch_protein_catalog_clusters = MMSEQS_EASY_CLUSTER.out.clusters_tsv
 
-        ch_versions = TRANSLATE_DNA2PROT.out.versions.first()
-                        .mix(MMSEQS_EASY_CLUSTER.out.versions.first())
+        // ch_versions = TRANSLATE_DNA2PROT.out.versions.first()
+        //                 .mix(MMSEQS_EASY_CLUSTER.out.versions.first())
 
 
     emit:
-        protein_catalog = ch_protein_catalog
-        protein_catalog_clusters = ch_protein_catalog_clusters
+        // protein_catalog = ch_protein_catalog
+        // protein_catalog_clusters = ch_protein_catalog_clusters
+        proteins = TRANSLATE_DNA2PROT.out.prot_fasta_output
         versions = ch_versions
 }

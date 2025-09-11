@@ -3,14 +3,13 @@ include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
 include { ASSEMBLY } from "$projectDir/subworkflows/local/common/assembly"
 
 include { GENE_CALL } from "$projectDir/subworkflows/local/common/gene_call"
-
-include {BWA_INDEX} from "$projectDir/modules/nf-core/bwa/index"
-
 include { PROTEIN_CALL } from "$projectDir/subworkflows/local/common/protein_call"
+include { PROTEIN_ANNOTATION } from "$projectDir/subworkflows/local/common/protein_annotation"
 
+include { BWA_INDEX } from "$projectDir/modules/nf-core/bwa/index"
 include { ABUNDANCE } from "$projectDir/subworkflows/local/common/abundance"
 
-include { PROTEIN_ANNOTATION } from "$projectDir/subworkflows/local/common/protein_annotation"
+include { CLUSTER_SEQUENCES as CLUSTER_GENES; CLUSTER_SEQUENCES as CLUSTER_PROTEINS } from "$projectDir/subworkflows/local/common/clustering"
 
 include { MSP } from "$projectDir/subworkflows/local/pangenome/msp"
 
@@ -53,35 +52,40 @@ workflow GENE_ANALYSIS {
 
     main:
 
-        ASSEMBLY ( clean_reads )
+        ch_versions = Channel.empty()
 
-        ch_gene_call = ASSEMBLY.out.contigs.map { [ [id: it[0].id + '.all.genes', label: 'all', src: it[0].id ], it[1] ] }
+        ASSEMBLY ( clean_reads )
+        ch_versions =  ch_versions.mix(ASSEMBLY.out.versions)
+
+        ch_gene_call = ASSEMBLY.out.contigs.map { [ [id: it[0].id, label: 'all.genes', src: it[0].id ], it[1] ] }
 
         GENE_CALL ( ch_gene_call )
+        ch_versions =  ch_versions.mix(GENE_CALL.out.versions)
 
-        BWA_INDEX ( GENE_CALL.out.gene_catalog )
+        CLUSTER_GENES ( GENE_CALL.out.genes, "mmseqs2", true )
+        ch_versions =  ch_versions.mix(CLUSTER_GENES.out.versions)
+
+        PROTEIN_CALL ( CLUSTER_GENES.out.representative  )
+        ch_versions =  ch_versions.mix(PROTEIN_CALL.out.versions)
+
+        CLUSTER_PROTEINS ( PROTEIN_CALL.out.proteins, "mmseqs2", false )
+
+        PROTEIN_ANNOTATION ( CLUSTER_PROTEINS.out.representative, amrfinder_db )
+        ch_versions =  ch_versions.mix(PROTEIN_ANNOTATION.out.versions)
+
+        BWA_INDEX ( CLUSTER_GENES.out.representative )
+        ch_versions =  ch_versions.mix(BWA_INDEX.out.versions)
 
         ch_abundance_input = clean_reads.combine( BWA_INDEX.out.index )
                                 .map { meta_reads, reads, meta_index, index -> [ [id: meta_reads.id, label: meta_index.id ], reads, index ] }
 
         ABUNDANCE ( ch_abundance_input )
+        ch_versions =  ch_versions.mix(ABUNDANCE.out.versions)
 
-        PROTEIN_CALL ( GENE_CALL.out.gene_catalog )
-
-        PROTEIN_ANNOTATION ( PROTEIN_CALL.out.protein_catalog, amrfinder_db )
-
-        MSP ( GENE_CALL.out.gene_catalog, ABUNDANCE.out.count, ABUNDANCE.out.rpkm, gtdb_tk_db, metaphlan_profiles )
-
-        // summary channel version
-        ch_versions = ASSEMBLY.out.versions
-                        .mix(GENE_CALL.out.versions)
-                        .mix(ABUNDANCE.out.versions)
-                        .mix(PROTEIN_CALL.out.versions)
-                        .mix(PROTEIN_ANNOTATION.out.versions)
-                        // .mix(MSP.out.versions)
-
+        MSP ( CLUSTER_GENES.out.representative, ABUNDANCE.out.count, ABUNDANCE.out.rpkm, gtdb_tk_db, metaphlan_profiles )
+        // ch_versions =  ch_versions.mix(MSP.out.versions) //TODO: Needs fixing, not working properly
 
     emit:
-        // TODO: implement emission of all relevant channels
+        // TODO: implement emission of all other relevant channels
         versions = ch_versions
 }
