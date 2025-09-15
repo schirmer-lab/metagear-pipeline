@@ -21,19 +21,21 @@ workflow PROTEIN_ANNOTATION_INIT {
 workflow PROTEIN_ANNOTATION {
 
     take:
-        protein_catalog // [meta, PATH (DNA sequences of gene catalog)]
+        proteins // [meta, PATH (DNA sequences of gene catalog)]
         amrfinder_db
 
     main:
 
-        ch_split = protein_catalog.map { meta, path ->
+        ch_proteins = proteins.map { meta, path ->
             def newMeta = meta.clone()
-            newMeta.single_end = true
+            newMeta.id = newMeta.id.replace("gene","protein")
+            newMeta.single_end = true // needed by seqkit split2 
+            newMeta.is_proteins = true // needed by amrfinderplus
             return tuple(newMeta, path)
         }
 
         // split protein sequences into chunks with n sequences (see config, default 5K)
-        SEQKIT_SPLIT2 ( ch_split )
+        SEQKIT_SPLIT2 ( ch_proteins )
 
         SEQKIT_SPLIT2.out.reads
             .flatMap { meta, gz ->
@@ -56,8 +58,8 @@ workflow PROTEIN_ANNOTATION {
         FUNCTIONALGROUP_ANNOTATION ( ch_merged_interproscan )
 
         // Scan for AMR genes
-        ch_amrfinder = protein_catalog.map { meta, fa -> [ [id: meta.id, is_proteins: true], fa ] }
-        AMRFINDERPLUS_RUN ( ch_amrfinder, amrfinder_db )
+        // ch_amrfinder = protein_catalog.map { meta, fa -> [ [id: meta.id, is_proteins: true], fa ] }
+        AMRFINDERPLUS_RUN ( ch_proteins, amrfinder_db )
 
         ch_versions = SEQKIT_SPLIT2.out.versions
                         .mix(INTERPROSCAN.out.versions.first())

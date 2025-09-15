@@ -2,9 +2,6 @@
 
 include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
 
-// include { CDHIT_CDHIT } from "$projectDir/modules/local/cdhit/cdhit"
-include { MMSEQS_EASY_CLUSTER } from "$projectDir/modules/local/mmseqs/easy_cluster/main"
-
 include { TRANSLATE_DNA2PROT } from "$projectDir/modules/local/metagear/utils/translate_dna2prot"
 
 /* --- Initialization for standalone process --- */
@@ -33,21 +30,9 @@ workflow PROTEIN_CALL {
         TRANSLATE_DNA2PROT ( gene_catalog )
         ch_versions =  ch_versions.mix(TRANSLATE_DNA2PROT.out.versions)
 
-        // ch_protein_catalog_input = TRANSLATE_DNA2PROT.out.prot_fasta_output.map(it -> [ [id: it[0].id.replace(".genes", ".proteins") ], it[1]])
-
-        // CDHIT_CDHIT ( ch_protein_catalog_input )
-        // MMSEQS_EASY_CLUSTER ( ch_protein_catalog_input )
-
-        // ch_protein_catalog = MMSEQS_EASY_CLUSTER.out.representatives
-        // ch_protein_catalog_clusters = MMSEQS_EASY_CLUSTER.out.clusters_tsv
-
-        // ch_versions = TRANSLATE_DNA2PROT.out.versions.first()
-        //                 .mix(MMSEQS_EASY_CLUSTER.out.versions.first())
-
+        ch_proteins = TRANSLATE_DNA2PROT.out.prot_fasta_output
 
     emit:
-        // protein_catalog = ch_protein_catalog
-        // protein_catalog_clusters = ch_protein_catalog_clusters
-        proteins = TRANSLATE_DNA2PROT.out.prot_fasta_output
+        proteins = ch_proteins
         versions = ch_versions
 }

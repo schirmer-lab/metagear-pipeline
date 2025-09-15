@@ -54,7 +54,6 @@ workflow VIRAL_GENE_CALL {
         ch_versions = Channel.empty()
 
         EXTRACT_GENES ( viral_sequences )
-        // EXTRACT_GENES.out.extracted_genes.view()
 
     emit:
         versions = ch_versions

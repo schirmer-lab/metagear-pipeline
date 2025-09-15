@@ -1,4 +1,4 @@
-include {BWA_INDEX} from "$projectDir/modules/nf-core/bwa/index"
+include { BWA_INDEX } from "$projectDir/modules/nf-core/bwa/index"
 
 include { COVERM_MAKE } from "$projectDir/modules/local/coverm/make"
 include { COVERM_CONTIG_BATCH; COVERM_CONTIG_MERGE } from "$projectDir/modules/local/coverm/contig"
@@ -6,18 +6,27 @@ include { COVERM_CONTIG_BATCH; COVERM_CONTIG_MERGE } from "$projectDir/modules/l
 include { COVERM_CONTIG } from "$projectDir/modules/local/coverm/contig"
 
 
-
 workflow ABUNDANCE {
 
     take:
-        // label
-        // reads // [meta, reads]
-        // catalog // [ meta, path ]
-        reads_with_index // [ meta, reads, index ]
+        reads_with_sequences // [ meta, reads, catalog ]: meta must contain id and label
 
     main:
 
-        COVERM_MAKE ( reads_with_index, true )
+        /* -- Build index for abundance estimation (only once) --- */
+        ch_catalogs = reads_with_sequences
+                        .map { meta, reads, catalog -> [ [id: meta.label, src: catalog.toString()], catalog ] }
+                        .unique()
+
+        BWA_INDEX ( ch_catalogs )
+
+        // Combine back the index with reads and catalog for abundance estimation
+        ch_reads_with_index = reads_with_sequences
+                        .map { meta, reads, catalog -> [ [id: meta.label, src: catalog.toString()], meta, reads ] }
+                        .combine( BWA_INDEX.out.index, by: 0 )
+                        .map { src, meta, reads, index -> [ meta, reads, index ] }
+
+        COVERM_MAKE ( ch_reads_with_index, true )
 
         def chunkCounter = new java.util.concurrent.atomic.AtomicInteger(0)
 
@@ -61,8 +70,10 @@ workflow ABUNDANCE {
         // summary channel versions
         ch_versions = COVERM_MAKE.out.versions
                         .mix(COVERM_CONTIG.out.versions)
+        // ch_versions = Channel.empty()
 
     emit:
+        index = BWA_INDEX.out.index
         alignments = COVERM_MAKE.out.alignments
         tpm = ch_tpm
         rpkm = ch_rpkm

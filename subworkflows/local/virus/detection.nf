@@ -9,8 +9,6 @@ include { CHECKV_ENDTOEND as CHECKV_PASS1; CHECKV_ENDTOEND as CHECKV_PASS2} from
 include { CHECKV_ADAPT_OUTPUT } from "$projectDir/modules/local/checkv/adapt"
 include { MERGE_TABLES } from "$projectDir/modules/local/mvip/create_tables"
 
-
-// include { SEQTK_SUBSEQ as CONCAT_VIRUS; SEQTK_SUBSEQ as CONCAT_PLASMIDS} from "$projectDir/modules/local/seqtk/subseq/main"
 include { SEQTK_SUBSEQ as EXTRACT_SEQUENCES } from "$projectDir/modules/local/seqtk/subseq/main"
 include { VAMB_CONCATENATE_FASTA } from "$projectDir/modules/local/vamb/main"
 
@@ -44,11 +42,11 @@ workflow VIRAL_DETECTION {
 
         // 5. Adapt CheckV and geNomad channel outputs to allow merging
         ch_all_summaries = GENOMAD_PASS1.out.virus_summary.map { [ it[0], [ it[1], "virus" ] ] }
-                            .mix(CHECKV_PASS1.out.quality_summary.map { [ it[0], [ it[1], "virus" ] ] })
-                            .mix(GENOMAD_PASS2.out.virus_summary.map { [ it[0], [ it[1], "provirus" ] ] })
-                            .mix(CHECKV_PASS2.out.quality_summary.map { [ it[0], [ it[1], "provirus" ] ] })
+                            .mix( CHECKV_PASS1.out.quality_summary.map { [ it[0], [ it[1], "virus" ] ] } )
+                            .mix( GENOMAD_PASS2.out.virus_summary.map { [ it[0], [ it[1], "provirus" ] ] } )
+                            .mix( CHECKV_PASS2.out.quality_summary.map { [ it[0], [ it[1], "provirus" ] ] } )
                             .groupTuple( by: 0, size: 4, remainder: true )
-                            .join(GENOMAD_PASS1.out.plasmid_summary)
+                            .join( GENOMAD_PASS1.out.plasmid_summary )
 
         def ictv_taxonomy = Channel.fromPath("$projectDir/assets/metagear/ICTV_Taxonomy_List.tsv", checkIfExists: true).first()
 
@@ -74,10 +72,6 @@ workflow VIRAL_DETECTION {
                                 .groupTuple(by: 0) // collect all for the same id
                                 .map { meta, paths -> [ meta, paths.sort { it.toString() } ] }
 
-        // VAMB_CONCATENATE_FASTA ( ch_catalog_input )
-
-        // MMSEQS_EASY_CLUSTER ( VAMB_CONCATENATE_FASTA.out.catalog )
-
         ch_versions = GENOMAD_PASS1.out.versions.first()
                         .mix(CHECKV_PASS1.out.versions.first())
                         .mix(EXTRACT_SEQUENCES.out.versions)
@@ -90,14 +84,14 @@ workflow VIRAL_DETECTION {
 
         plasmid_sequences = EXTRACT_SEQUENCES.out.sequences.filter { meta, _ -> meta.label == 'plasmid' }
         plasmid_ids =  MERGE_TABLES.out.plasmid_sequence_ids
-        
+
         sequences = EXTRACT_SEQUENCES.out.sequences
-        
+
         virus_tables = MERGE_TABLES.out.merged_tables
         virus_filtered_tables = MERGE_TABLES.out.filtered_tables
 
         plasmid_tables = GENOMAD_PASS1.out.plasmid_summary
         plasmid_filtered_tables = MERGE_TABLES.out.plasmid_filtered_tables
-        
+
         versions = ch_versions
 }

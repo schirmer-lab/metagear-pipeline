@@ -44,7 +44,12 @@
                         {
                             "name": "contigs_dir",
                             "required": false,
-                            "description": "Contigs catalog (if available)"
+                            "description": "Contigs (DIRECTORY: optional). Folder containing SAMPLE_ID.contigs.fa.gz files"
+                        },
+                        {
+                            "name": "genes_dir",
+                            "required": false,
+                            "description": "Genes (DIRECTORY: optional). Folder containing SAMPLE_ID.all.genes.filtered.fasta files"
                         },
                         {
                             "name": "metaphlan_profiles",

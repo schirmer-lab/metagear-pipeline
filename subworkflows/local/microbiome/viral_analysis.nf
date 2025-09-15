@@ -7,15 +7,13 @@ include { ASSEMBLY } from "$projectDir/subworkflows/local/common/assembly"
 include { VIRAL_DETECTION } from "$projectDir/subworkflows/local/virus/detection"
 include { VIRAL_ANNOTATION } from "$projectDir/subworkflows/local/virus/annotation"
 
-include {BWA_INDEX} from "$projectDir/modules/nf-core/bwa/index"
-
 include { GENE_CALL; VIRAL_GENE_CALL } from "$projectDir/subworkflows/local/common/gene_call"
 include { PROTEIN_CALL } from "$projectDir/subworkflows/local/common/protein_call"
 include { PROTEIN_ANNOTATION } from "$projectDir/subworkflows/local/common/protein_annotation"
 
 include { ABUNDANCE } from "$projectDir/subworkflows/local/common/abundance"
 
-include { CLUSTER_SEQUENCES } from "$projectDir/subworkflows/local/common/clustering"
+include { CLUSTER_SEQUENCES as CLUSTER_GENES; CLUSTER_SEQUENCES as CLUSTER_PROTEINS; CLUSTER_SEQUENCES as CLUSTER_VIRUS;  CLUSTER_SEQUENCES as CLUSTER_PLASMID } from "$projectDir/subworkflows/local/common/clustering"
 
 include { COLLECT_TABLES } from "$projectDir/modules/local/metagear/mge/summarize"
 
@@ -76,85 +74,75 @@ workflow VIRAL_ANALYSIS {
 
         VIRAL_DETECTION ( ch_contigs, genomad_db, checkv_db )
 
+        CLUSTER_VIRUS ( VIRAL_DETECTION.out.viral_sequences, "mmseqs2", true )
+
+        CLUSTER_PLASMID ( VIRAL_DETECTION.out.plasmid_sequences, "mmseqs2", true )
+
         ch_genes = Channel.empty()
         if ( params.genes_dir ) {
-            ch_genes = createExistingDirChannel ( params.genes_dir, "*.all.genes.filtered.fasta", ".all.genes.filtered", { [ [id: it[0].id + '.all.genes', label: 'all', src: it[0].id ], it[1] ] } )
-            
+            ch_genes = createExistingDirChannel ( params.genes_dir, "*.all.genes.filtered.fasta", ".all.genes.filtered", { [ [id: it[0].id + '.all.genes', label: 'all.genes', src: it[0].id ], it[1] ] } )
+
         } else {
             // Call genes for all contigs
             ch_gene_call = ch_contigs.map { [ [id: it[0].id + '.all.genes', label: 'all', src: it[0].id ], it[1] ] }
-            
+
             GENE_CALL ( ch_gene_call )
             ch_versions = ch_versions.mix( GENE_CALL.out.versions.first() )
 
             ch_genes = GENE_CALL.out.genes
         }
 
+        CLUSTER_GENES ( ch_genes, "mmseqs2", true )
+        ch_versions =  ch_versions.mix( CLUSTER_GENES.out.versions )
+
+        PROTEIN_CALL ( CLUSTER_GENES.out.representative )
+        ch_versions =  ch_versions.mix(PROTEIN_CALL.out.versions)
+
+        CLUSTER_PROTEINS ( PROTEIN_CALL.out.proteins, "mmseqs2", false )
+
+        PROTEIN_ANNOTATION ( CLUSTER_PROTEINS.out.representative, amrfinder_db )
+        ch_versions =  ch_versions.mix(PROTEIN_ANNOTATION.out.versions)
+
         ch_genes_reformatted = ch_genes.map { meta, file -> [ [id: meta.src ], file ]  }
 
         ch_viral_genes = VIRAL_DETECTION.out.viral_ids.join(ch_genes_reformatted, by:0)
                             .map { [ [id: it[0].id +'.virus.genes', src: it[0].id, label: 'virus'], it[1], it[2] ] }
-                            .mix ( 
+                            .mix (
                                 VIRAL_DETECTION.out.plasmid_ids.join(ch_genes_reformatted, by:0)
                                 .map { [ [id: it[0].id +'.plasmid.genes', src: it[0].id, label: 'plasmid'], it[1], it[2] ] }
                             )
-        
-        // ch_viral_genes = ch_genes.join(VIRAL_DETECTION.out.viral_ids, by:0)
 
-        // ch_viral_genes.view()
-        // ch_viral_genes = VIRAL_DETECTION.out.viral_ids.map { meta, file -> [ [id: meta.id + '.virus.genes', label: 'virus'], file ]  }
-        //                     .mix( VIRAL_DETECTION.out.plasmid_ids.map { meta, file -> [ [id: meta.id + '.plasmid.genes', label: 'plasmid'], file ]  } )
-
-        // ch_viral_genes.view()
         VIRAL_GENE_CALL ( ch_viral_genes )
 
-        VIRAL_GENE_CALL.out.genes.view()
-        
-        // ch_viral_genes
+        ch_all_sequences = CLUSTER_GENES.out.representative
+                            .concat( CLUSTER_PLASMID.out.representative )
+                            .concat( CLUSTER_VIRUS.out.representative )
 
-        // CLUSTER_SEQUENCES ( VIRAL_DETECTION.out.sequences, "mmseqs2" )
+        ch_abundance_input = reads.combine( ch_all_sequences )
+                                .map { meta_reads, reads, meta_sequences, sequences -> [ [id: meta_reads.id, label: meta_sequences.id ], reads, sequences ] }
 
-        // Build index for abundance estimation (only once)
-        // BWA_INDEX ( VIRAL_DETECTION.out.catalogs.concat( ch_genes ) )
+        ABUNDANCE ( ch_abundance_input )
 
-        // ch_abundance_input = reads.combine( BWA_INDEX.out.index )
-        //                         .map { meta_reads, reads, meta_index, index -> [ [id: meta_reads.id, label: meta_index.id ], reads, index ] }
+        VIRAL_ANNOTATION ( CLUSTER_VIRUS.out.representative, virsorter2_db, dram_db, iphop_db )
+        ch_versions =  ch_versions.mix(VIRAL_ANNOTATION.out.versions)
 
-        // ABUNDANCE ( ch_abundance_input )
+        // Collect tables
+        def prepare_table_channels = { preffix, ch ->
+            ch
+                .map { [it[1]] }
+                .collect()
+                .map { [[id: preffix], it] }
+        }
 
-        // PROTEIN_CALL ( GENE_CALL.out.gene_catalog )
+        ch_tables = prepare_table_channels('virus', VIRAL_DETECTION.out.virus_tables )
+                    .concat( prepare_table_channels('virus.filtered', VIRAL_DETECTION.out.virus_filtered_tables ) )
+                    .concat( prepare_table_channels('plasmid', VIRAL_DETECTION.out.plasmid_tables ) )
+                    .concat( prepare_table_channels('plasmid.filtered', VIRAL_DETECTION.out.plasmid_filtered_tables ) )
+                    .concat( prepare_table_channels('amg', VIRAL_ANNOTATION.out.amgs ) )
+                    .concat( prepare_table_channels('host.genus', VIRAL_ANNOTATION.out.iphop_genus ) )
+                    .concat( prepare_table_channels('host.genome', VIRAL_ANNOTATION.out.iphop_genomes ) )
 
-        // PROTEIN_ANNOTATION ( PROTEIN_CALL.out.protein_catalog, amrfinder_db )
-
-        // VIRAL_ANNOTATION ( VIRAL_DETECTION.out.viral_catalog, virsorter2_db, dram_db, iphop_db )
-
-        // // Collect tables
-        // def prepare_table_channels = { preffix, ch ->
-        //     ch
-        //         .map { [it[1]] }
-        //         .collect()
-        //         .map { [[id: preffix], it] }
-        // }
-
-        // ch_tables = prepare_table_channels('virus', VIRAL_DETECTION.out.virus_tables )
-        //             .concat( prepare_table_channels('virus.filtered', VIRAL_DETECTION.out.virus_filtered_tables ) )
-        //             .concat( prepare_table_channels('plasmid', VIRAL_DETECTION.out.plasmid_tables ) )
-        //             .concat( prepare_table_channels('plasmid.filtered', VIRAL_DETECTION.out.plasmid_filtered_tables ) )
-        //             .concat( prepare_table_channels('amg', VIRAL_ANNOTATION.out.amgs ) )
-        //             .concat( prepare_table_channels('host.genus', VIRAL_ANNOTATION.out.iphop_genus ) )
-        //             .concat( prepare_table_channels('host.genome', VIRAL_ANNOTATION.out.iphop_genomes ) )
-
-        // COLLECT_TABLES ( ch_tables )
-
-        // summary channel versions
-        // ch_versions = ASSEMBLY.out.versions
-        //                 .mix(VIRAL_DETECTION.out.versions)
-        //                 .mix(GENE_CALL.out.versions)
-        //                 .mix(ABUNDANCE.out.versions)
-        //                 .mix(PROTEIN_CALL.out.versions)
-        //                 .mix(PROTEIN_ANNOTATION.out.versions)
-        //                 .mix(VIRAL_ANNOTATION.out.versions)
-
+        COLLECT_TABLES ( ch_tables )
 
     emit:
         versions = ch_versions

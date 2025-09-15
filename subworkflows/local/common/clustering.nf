@@ -18,6 +18,7 @@ workflow CLUSTER_SEQUENCES {
 
             ch_merged_genes = sequences.map{ [[ id: it[0].label ?: it[0].id ], it[1] ] }
                 .groupTuple(by: 0)
+                .map { meta, paths -> [ meta, paths.sort { it.toString() } ] }
 
             VAMB_CONCATENATE_FASTA ( ch_merged_genes )
             ch_sequences = VAMB_CONCATENATE_FASTA.out.catalog

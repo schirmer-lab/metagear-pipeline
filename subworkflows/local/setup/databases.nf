@@ -67,7 +67,7 @@ workflow DATABASES {
             ch_versions = ch_versions.mix( humann.versions )
 
             gtdbtk = GTDBTK_DOWNLOAD_DB ( )
-            gtdbtk.database.view()
+            // gtdbtk.database.view()
             gtdbtk_database = gtdbtk.database.map { [ "gtdb_tk", it ] }
             ch_versions = ch_versions.mix( gtdbtk.versions )
 
@@ -111,7 +111,7 @@ workflow DATABASES {
                                 .concat( amrfinderplus_database )
                                 .concat( dram_database )
                                 .concat( iphop_database )
-                                
+
         }
 
         ch_databases_data_and_destination = ch_databases_data.join( ch_database_destinations, by: 0 )

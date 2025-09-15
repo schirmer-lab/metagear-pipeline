@@ -22,6 +22,8 @@ process MMSEQS_EASY_CLUSTER {
     def args = task.ext.args ?: ''
     prefix = task.ext.prefix ?: "${meta.id}"
 
+    method = task.ext.method ?: 'easy-cluster'
+
     """
     mkdir -p ${prefix}
 
@@ -36,7 +38,7 @@ process MMSEQS_EASY_CLUSTER {
     fi
     OUT_NAME=\${OUT_NAME%.*}
 
-    mmseqs easy-cluster \${INPUT} cluster_res ${prefix} \\
+    mmseqs $method \${INPUT} cluster_res ${prefix} \\
         $args \\
         --threads ${task.cpus}
 

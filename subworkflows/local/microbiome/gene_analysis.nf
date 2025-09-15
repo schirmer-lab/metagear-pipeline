@@ -1,4 +1,5 @@
 include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
+include { createExistingDirChannel; createExistingFileChannel } from "$projectDir/subworkflows/local/utils/existing_data"
 
 include { ASSEMBLY } from "$projectDir/subworkflows/local/common/assembly"
 
@@ -54,18 +55,37 @@ workflow GENE_ANALYSIS {
 
         ch_versions = Channel.empty()
 
-        ASSEMBLY ( clean_reads )
-        ch_versions =  ch_versions.mix(ASSEMBLY.out.versions)
+        ch_contigs = Channel.empty()
 
-        ch_gene_call = ASSEMBLY.out.contigs.map { [ [id: it[0].id, label: 'all.genes', src: it[0].id ], it[1] ] }
+        if ( params.contigs_dir ) {
+            ch_contigs = createExistingDirChannel ( params.contigs_dir, "*.contigs.fa.gz", ".contigs.fa", false )
 
-        GENE_CALL ( ch_gene_call )
-        ch_versions =  ch_versions.mix(GENE_CALL.out.versions)
+        }else {
+            // Assemble clean_reads into contigs
+            ASSEMBLY ( clean_reads )
+            ch_versions = ch_versions.mix( ASSEMBLY.out.versions.first() )
 
-        CLUSTER_GENES ( GENE_CALL.out.genes, "mmseqs2", true )
+            ch_contigs = ASSEMBLY.out.contigs
+        }
+
+        ch_genes = Channel.empty()
+        if ( params.genes_dir ) {
+            ch_genes = createExistingDirChannel ( params.genes_dir, "*.all.genes.filtered.fasta", ".all.genes.filtered", { [ [id: it[0].id + '.all.genes', label: 'all.genes', src: it[0].id ], it[1] ] } )
+
+        } else {
+            // Call genes for all contigs
+            ch_gene_call = ch_contigs.map { [ [id: it[0].id + '.all.genes', label: 'all.genes', src: it[0].id ], it[1] ] }
+
+            GENE_CALL ( ch_gene_call )
+            ch_versions = ch_versions.mix( GENE_CALL.out.versions.first() )
+
+            ch_genes = GENE_CALL.out.genes
+        }
+
+        CLUSTER_GENES ( ch_genes, "mmseqs2", true )
         ch_versions =  ch_versions.mix(CLUSTER_GENES.out.versions)
 
-        PROTEIN_CALL ( CLUSTER_GENES.out.representative  )
+        PROTEIN_CALL ( CLUSTER_GENES.out.representative )
         ch_versions =  ch_versions.mix(PROTEIN_CALL.out.versions)
 
         CLUSTER_PROTEINS ( PROTEIN_CALL.out.proteins, "mmseqs2", false )
@@ -73,11 +93,8 @@ workflow GENE_ANALYSIS {
         PROTEIN_ANNOTATION ( CLUSTER_PROTEINS.out.representative, amrfinder_db )
         ch_versions =  ch_versions.mix(PROTEIN_ANNOTATION.out.versions)
 
-        BWA_INDEX ( CLUSTER_GENES.out.representative )
-        ch_versions =  ch_versions.mix(BWA_INDEX.out.versions)
-
-        ch_abundance_input = clean_reads.combine( BWA_INDEX.out.index )
-                                .map { meta_reads, reads, meta_index, index -> [ [id: meta_reads.id, label: meta_index.id ], reads, index ] }
+        ch_abundance_input = clean_reads.combine( CLUSTER_GENES.out.representative )
+                                .map { meta_reads, reads, meta_genes, genes -> [ [id: meta_reads.id, label: meta_genes.id ], reads, genes ] }
 
         ABUNDANCE ( ch_abundance_input )
         ch_versions =  ch_versions.mix(ABUNDANCE.out.versions)
