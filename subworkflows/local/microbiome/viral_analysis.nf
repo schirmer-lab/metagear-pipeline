@@ -86,7 +86,7 @@ workflow VIRAL_ANALYSIS {
 
         } else {
             // Call genes for all contigs
-            ch_gene_call = ch_contigs.map { [ [id: it[0].id + '.all.genes', label: 'all', src: it[0].id ], it[1] ] }
+            ch_gene_call = ch_contigs.map { [ [id: it[0].id + '.all.genes', label: 'all.genes', src: it[0].id ], it[1] ] }
 
             GENE_CALL ( ch_gene_call )
             ch_versions = ch_versions.mix( GENE_CALL.out.versions.first() )
