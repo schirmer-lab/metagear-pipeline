@@ -4,7 +4,7 @@ import java.nio.file.StandardCopyOption
 include { MMSEQS_EASY_CLUSTER } from "$projectDir/modules/local/mmseqs/easy_cluster/main"
 
 include { GENOMAD_ENDTOEND as GENOMAD_PASS1; GENOMAD_ENDTOEND as GENOMAD_PASS2 } from "$projectDir/modules/nf-core/genomad/endtoend"
-include { CHECKV_ENDTOEND as CHECKV_PASS1; CHECKV_ENDTOEND as CHECKV_PASS2} from "$projectDir/modules/nf-core/checkv/endtoend"
+include { CHECKV_ENDTOEND as CHECKV_PASS1; CHECKV_ENDTOEND as CHECKV_PASS2 } from "$projectDir/modules/local/checkv/endtoend"
 
 include { CHECKV_ADAPT_OUTPUT } from "$projectDir/modules/local/checkv/adapt"
 include { MERGE_TABLES } from "$projectDir/modules/local/mvip/create_tables"

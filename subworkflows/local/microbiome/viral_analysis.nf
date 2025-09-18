@@ -73,8 +73,10 @@ workflow VIRAL_ANALYSIS {
         }
 
         VIRAL_DETECTION ( ch_contigs, genomad_db, checkv_db )
+        ch_versions =  ch_versions.mix( VIRAL_DETECTION.out.versions )
 
         CLUSTER_VIRUS ( VIRAL_DETECTION.out.viral_sequences, "mmseqs2", true )
+        ch_versions =  ch_versions.mix( CLUSTER_VIRUS.out.versions )
 
         CLUSTER_PLASMID ( VIRAL_DETECTION.out.plasmid_sequences, "mmseqs2", true )
 
@@ -113,6 +115,7 @@ workflow VIRAL_ANALYSIS {
                             )
 
         VIRAL_GENE_CALL ( ch_viral_genes )
+        ch_versions =  ch_versions.mix( VIRAL_GENE_CALL.out.versions )
 
         ch_all_sequences = CLUSTER_GENES.out.representative
                             .concat( CLUSTER_PLASMID.out.representative )
@@ -122,6 +125,7 @@ workflow VIRAL_ANALYSIS {
                                 .map { meta_reads, reads, meta_sequences, sequences -> [ [id: meta_reads.id, label: meta_sequences.id ], reads, sequences ] }
 
         ABUNDANCE ( ch_abundance_input )
+        ch_versions =  ch_versions.mix( ABUNDANCE.out.versions )
 
         VIRAL_ANNOTATION ( CLUSTER_VIRUS.out.representative, virsorter2_db, dram_db, iphop_db )
         ch_versions =  ch_versions.mix(VIRAL_ANNOTATION.out.versions)

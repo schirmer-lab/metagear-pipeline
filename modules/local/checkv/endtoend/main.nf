@@ -12,12 +12,12 @@ process CHECKV_ENDTOEND {
     path db
 
     output:
-    tuple val(meta), path ("${prefix}/quality_summary.tsv") , emit: quality_summary
-    tuple val(meta), path ("${prefix}/completeness.tsv")    , emit: completeness
-    tuple val(meta), path ("${prefix}/contamination.tsv")   , emit: contamination
-    tuple val(meta), path ("${prefix}/complete_genomes.tsv"), emit: complete_genomes
-    tuple val(meta), path ("${prefix}/proviruses.fna")      , emit: proviruses
-    tuple val(meta), path ("${prefix}/viruses.fna")         , emit: viruses
+    tuple val(meta), path ("${prefix}/quality_summary.tsv") , emit: quality_summary, optional: true
+    tuple val(meta), path ("${prefix}/completeness.tsv")    , emit: completeness, optional: true
+    tuple val(meta), path ("${prefix}/contamination.tsv")   , emit: contamination, optional: true
+    tuple val(meta), path ("${prefix}/complete_genomes.tsv"), emit: complete_genomes, optional: true
+    tuple val(meta), path ("${prefix}/proviruses.fna")      , emit: proviruses, optional: true
+    tuple val(meta), path ("${prefix}/viruses.fna")         , emit: viruses, optional: true
     path "versions.yml"                                     , emit: versions
 
     when:
