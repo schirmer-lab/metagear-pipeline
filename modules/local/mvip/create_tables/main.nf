@@ -12,11 +12,11 @@ process MERGE_TABLES {
     path ictv_taxonomy
 
     output:
-    tuple val(meta), path("*_Merged_Genomad_CheckV_Summary.tsv"), emit: merged_tables
-    tuple val(meta), path("*_Merged_Genomad_CheckV_Summary.filtered.tsv"), emit: filtered_tables
-    tuple val(meta), path("*_viral_ids_to_keep.txt"), emit: sequence_ids
-    tuple val(meta), path("*_Plasmid_Summary.filtered.tsv"), emit: plasmid_filtered_tables
-    tuple val(meta), path("*_plasmid_ids_to_keep.txt"), emit: plasmid_sequence_ids
+    tuple val(meta), path("*_Merged_Genomad_CheckV_Summary.tsv"), emit: merged_tables, optional: true
+    tuple val(meta), path("*_Merged_Genomad_CheckV_Summary.filtered.tsv"), emit: filtered_tables, optional: true
+    tuple val(meta), path("*_viral_ids_to_keep.txt"), emit: sequence_ids, optional: true
+    tuple val(meta), path("*_Plasmid_Summary.filtered.tsv"), emit: plasmid_filtered_tables, optional: true
+    tuple val(meta), path("*_plasmid_ids_to_keep.txt"), emit: plasmid_sequence_ids, optional: true
     path "versions.yml", emit: versions
 
     when:
@@ -34,6 +34,18 @@ process MERGE_TABLES {
     $staged_files
 
     VIRUS_VIRUS_SUMMARY=\$(find . -maxdepth 1 -type f -name 'virus.${prefix}*.contigs_virus_summary.tsv' | head -n1)
+
+    # Check if VIRUS_VIRUS_SUMMARY has more than 1 row (header + data)
+    if [[ -f "\$VIRUS_VIRUS_SUMMARY" ]]; then
+        VIRUS_ROWS=\$(wc -l < "\$VIRUS_VIRUS_SUMMARY")
+        if [[ \$VIRUS_ROWS -le 1 ]]; then
+            echo "No viral entries found in \$VIRUS_VIRUS_SUMMARY. Exiting."
+            exit 0
+        fi
+    else
+        echo "VIRUS_VIRUS_SUMMARY file not found. Exiting."
+        exit 0
+    fi
 
     merge_tables.py --sample-name ${prefix} \\
         --viral-checkv virus.quality_summary.tsv \\
