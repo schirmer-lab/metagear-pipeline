@@ -25,6 +25,12 @@ process VIRSORTER2 {
     def args2 = task.ext.args2 ?: '' // Name for the resulting contig
     def vs2_folder = "${prefix}${args2}"
     """
+    mkdir -p "\$PWD/.conda_pkgs"
+    mkdir -p "\$PWD/_tmp"
+
+    export CONDA_PKGS_DIRS="\$PWD/.conda_pkgs"
+    export TMPDIR="\$PWD/_tmp" 
+
     INPUT=$contigs
     if [[ $contigs == *.gz ]]
     then
