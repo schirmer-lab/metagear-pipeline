@@ -29,7 +29,7 @@ workflow GENE_CALL {
 
     main:
 
-        sequences.map { meta, _ -> meta.id = meta.label ? meta.id + '.' + meta.label : meta.id + '.genes' }
+        // sequences.map { meta, _ -> meta.id = meta.label ? meta.id + '.' + meta.label : meta.id + '.genes' }
 
         // Build gene catalog from scratch
         PRODIGAL ( sequences, "gff" )
