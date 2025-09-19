@@ -38,7 +38,7 @@ process VIRSORTER2 {
         INPUT=${prefix}.fasta
     fi
 
-    virsorter run $args -i \$INPUT -w ${vs2_folder} -j $task.cpus -d ${db} all
+    virsorter run $args --conda-prefix ./.conda -i \$INPUT -w ${vs2_folder} -j $task.cpus -d ${db} all
 
     mv ${vs2_folder}/final-viral-combined.fa ${vs2_folder}/${prefix}.final-viral-combined.fa
     mv ${vs2_folder}/final-viral-score.tsv ${vs2_folder}/${prefix}.final-viral-score.tsv
