@@ -17,7 +17,7 @@ process MERGE_TABLES {
     tuple val(meta), path("*_viral_ids_to_keep.txt"), emit: sequence_ids, optional: true
     tuple val(meta), path("*_Plasmid_Summary.filtered.tsv"), emit: plasmid_filtered_tables, optional: true
     tuple val(meta), path("*_plasmid_ids_to_keep.txt"), emit: plasmid_sequence_ids, optional: true
-    path "versions.yml", emit: versions
+    path "versions.yml", emit: versions, optional: true
 
     when:
     task.ext.when == null || task.ext.when
