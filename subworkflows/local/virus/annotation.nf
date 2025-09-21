@@ -1,7 +1,6 @@
 include { VIRSORTER2 as VIRSORTER2_4DRAMV } from "$projectDir/modules/local/virsorter2/main"
 include { DRAMV } from "$projectDir/modules/local/dram/main"
 include { IPHOP_PREDICT } from "$projectDir/modules/local/iphop/predict/main"
-// include { AMRFINDERPLUS_RUN } from "$projectDir/modules/nf-core/amrfinderplus/run/main"
 include { SEQKIT_SPLIT2 } from "$projectDir/modules/nf-core/seqkit/split2"
 
 workflow VIRAL_ANNOTATION_INIT {
