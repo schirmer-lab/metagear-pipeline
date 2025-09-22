@@ -117,6 +117,12 @@ workflow VIRAL_ANALYSIS {
         VIRAL_GENE_CALL ( ch_viral_genes )
         ch_versions =  ch_versions.mix( VIRAL_GENE_CALL.out.versions )
 
+        // VIRAL_GENE_CALL.out.genes.view()
+        // [[id:P13752_101_S1_L001.virus.genes, src:P13752_101_S1_L001, label:virus], /nfs/arxiv/emilio/runs/dev/nf_work/71/2e001bdc560a0204e34d74d96e8826/P13752_101_S1_L001.virus.genes.fasta]
+        // [[id:GLA-HC111_st.virus.genes, src:GLA-HC111_st, label:virus], /nfs/arxiv/emilio/runs/dev/nf_work/5f/87b7ad4aae2609b904195693da13fb/GLA-HC111_st.virus.genes.fasta]
+        // [[id:P13752_101_S1_L001.plasmid.genes, src:P13752_101_S1_L001, label:plasmid], /nfs/arxiv/emilio/runs/dev/nf_work/f5/a7bc92aaa5e7a2eb317d8378228d77/P13752_101_S1_L001.plasmid.genes.fasta]
+        // [[id:GLA-HC111_st.plasmid.genes, src:GLA-HC111_st, label:plasmid], /nfs/arxiv/emilio/runs/dev/nf_work/e9/b53a160cefe17e23334ed3cc966db2/GLA-HC111_st.plasmid.genes.fasta]
+
         ch_all_sequences = CLUSTER_GENES.out.representative
                             .concat( CLUSTER_PLASMID.out.representative )
                             .concat( CLUSTER_VIRUS.out.representative )

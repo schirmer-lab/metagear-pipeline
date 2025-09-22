@@ -39,6 +39,9 @@ process COVERM_MAKE {
 
     echo \${REFERENCE}
     coverm make $args -t $task.cpus -r \${REFERENCE} $input -o $out
+
+    rm -rf \$PWD/coverm_tmp
+    
     mv $out/*$prefix*.bam $out/${prefix}.bam
 
     cat <<-END_VERSIONS > versions.yml
