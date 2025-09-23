@@ -24,25 +24,28 @@ process COLLECT_TABLES {
         # Join virus summary tables (geNomad, CheckV)
         head -1 ${tables[0]} > ${prefix}_checkv_summary_taxa.tsv
 
-        cat ${tables} | grep -v virus_id >> ${prefix}_checkv_summary_taxa.tsv
+        printf '%s\\n' ${tables} | xargs cat | grep -v virus_id >> ${prefix}_checkv_summary_taxa.tsv
     fi
 
     if [[ "${prefix}" == "plasmid" ||  "${prefix}" == "plasmid.filtered" ]]; then
         # Join plasmid tables (geNomad)
         head -1 ${tables[0]} > ${prefix}_summary.tsv
-        cat ${tables} | grep -v seq_name >> ${prefix}_summary.tsv
+
+        printf '%s\\n' ${tables} | xargs cat | grep -v seq_name >> ${prefix}_summary.tsv
     fi
 
     if [[ "${prefix}" == "amg" ]]; then
         # Join AMG summary tables (DRAM-V)
         head -1 ${tables[0]} > ${prefix}_summary.tsv
-        cat ${tables} | grep -v gene >> ${prefix}_summary.tsv
+
+        printf '%s\\n' ${tables} | xargs cat | grep -v gene >> ${prefix}_summary.tsv
     fi
 
     if [[ "${prefix}" == "host.genus" || "${prefix}" == "host.genome" ]]; then
         # Join hosts summary tables (iPhOP)
         head -1 ${tables[0]} > ${prefix}_summary.tsv
-        cat ${tables} | grep -v Virus >> ${prefix}_summary.tsv
+
+        printf '%s\\n' ${tables} | xargs cat | grep -v Virus >> ${prefix}_summary.tsv
     fi
 
 
