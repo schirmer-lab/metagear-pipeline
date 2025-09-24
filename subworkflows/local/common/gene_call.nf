@@ -6,6 +6,7 @@ include { PRODIGAL } from "$projectDir/modules/nf-core/prodigal"
 include { FILTER_PRODIGAL } from "$projectDir/modules/local/metagear/utils/filter_prodigal"
 
 include { EXTRACT_GENES } from "$projectDir/modules/local/metagear/mge/extract_genes"
+// include { FIND_REPRESENTATIVES } from "$projectDir/modules/local/metagear/mge/cluster_utils"
 
 /* --- Initialization for standalone process --- */
 workflow GENE_CALL_INIT {
@@ -56,7 +57,13 @@ workflow VIRAL_GENE_CALL {
         EXTRACT_GENES ( viral_sequences )
         ch_versions =  ch_versions.mix( EXTRACT_GENES.out.versions)
 
+        // EXTRACT_GENES.out.extracted_gene_ids
+        //         .map {meta, file -> [ [id: meta.label], file ]}
+        //         .groupTuple( by:0 )
+        //         .view()
+
     emit:
         versions = ch_versions
         genes = EXTRACT_GENES.out.extracted_genes
+        gene_ids =  EXTRACT_GENES.out.extracted_gene_ids
 }

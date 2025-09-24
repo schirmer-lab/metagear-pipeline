@@ -15,6 +15,8 @@ include { ABUNDANCE } from "$projectDir/subworkflows/local/common/abundance"
 
 include { CLUSTER_SEQUENCES as CLUSTER_GENES; CLUSTER_SEQUENCES as CLUSTER_PROTEINS; CLUSTER_SEQUENCES as CLUSTER_VIRUS;  CLUSTER_SEQUENCES as CLUSTER_PLASMID } from "$projectDir/subworkflows/local/common/clustering"
 
+include { FIND_REPRESENTATIVES; MERGE_CLUSTER_ANNOTATIONS } from "$projectDir/modules/local/metagear/mge/viral_clusters"
+
 include { COLLECT_TABLES } from "$projectDir/modules/local/metagear/mge/summarize"
 
 workflow VIRAL_ANALYSIS_INIT {
@@ -117,11 +119,23 @@ workflow VIRAL_ANALYSIS {
         VIRAL_GENE_CALL ( ch_viral_genes )
         ch_versions =  ch_versions.mix( VIRAL_GENE_CALL.out.versions )
 
-        // VIRAL_GENE_CALL.out.genes.view()
-        // [[id:P13752_101_S1_L001.virus.genes, src:P13752_101_S1_L001, label:virus], /nfs/arxiv/emilio/runs/dev/nf_work/71/2e001bdc560a0204e34d74d96e8826/P13752_101_S1_L001.virus.genes.fasta]
-        // [[id:GLA-HC111_st.virus.genes, src:GLA-HC111_st, label:virus], /nfs/arxiv/emilio/runs/dev/nf_work/5f/87b7ad4aae2609b904195693da13fb/GLA-HC111_st.virus.genes.fasta]
-        // [[id:P13752_101_S1_L001.plasmid.genes, src:P13752_101_S1_L001, label:plasmid], /nfs/arxiv/emilio/runs/dev/nf_work/f5/a7bc92aaa5e7a2eb317d8378228d77/P13752_101_S1_L001.plasmid.genes.fasta]
-        // [[id:GLA-HC111_st.plasmid.genes, src:GLA-HC111_st, label:plasmid], /nfs/arxiv/emilio/runs/dev/nf_work/e9/b53a160cefe17e23334ed3cc966db2/GLA-HC111_st.plasmid.genes.fasta]
+        ch_viral_representatives = VIRAL_GENE_CALL.out.gene_ids
+                .map {meta, file -> [ [id: meta.label + '.genes'], file ]}
+                .groupTuple( by:0 )
+                .combine (
+                    CLUSTER_GENES.out.clusters
+                    .join( CLUSTER_GENES.out.representative )
+                    .map { meta, clusters, representative -> [ clusters, representative ] }
+                )
+
+        FIND_REPRESENTATIVES ( ch_viral_representatives )
+
+        ch_merge_annotations = FIND_REPRESENTATIVES.out.input_clusters_annotated
+                    .map { [it[1]] }
+                    .collect()
+                    .map { [[id: 'all.genes'], it] }
+
+        MERGE_CLUSTER_ANNOTATIONS ( ch_merge_annotations )
 
         ch_all_sequences = CLUSTER_GENES.out.representative
                             .concat( CLUSTER_PLASMID.out.representative )
@@ -133,8 +147,8 @@ workflow VIRAL_ANALYSIS {
         ABUNDANCE ( ch_abundance_input )
         ch_versions =  ch_versions.mix( ABUNDANCE.out.versions )
 
-        VIRAL_ANNOTATION ( CLUSTER_VIRUS.out.representative, virsorter2_db, dram_db, iphop_db )
-        ch_versions =  ch_versions.mix(VIRAL_ANNOTATION.out.versions)
+        // VIRAL_ANNOTATION ( CLUSTER_VIRUS.out.representative, virsorter2_db, dram_db, iphop_db )
+        // ch_versions =  ch_versions.mix(VIRAL_ANNOTATION.out.versions)
 
         // Collect tables
         def prepare_table_channels = { preffix, ch ->
@@ -148,9 +162,9 @@ workflow VIRAL_ANALYSIS {
                     .concat( prepare_table_channels('virus.filtered', VIRAL_DETECTION.out.virus_filtered_tables ) )
                     .concat( prepare_table_channels('plasmid', VIRAL_DETECTION.out.plasmid_tables ) )
                     .concat( prepare_table_channels('plasmid.filtered', VIRAL_DETECTION.out.plasmid_filtered_tables ) )
-                    .concat( prepare_table_channels('amg', VIRAL_ANNOTATION.out.amgs ) )
-                    .concat( prepare_table_channels('host.genus', VIRAL_ANNOTATION.out.iphop_genus ) )
-                    .concat( prepare_table_channels('host.genome', VIRAL_ANNOTATION.out.iphop_genomes ) )
+                    // .concat( prepare_table_channels('amg', VIRAL_ANNOTATION.out.amgs ) )
+                    // .concat( prepare_table_channels('host.genus', VIRAL_ANNOTATION.out.iphop_genus ) )
+                    // .concat( prepare_table_channels('host.genome', VIRAL_ANNOTATION.out.iphop_genomes ) )
 
         COLLECT_TABLES ( ch_tables )
 
