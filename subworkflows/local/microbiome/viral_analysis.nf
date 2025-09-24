@@ -147,8 +147,8 @@ workflow VIRAL_ANALYSIS {
         ABUNDANCE ( ch_abundance_input )
         ch_versions =  ch_versions.mix( ABUNDANCE.out.versions )
 
-        // VIRAL_ANNOTATION ( CLUSTER_VIRUS.out.representative, virsorter2_db, dram_db, iphop_db )
-        // ch_versions =  ch_versions.mix(VIRAL_ANNOTATION.out.versions)
+        VIRAL_ANNOTATION ( CLUSTER_VIRUS.out.representative, virsorter2_db, dram_db, iphop_db )
+        ch_versions =  ch_versions.mix(VIRAL_ANNOTATION.out.versions)
 
         // Collect tables
         def prepare_table_channels = { preffix, ch ->
@@ -162,9 +162,9 @@ workflow VIRAL_ANALYSIS {
                     .concat( prepare_table_channels('virus.filtered', VIRAL_DETECTION.out.virus_filtered_tables ) )
                     .concat( prepare_table_channels('plasmid', VIRAL_DETECTION.out.plasmid_tables ) )
                     .concat( prepare_table_channels('plasmid.filtered', VIRAL_DETECTION.out.plasmid_filtered_tables ) )
-                    // .concat( prepare_table_channels('amg', VIRAL_ANNOTATION.out.amgs ) )
-                    // .concat( prepare_table_channels('host.genus', VIRAL_ANNOTATION.out.iphop_genus ) )
-                    // .concat( prepare_table_channels('host.genome', VIRAL_ANNOTATION.out.iphop_genomes ) )
+                    .concat( prepare_table_channels('amg', VIRAL_ANNOTATION.out.amgs ) )
+                    .concat( prepare_table_channels('host.genus', VIRAL_ANNOTATION.out.iphop_genus ) )
+                    .concat( prepare_table_channels('host.genome', VIRAL_ANNOTATION.out.iphop_genomes ) )
 
         COLLECT_TABLES ( ch_tables )
 
