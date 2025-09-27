@@ -34,8 +34,8 @@ process VIRSORTER2 {
     INPUT=$contigs
     if [[ $contigs == *.gz ]]
     then
-        gunzip -c $contigs > ${prefix}.fasta
-        INPUT=${prefix}.fasta
+        gunzip -c $contigs >| ${prefix}.decompressed.tmp.fasta
+        INPUT=${prefix}.decompressed.tmp.fasta
     fi
 
     virsorter run $args -i \$INPUT -w ${vs2_folder} -j $task.cpus -d ${db} all --conda-prefix "\$PWD/.conda_envs"
