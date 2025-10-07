@@ -58,6 +58,7 @@ workflow VIRAL_ANNOTATION {
             }
             .set { ch_virsorter2_chunks }
 
+        /*
         VIRSORTER2_4DRAMV( ch_virsorter2_chunks, virsorter2_db )
         ch_versions = ch_versions.mix(VIRSORTER2_4DRAMV.out.versions)
 
@@ -67,12 +68,13 @@ workflow VIRAL_ANNOTATION {
 
         DRAMV ( ch_dramv_input, dram_db )
         ch_versions = ch_versions.mix(DRAMV.out.versions)
+        */
 
         IPHOP_PREDICT ( ch_virsorter2_chunks, iphop_db )
 
     emit:
 
-        amgs = DRAMV.out.amg_summary
+        // amgs = DRAMV.out.amg_summary
         iphop_genus = IPHOP_PREDICT.out.iphop_genus
         iphop_genomes = IPHOP_PREDICT.out.iphop_genome
         versions = ch_versions

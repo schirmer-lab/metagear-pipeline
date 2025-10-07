@@ -162,7 +162,7 @@ workflow VIRAL_ANALYSIS {
                     .concat( prepare_table_channels('virus.filtered', VIRAL_DETECTION.out.virus_filtered_tables ) )
                     .concat( prepare_table_channels('plasmid', VIRAL_DETECTION.out.plasmid_tables ) )
                     .concat( prepare_table_channels('plasmid.filtered', VIRAL_DETECTION.out.plasmid_filtered_tables ) )
-                    .concat( prepare_table_channels('amg', VIRAL_ANNOTATION.out.amgs ) )
+                    // .concat( prepare_table_channels('amg', VIRAL_ANNOTATION.out.amgs ) )
                     .concat( prepare_table_channels('host.genus', VIRAL_ANNOTATION.out.iphop_genus ) )
                     .concat( prepare_table_channels('host.genome', VIRAL_ANNOTATION.out.iphop_genomes ) )
 
