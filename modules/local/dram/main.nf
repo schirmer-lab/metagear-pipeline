@@ -26,6 +26,14 @@ process DRAMV {
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
+
+    INPUT=$contigs
+    if [[ $contigs == *.gz ]]
+    then
+        gunzip -c $contigs >| \$PWD/${prefix}_plain.fasta
+        INPUT=\$PWD/${prefix}_plain.fasta
+    fi
+
     # Step 1: Ensure fully resolved absolute paths
     DB_PATH=\$(readlink -f ${dram_db})
 
@@ -41,7 +49,7 @@ process DRAMV {
     rm -rf dramv-annotate dramv-distill
 
     # Step 2: Run DRAM-v annotate
-    DRAM-v.py annotate -i ${contigs} -v ${affi} -o dramv-annotate ${args} --threads ${task.cpus}
+    DRAM-v.py annotate -i \${INPUT} -v ${affi} -o dramv-annotate ${args} --threads ${task.cpus}
 
     # step 2 summarize anntotations
     DRAM-v.py distill -i dramv-annotate/annotations.tsv -o dramv-distill

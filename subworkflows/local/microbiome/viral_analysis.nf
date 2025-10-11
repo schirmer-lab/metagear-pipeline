@@ -26,6 +26,7 @@ workflow VIRAL_ANALYSIS_INIT {
 
         genomad_db = Channel.fromPath("${params.genomad_db}", checkIfExists: true).first()
         checkv_db = Channel.fromPath("${params.checkv_db}", checkIfExists: true).first()
+        pharokka_db = Channel.fromPath("${params.pharokka_db}", checkIfExists: true).first()
         virsorter2_db = Channel.fromPath("${params.virsorter2_db}", checkIfExists: true).first()
         dram_db = Channel.fromPath("${params.dram_db}", checkIfExists: true).first()
         iphop_db = Channel.fromPath("${params.iphop_db}", checkIfExists: true).first()
@@ -36,6 +37,7 @@ workflow VIRAL_ANALYSIS_INIT {
     emit:
         genomad_db
         checkv_db
+        pharokka_db
         virsorter2_db
         dram_db
         iphop_db
@@ -52,6 +54,7 @@ workflow VIRAL_ANALYSIS {
         reads // [meta, reads(fast1, fas2)]
         genomad_db
         checkv_db
+        pharokka_db
         virsorter2_db
         dram_db
         iphop_db
@@ -125,9 +128,11 @@ workflow VIRAL_ANALYSIS {
                 .combine (
                     CLUSTER_GENES.out.clusters
                     .join( CLUSTER_GENES.out.representative )
-                    .map { meta, clusters, representative -> [ clusters, representative ] }
+                    .join( PROTEIN_CALL.out.proteins )
+                    .map { meta, clusters, representative_genes, representative_proteins -> [ clusters, representative_genes, representative_proteins ] }
                 )
 
+        // Get viral/plasmid gene and protein representatives from all clustered genes
         FIND_REPRESENTATIVES ( ch_viral_representatives )
 
         ch_merge_annotations = FIND_REPRESENTATIVES.out.input_clusters_annotated
@@ -147,8 +152,12 @@ workflow VIRAL_ANALYSIS {
         ABUNDANCE ( ch_abundance_input )
         ch_versions =  ch_versions.mix( ABUNDANCE.out.versions )
 
-        VIRAL_ANNOTATION ( CLUSTER_VIRUS.out.representative, virsorter2_db, dram_db, iphop_db )
-        ch_versions =  ch_versions.mix(VIRAL_ANNOTATION.out.versions)
+
+        virus_representative_proteins = FIND_REPRESENTATIVES.out.representative_proteins.filter { meta, _ -> meta.id == 'virus.genes' }.map { it[1] }
+        input_viral_annotation = CLUSTER_VIRUS.out.representative.combine( virus_representative_proteins )
+
+        VIRAL_ANNOTATION ( input_viral_annotation, pharokka_db, virsorter2_db, dram_db, iphop_db )
+        // ch_versions =  ch_versions.mix(VIRAL_ANNOTATION.out.versions)
 
         // Collect tables
         def prepare_table_channels = { preffix, ch ->
@@ -162,7 +171,7 @@ workflow VIRAL_ANALYSIS {
                     .concat( prepare_table_channels('virus.filtered', VIRAL_DETECTION.out.virus_filtered_tables ) )
                     .concat( prepare_table_channels('plasmid', VIRAL_DETECTION.out.plasmid_tables ) )
                     .concat( prepare_table_channels('plasmid.filtered', VIRAL_DETECTION.out.plasmid_filtered_tables ) )
-                    // .concat( prepare_table_channels('amg', VIRAL_ANNOTATION.out.amgs ) )
+                    .concat( prepare_table_channels('amg', VIRAL_ANNOTATION.out.amgs ) )
                     .concat( prepare_table_channels('host.genus', VIRAL_ANNOTATION.out.iphop_genus ) )
                     .concat( prepare_table_channels('host.genome', VIRAL_ANNOTATION.out.iphop_genomes ) )
 

@@ -3,6 +3,8 @@ include { DRAMV } from "$projectDir/modules/local/dram/main"
 include { IPHOP_PREDICT } from "$projectDir/modules/local/iphop/predict/main"
 include { SEQKIT_SPLIT2 } from "$projectDir/modules/nf-core/seqkit/split2"
 
+include { PHAROKKA_PROTEINS } from "$projectDir/modules/local/pharokka/pharokka_proteins/main"
+
 workflow VIRAL_ANNOTATION_INIT {
 
     main:
@@ -30,7 +32,8 @@ workflow VIRAL_ANNOTATION_INIT {
 workflow VIRAL_ANNOTATION {
 
     take:
-        contigs // [meta, fasta]
+        viral_contigs_proteins // [meta, contig.fasta, protein.faa]
+        pharokka_db
         virsorter2_db
         dram_db
         iphop_db
@@ -38,10 +41,10 @@ workflow VIRAL_ANNOTATION {
     main:
         ch_versions = Channel.empty()
 
-        ch_split = contigs.map { meta, path ->
+        ch_split = viral_contigs_proteins.map { meta, contig, protein ->
             def newMeta = meta.clone()
             newMeta.single_end = true
-            return tuple(newMeta, path)
+            return tuple(newMeta, contig)
         }
 
         // split protein sequences into 1000 fasta files
@@ -57,8 +60,15 @@ workflow VIRAL_ANNOTATION {
                 }
             }
             .set { ch_virsorter2_chunks }
+        
+        pharokka_input = viral_contigs_proteins.map { meta, contig, protein ->
+            tuple(meta, protein, contig)
+        }
 
-        /*
+        PHAROKKA_PROTEINS ( pharokka_input, pharokka_db )
+
+        IPHOP_PREDICT ( ch_virsorter2_chunks, iphop_db )
+
         VIRSORTER2_4DRAMV( ch_virsorter2_chunks, virsorter2_db )
         ch_versions = ch_versions.mix(VIRSORTER2_4DRAMV.out.versions)
 
@@ -68,13 +78,10 @@ workflow VIRAL_ANNOTATION {
 
         DRAMV ( ch_dramv_input, dram_db )
         ch_versions = ch_versions.mix(DRAMV.out.versions)
-        */
-
-        IPHOP_PREDICT ( ch_virsorter2_chunks, iphop_db )
 
     emit:
 
-        // amgs = DRAMV.out.amg_summary
+        amgs = DRAMV.out.amg_summary
         iphop_genus = IPHOP_PREDICT.out.iphop_genus
         iphop_genomes = IPHOP_PREDICT.out.iphop_genome
         versions = ch_versions

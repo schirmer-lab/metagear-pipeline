@@ -8,12 +8,13 @@ process FIND_REPRESENTATIVES {
         'docker.io/schirmerlab/python310:25.09.10' }"
 
     input:
-    tuple val(meta), path(input_ids), path(input_clusters_tsv), path(input_representatives)
+    tuple val(meta), path(input_ids), path(input_clusters_tsv), path(input_representative_genes), path(input_representative_proteins)
 
     output:
     tuple val(meta), path("*.representative_ids.txt"), emit: representative_ids
-    tuple val(meta), path("*.representative.fa.gz"),  emit: representatives
-    tuple val(meta), path("*.clusters.tsv"),          emit: representative_clusters
+    tuple val(meta), path("*.genes.representative.fa.gz"),  emit: representative_genes
+    tuple val(meta), path("*.proteins.representative.fa.gz"),  emit: representative_proteins, optional: true
+    tuple val(meta), path("*.clusters.tsv"),          emit: representative_gene_clusters
     tuple val(meta), path("*.pure_representatives.txt"), emit: pure_representatives
     tuple val(meta), path("*.clusters.annotated.tsv"), emit: input_clusters_annotated
     path "versions.yml", emit: versions
@@ -32,11 +33,13 @@ process FIND_REPRESENTATIVES {
     IDS=all_input_ids.txt
 
     CLUSTERS="${input_clusters_tsv}"
-    REPS_FA="${input_representatives}"
+    REPS_FA="${input_representative_genes}"
+    REPS_PROT_FA="${input_representative_proteins}"
 
     PREFIX="${prefix}"
     OUT_IDS="\${PREFIX}.representative_ids.txt"
     OUT_FA="\${PREFIX}.representative.fa.gz"
+    OUT_PROT_FA="\${PREFIX/.genes/.proteins}.representative.fa.gz"
     OUT_CLU="\${PREFIX}.clusters.tsv"                 # cluster rows for selected representatives
     OUT_PURE="\${PREFIX}.pure_representatives.txt"
     OUT_ANN="\${PREFIX}.clusters.annotated.tsv"       # full clusters with annotation column
@@ -101,6 +104,8 @@ process FIND_REPRESENTATIVES {
     #############################################
     if [[ -s "\$OUT_IDS" ]]; then
       seqtk subseq "\$REPS_FA" "\$OUT_IDS" | gzip -c > "\$OUT_FA"
+      seqtk subseq "\$REPS_PROT_FA" "\$OUT_IDS" | gzip -c > "\$OUT_PROT_FA"
+
     else
       : > "\${PREFIX}.empty.fa"
       gzip -c "\${PREFIX}.empty.fa" > "\$OUT_FA"

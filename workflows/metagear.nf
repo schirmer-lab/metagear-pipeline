@@ -63,7 +63,7 @@ workflow METAGEAR {
         if ( params.workflow == "viral_analysis" ) {
             init = VIRAL_ANALYSIS_INIT ( )
 
-            VIRAL_ANALYSIS ( init.reads, init.genomad_db, init.checkv_db, init.virsorter2_db, init.dram_db, init.iphop_db, init.amrfinder_db )
+            VIRAL_ANALYSIS ( init.reads, init.genomad_db, init.checkv_db, init.pharokka_db, init.virsorter2_db, init.dram_db, init.iphop_db, init.amrfinder_db )
             ch_versions = VIRAL_ANALYSIS.out.versions
         }
 

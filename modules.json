@@ -60,6 +60,11 @@
                         "git_sha": "7b50cb7be890e4b28cffb82e438cc6a8d7805d3f",
                         "installed_by": ["modules"]
                     },
+                    "pharokka/installdatabases": {
+                        "branch": "master",
+                        "git_sha": "41dfa3f7c0ffabb96a6a813fe321c6d1cc5b6e46",
+                        "installed_by": ["modules"]
+                    },
                     "prodigal": {
                         "branch": "master",
                         "git_sha": "05954dab2ff481bcb999f24455da29a5828af08d",

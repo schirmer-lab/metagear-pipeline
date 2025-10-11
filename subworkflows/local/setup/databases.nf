@@ -6,9 +6,10 @@ include { GTDBTK_DOWNLOAD_DB } from "$projectDir/modules/local/gtdbtk/download/m
 
 include { GENOMAD_DOWNLOAD } from "$projectDir/modules/nf-core/genomad/download/main"
 include { CHECKV_DOWNLOADDATABASE } from "$projectDir/modules/nf-core/checkv/downloaddatabase/main"
-include { VIRSORTER2_SETUP } from "$projectDir/modules/local/virsorter2/setup"
+// include { VIRSORTER2_SETUP } from "$projectDir/modules/local/virsorter2/setup"
 include { DRAM_SETUP } from "$projectDir/modules/local/dram/setup"
 include { IPHOP_DOWNLOAD } from "$projectDir/modules/local/iphop/download/main"
+include { PHAROKKA_INSTALLDATABASES } from "$projectDir/modules/nf-core/pharokka/installdatabases/main"
 
 include { AMRFINDERPLUS_UPDATE } from "$projectDir/modules/nf-core/amrfinderplus/update/main"
 
@@ -29,10 +30,11 @@ workflow DATABASES_INIT {
                                             [ 'gtdb_tk', file( params.gtdb_tk_db ) ],
                                             [ 'genomad', file( params.genomad_db ) ],
                                             [ 'checkv', file( params.checkv_db ) ],
-                                            [ 'virsorter2', file( params.virsorter2_db ) ],
+                                            // [ 'virsorter2', file( params.virsorter2_db ) ],
                                             [ 'dram', file( params.dram_db ) ],
                                             [ 'iphop', file( params.iphop_db ) ],
-                                            [ 'amrfinder', file( params.amrfinder_db ) ] )
+                                            [ 'amrfinder', file( params.amrfinder_db ) ],
+                                            [ 'pharokka', file( params.pharokka_db ) ] )
 
         //TODO: Currently only 1 kneaddata database is supported. Ensure ch_kneaddata_databases keep consistent with ch_database_destinations.
 
@@ -67,7 +69,7 @@ workflow DATABASES {
             ch_versions = ch_versions.mix( humann.versions )
 
             gtdbtk = GTDBTK_DOWNLOAD_DB ( )
-            // gtdbtk.database.view()
+
             gtdbtk_database = gtdbtk.database.map { [ "gtdb_tk", it ] }
             ch_versions = ch_versions.mix( gtdbtk.versions )
 
@@ -83,34 +85,36 @@ workflow DATABASES {
             genomad = GENOMAD_DOWNLOAD ( )
             ch_genomad_database = genomad.genomad_db.map { [ "genomad", it ] }
             ch_versions = ch_versions.mix( genomad.versions )
+            ch_databases_data = ch_databases_data.concat( ch_genomad_database )
 
             checkv = CHECKV_DOWNLOADDATABASE ( )
             ch_checkv_database = checkv.checkv_db.map { [ "checkv", it ] }
             ch_versions = ch_versions.mix( checkv.versions )
+            ch_databases_data = ch_databases_data.concat( ch_checkv_database )
 
-            virsorter2 = VIRSORTER2_SETUP ( )
-            virsorter2_database = virsorter2.virsorter2_db.map { [ "virsorter2", it ] }
-            ch_versions = ch_versions.mix( virsorter2.versions )
+            // virsorter2 = VIRSORTER2_SETUP ( )
+            // virsorter2_database = virsorter2.virsorter2_db.map { [ "virsorter2", it ] }
+            // ch_versions = ch_versions.mix( virsorter2.versions )
 
             dram = DRAM_SETUP ( )
             dram_database = dram.dram_db.map { [ "dram", it ] }
             // ch_versions = ch_versions.mix( dram.versions ) //TODO: Fix version.yml from DRAM_SETUP
+            ch_databases_data = ch_databases_data.concat( dram_database )
 
             iphop = IPHOP_DOWNLOAD ( )
             iphop_database = iphop.iphop_db.map { [ "iphop", it ] }
             ch_versions = ch_versions.mix( iphop.versions )
+            ch_databases_data = ch_databases_data.concat( iphop_database )
 
             amrfinderplus = AMRFINDERPLUS_UPDATE ( )
             amrfinderplus_database = amrfinderplus.db.map { [ "amrfinder", it ] }
             ch_versions = ch_versions.mix( amrfinderplus.versions )
+            ch_databases_data = ch_databases_data.concat( amrfinderplus_database )
 
-            ch_databases_data = ch_databases_data
-                                .concat( ch_genomad_database )
-                                .concat( ch_checkv_database )
-                                .concat( virsorter2_database )
-                                .concat( amrfinderplus_database )
-                                .concat( dram_database )
-                                .concat( iphop_database )
+            pharokka = PHAROKKA_INSTALLDATABASES ( )
+            pharokka_database = pharokka.pharokka_db.map { [ "pharokka", it ] }
+            ch_versions = ch_versions.mix( pharokka.versions )
+            ch_databases_data = ch_databases_data.concat( pharokka_database )
 
         }
 
