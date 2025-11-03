@@ -6,6 +6,7 @@ include { ASSEMBLY } from "$projectDir/subworkflows/local/common/assembly"
 
 include { VIRAL_DETECTION } from "$projectDir/subworkflows/local/virus/detection"
 include { VIRAL_ANNOTATION } from "$projectDir/subworkflows/local/virus/annotation"
+include { AMG_POSTPROCESS } from "$projectDir/subworkflows/local/virus/amg_postprocess"
 
 include { GENE_CALL; VIRAL_GENE_CALL } from "$projectDir/subworkflows/local/common/gene_call"
 include { PROTEIN_CALL } from "$projectDir/subworkflows/local/common/protein_call"
@@ -176,6 +177,18 @@ workflow VIRAL_ANALYSIS {
                     .concat( prepare_table_channels('host.genome', VIRAL_ANNOTATION.out.iphop_genomes ) )
 
         COLLECT_TABLES ( ch_tables )
+
+        ch_amg_postprocess = COLLECT_TABLES.out.summary.filter { meta, _ -> meta.id == 'amg' }
+            .join ( VIRAL_ANNOTATION.out.amg_faa.map { meta, file -> file }.collect().map { [[id: 'amg'], it] } )
+            .join ( VIRAL_ANNOTATION.out.amg_fna.map { meta, file -> file }.collect().map { [[id: 'amg'], it] } )
+            .join ( ABUNDANCE.out.tpm.filter { meta, _ -> meta.id == 'all.genes_tpm' }.map { [[id: 'amg'], it[1]] } )
+            .join ( ABUNDANCE.out.rpkm.filter { meta, _ -> meta.id == 'all.genes_rpkm' }.map { [[id: 'amg'], it[1]] } )
+            .join ( ABUNDANCE.out.count.filter { meta, _ -> meta.id == 'all.genes_count' }.map { [[id: 'amg'], it[1]] } )
+
+        // ch_amg_postprocess.view()
+
+        AMG_POSTPROCESS ( ch_amg_postprocess, virus_representative_proteins )
+
 
     emit:
         versions = ch_versions

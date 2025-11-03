@@ -60,7 +60,7 @@ workflow VIRAL_ANNOTATION {
                 }
             }
             .set { ch_virsorter2_chunks }
-        
+
         pharokka_input = viral_contigs_proteins.map { meta, contig, protein ->
             tuple(meta, protein, contig)
         }
@@ -82,6 +82,8 @@ workflow VIRAL_ANNOTATION {
     emit:
 
         amgs = DRAMV.out.amg_summary
+        amg_fna = DRAMV.out.genes_fna
+        amg_faa = DRAMV.out.genes_faa
         iphop_genus = IPHOP_PREDICT.out.iphop_genus
         iphop_genomes = IPHOP_PREDICT.out.iphop_genome
         versions = ch_versions

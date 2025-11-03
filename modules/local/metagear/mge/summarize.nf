@@ -11,7 +11,7 @@ process COLLECT_TABLES {
     tuple val(meta), path(tables) // [ [id: virus|virus.filtered|plasmid|plasmid.filtered|dramv] path(files...) ]
 
     output:
-    tuple val(meta), path("*summary*tsv"), emit: summary_taxa
+    tuple val(meta), path("*summary*tsv"), emit: summary
     path "versions.yml", emit: versions
 
     when:

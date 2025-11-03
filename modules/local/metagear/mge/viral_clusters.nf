@@ -202,6 +202,7 @@ process MERGE_CLUSTER_ANNOTATIONS {
 
     output:
       tuple val(meta), path("all.genes.clusters.annotated.tsv"), emit: input_clusters_annotated
+      tuple val(meta), path("all.genes.clusters.aggregated.tsv"), emit: input_clusters_aggregated
       path "versions.yml", emit: versions
 
     when:
@@ -259,10 +260,37 @@ process MERGE_CLUSTER_ANNOTATIONS {
         for (i=1; i<=n; i++) {
           key=order[i];
           if (key in labels) print key, labels[key];
-          else                print key;
+          else                print key, "";
         }
       }
     ' > all.genes.clusters.annotated.tsv
+
+    LC_ALL=C awk -F'\\t' -v OFS='\\t' '
+    FNR==1 && (\$1=="representative_id" || \$3=="label") { next }  # skip header if present
+    {
+        rep=\$1
+        if(!(rep in rep_seen)){ rep_seen[rep]=1; order[++nrep]=rep }
+
+        # normalize label field and split by comma
+        lab=\$3; sub(/\\r\$/,"",lab)
+        n=split(lab, a, /,/)
+        for(i=1;i<=n;i++){
+        lbl=a[i]; gsub(/^[[:space:]]+|[[:space:]]+\$/, "", lbl)
+        if(lbl=="") continue
+        k=rep SUBSEP lbl
+        if(!(k in seen)){
+            seen[k]=1
+            labels[rep] = (labels[rep]=="" ? lbl : labels[rep] "," lbl)
+        }
+        }
+    }
+    END{
+        for(i=1;i<=nrep;i++){
+        rep=order[i]
+        print rep, labels[rep]
+        }
+    }
+    ' all.genes.clusters.annotated.tsv > all.genes.clusters.aggregated.tsv
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
