@@ -66,6 +66,9 @@ process FIND_REPRESENTATIVES {
     #############################################
     # PASS 1: Map each input ID -> representative
     #############################################
+    
+    set +o pipefail
+
     "\${SRC_CMD[@]}" | "\$AWK_BIN" -v ids="\$TMP_IDS" -v miss="\$MISS_LOG" '
       BEGIN{
         FS="[[:space:]]+"; OFS="\\t";
@@ -95,6 +98,14 @@ process FIND_REPRESENTATIVES {
         }
       }
     ' > "\$TMP_ALL"
+  
+    rc=("\${PIPESTATUS[@]}")   # rc[0]=gzip/cat, rc[1]=awk
+    set -o pipefail
+
+    if [[ \${rc[1]} -ne 0 || ( \${rc[0]} -ne 0 && \${rc[0]} -ne 141 ) ]]; then
+      echo "PASS1 failed: src=\${rc[0]} awk=\${rc[1]}" >&2
+      exit 1
+    fi
 
     # Stable de-dup of representatives (preserve first-seen order)
     "\$AWK_BIN" '!seen[\$0]++' "\$TMP_ALL" > "\$OUT_IDS"
