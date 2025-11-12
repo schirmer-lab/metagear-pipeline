@@ -55,6 +55,36 @@
                             "name": "metaphlan_profiles",
                             "required": false,
                             "description": "MetaPhlAn profiles (if available)"
+                        },
+                        {
+                            "name": "representative_genes",
+                            "required": false,
+                            "description": "Representative-genes catalog (FILE: optional). Dereplicated genes from all samples."
+                        },
+                        {
+                            "name": "representative_proteins",
+                            "required": false,
+                            "description": "Representative-proteins catalog (FILE: optional). Dereplicated proteins from all samples."
+                        },
+                        {
+                            "name": "representative_proteins_annotations",
+                            "required": false,
+                            "description": "Representative-proteins annotations (FILE: optional). Functional annotations for representative proteins."
+                        },
+                        {
+                            "name": "representative_genes_tpm",
+                            "required": false,
+                            "description": "Representative-genes TPM (FILE: optional). TPM values for representative genes."
+                        },
+                        {
+                            "name": "representative_genes_rpkm",
+                            "required": false,
+                            "description": "Representative-genes RPKM (FILE: optional). RPKM values for representative genes."
+                        },
+                        {
+                            "name": "representative_genes_count",
+                            "required": false,
+                            "description": "Representative-genes counts (FILE: optional). Counts for representative genes."
                         }
                     ]
                 },

@@ -153,7 +153,6 @@ workflow VIRAL_ANALYSIS {
         ABUNDANCE ( ch_abundance_input )
         ch_versions =  ch_versions.mix( ABUNDANCE.out.versions )
 
-
         virus_representative_proteins = FIND_REPRESENTATIVES.out.representative_proteins.filter { meta, _ -> meta.id == 'virus.genes' }.map { it[1] }
         input_viral_annotation = CLUSTER_VIRUS.out.representative.combine( virus_representative_proteins )
 

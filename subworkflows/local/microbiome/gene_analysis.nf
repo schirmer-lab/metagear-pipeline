@@ -82,24 +82,60 @@ workflow GENE_ANALYSIS {
             ch_genes = GENE_CALL.out.genes
         }
 
-        CLUSTER_GENES ( ch_genes, "mmseqs2", true )
-        ch_versions =  ch_versions.mix(CLUSTER_GENES.out.versions)
+        ch_representative_genes = Channel.empty()
 
-        PROTEIN_CALL ( CLUSTER_GENES.out.representative )
-        ch_versions =  ch_versions.mix(PROTEIN_CALL.out.versions)
+        if ( params.representative_genes ) {
+            ch_representative_genes = createExistingFileChannel ( params.representative_genes, { [ [id: "all.genes"], it ] } )
 
-        CLUSTER_PROTEINS ( PROTEIN_CALL.out.proteins, "mmseqs2", false )
+        } else {
+            CLUSTER_GENES ( ch_genes, "mmseqs2", true )
+            ch_versions =  ch_versions.mix(CLUSTER_GENES.out.versions)
+            ch_representative_genes = CLUSTER_GENES.out.representative
+        }
 
-        PROTEIN_ANNOTATION ( CLUSTER_PROTEINS.out.representative, amrfinder_db )
-        ch_versions =  ch_versions.mix(PROTEIN_ANNOTATION.out.versions)
+        ch_representative_proteins = Channel.empty()
 
-        ch_abundance_input = clean_reads.combine( CLUSTER_GENES.out.representative )
+        if ( params.representative_proteins ) {
+            ch_representative_proteins = createExistingFileChannel ( params.representative_proteins, { [ [id: "all.genes"], it ] } )
+
+        } else {
+            PROTEIN_CALL ( ch_representative_genes )
+            ch_versions =  ch_versions.mix(PROTEIN_CALL.out.versions)
+
+            CLUSTER_PROTEINS ( PROTEIN_CALL.out.proteins, "mmseqs2", false )
+            ch_representative_proteins = CLUSTER_PROTEINS.out.representative
+        }
+
+        if ( !params.representative_proteins_annotations ) {
+            PROTEIN_ANNOTATION ( CLUSTER_PROTEINS.out.representative, amrfinder_db )
+            ch_versions =  ch_versions.mix(PROTEIN_ANNOTATION.out.versions)
+        }
+
+        ch_representative_genes_tpm = Channel.empty()
+        ch_representative_genes_rpkm = Channel.empty()
+        ch_representative_genes_count = Channel.empty()
+
+        if ( params.representative_genes_tpm && params.representative_genes_rpkm && params.representative_genes_count ) {
+
+            ch_representative_genes_tpm = createExistingFileChannel ( params.representative_genes_tpm, { [ [id: "all.genes_tpm"], it ] } )
+            ch_representative_genes_rpkm = createExistingFileChannel ( params.representative_genes_rpkm, { [ [id: "all.genes_rpkm"], it ] } )
+            ch_representative_genes_count = createExistingFileChannel ( params.representative_genes_count, { [ [id: "all.genes_count"], it ] } )
+
+        } else {
+            ch_abundance_input = clean_reads.combine( ch_representative_genes )
                                 .map { meta_reads, reads, meta_genes, genes -> [ [id: meta_reads.id, label: meta_genes.id ], reads, genes ] }
 
-        ABUNDANCE ( ch_abundance_input )
-        ch_versions =  ch_versions.mix(ABUNDANCE.out.versions)
+            ABUNDANCE ( ch_abundance_input )
+            ch_versions =  ch_versions.mix(ABUNDANCE.out.versions)
 
-        MSP ( CLUSTER_GENES.out.representative, ABUNDANCE.out.count, ABUNDANCE.out.rpkm, gtdb_tk_db, metaphlan_profiles )
+            ch_representative_genes_count = ABUNDANCE.out.count
+            ch_representative_genes_rpkm = ABUNDANCE.out.rpkm
+            ch_representative_genes_tpm = ABUNDANCE.out.tpm
+        }
+
+
+
+        MSP ( ch_representative_genes, ch_representative_genes_count, ch_representative_genes_rpkm, gtdb_tk_db, metaphlan_profiles )
         // ch_versions =  ch_versions.mix(MSP.out.versions) //TODO: Needs fixing, not working properly
 
     emit:
