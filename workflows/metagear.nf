@@ -67,14 +67,6 @@ workflow METAGEAR {
             ch_versions = VIRAL_ANALYSIS.out.versions
         }
 
-        // //TODO: Temporary, remove later
-        // if ( params.workflow == "viral_annotation" ) {
-        //     init = VIRAL_ANNOTATION_INIT ( )
-
-        //     VIRAL_ANNOTATION ( init.catalog_input, init.protein_catalog, init.virsorter2_db, init.dram_db, init.iphop_db, init.amrfinder_db )
-        //     ch_versions = VIRAL_ANNOTATION.out.versions
-        // }
-
 
     emit:
         versions = ch_versions

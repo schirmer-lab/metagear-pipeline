@@ -33,7 +33,12 @@
                     "name": "microbial_profiles",
                     "description": "Get microbial profiles with MetaPhlAn and HUMAnN",
                     "parameters": [
-                        { "name": "input", "required": true, "description": "Input .csv file for microbial profiles" }
+                        { "name": "input", "required": true, "description": "Input .csv file for microbial profiles" },
+                        {
+                            "name": "metaphlan_dir",
+                            "required": false,
+                            "description": "MetaPhlan profiles (DIRECTORY: optional). Folder containing individual MetaPhlan profiles (.txt)"
+                        }
                     ]
                 },
                 {
