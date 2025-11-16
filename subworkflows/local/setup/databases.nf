@@ -121,7 +121,7 @@ workflow DATABASES {
         ch_databases_data_and_destination = ch_databases_data.join( ch_database_destinations, by: 0 )
                                                 .map { [ [id: it[0]], it[1], it[2] ] }
 
-        ch_databases_data_and_destination.view()
+        // ch_databases_data_and_destination.view()
 
         EXPORT_DATABASES ( ch_databases_data_and_destination )
         // ch_versions = ch_versions.mix( EXPORT_DATABASES.out.versions )

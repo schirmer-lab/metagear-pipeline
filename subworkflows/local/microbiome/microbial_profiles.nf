@@ -77,7 +77,7 @@ workflow MICROBIAL_PROFILES {
 
         }
 
-        ch_metaphlan_profiles.view()
+        // ch_metaphlan_profiles.view()
         
         ch_reads_profiles = validated_input.join ( ch_metaphlan_profiles , by: 0)
 
