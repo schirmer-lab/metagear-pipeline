@@ -28,7 +28,7 @@ process HUMANN_FUNCTION {
     def prefix = task.ext.prefix ?: "${meta.id}"
 
     """
-    gunzip -c ${fasta} > ${prefix}_qc.fasta
+    gunzip -c ${fasta} >| ${prefix}_qc.fasta
 
     humann --input ${prefix}_qc.fasta \\
         --input-format fasta --taxonomic-profile ${profile} \\
