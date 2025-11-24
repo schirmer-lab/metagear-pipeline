@@ -39,7 +39,7 @@ process HUMANN_FUNCTION {
         --threads $task.cpus \\
         $args
 
-    gzip ${prefix}_qc.fasta
+    gzip -f ${prefix}_qc.fasta
     rm -r ${prefix}/${prefix}_qc_humann_temp
 
     humann_renorm_table --input ${prefix}/${prefix}_qc_genefamilies.tsv --output ${prefix}/${prefix}_qc_genefamilies_cpm.tsv $args2
