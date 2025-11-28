@@ -1,5 +1,4 @@
 process HUMANN_FUNCTION {
-    maxForks 4
     tag "$meta.id"
     label 'process_medium'
 
