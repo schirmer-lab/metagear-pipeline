@@ -36,7 +36,7 @@ process KNEADDATA {
         --output-prefix ${prefix} \\
         --output .
 
-    gzip *paired_*.fastq
+    gzip -f *paired_*.fastq
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
