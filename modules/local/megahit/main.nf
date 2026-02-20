@@ -32,7 +32,7 @@ process MEGAHIT {
             $args \\
             --out-prefix $prefix
 
-        cat megahit_out/*.fa | sed 's/>/>${prefix}_/g' | gzip > ${prefix}.contigs.fa.gz
+        cat megahit_out/*.fa | sed 's/>/>${prefix}_/g' | gzip >| ${prefix}.contigs.fa.gz
         rm -rf megahit_out/*.fa
 
         KMER_SRT="\$(ls megahit_out/intermediate_contigs/*.contigs.fa | cut -f1 -d. | rev | cut -d/ -f1 | rev | sort | uniq | head -1)"
@@ -59,7 +59,7 @@ process MEGAHIT {
             $args \\
             --out-prefix $prefix
 
-        cat megahit_out/*.fa | sed 's/>/>${prefix}_/g' | gzip > ${prefix}.contigs.fa.gz
+        cat megahit_out/*.fa | sed 's/>/>${prefix}_/g' | gzip >| ${prefix}.contigs.fa.gz
         rm -rf megahit_out/*.fa
 
         KMER_SRT="\$(ls megahit_out/intermediate_contigs/*.contigs.fa | cut -f1 -d. | rev | cut -d/ -f1 | rev | sort | uniq | head -1)"
