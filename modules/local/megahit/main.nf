@@ -39,9 +39,9 @@ process MEGAHIT {
         KMER_NUM=\${KMER_SRT#*k}
 
         megahit_core contig2fastg \${KMER_NUM} megahit_out/intermediate_contigs/\${KMER_SRT}.contigs.fa > ${prefix}.\${KMER_SRT}.fastg
-        gzip ${prefix}.\${KMER_SRT}.fastg
+        gzip -f ${prefix}.\${KMER_SRT}.fastg
 
-        gzip megahit_out/intermediate_contigs/*.fa
+        gzip -f megahit_out/intermediate_contigs/*.fa
 
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
@@ -66,9 +66,9 @@ process MEGAHIT {
         KMER_NUM=\${KMER_SRT#*k}
 
         megahit_core contig2fastg \${KMER_NUM} megahit_out/intermediate_contigs/\${KMER_SRT}.contigs.fa > ${prefix}.\${KMER_SRT}.fastg
-        gzip ${prefix}.\${KMER_SRT}.fastg
+        gzip -f ${prefix}.\${KMER_SRT}.fastg
 
-        gzip megahit_out/intermediate_contigs/*.fa
+        gzip -f megahit_out/intermediate_contigs/*.fa
 
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
