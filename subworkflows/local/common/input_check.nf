@@ -81,6 +81,7 @@ def create_input_channel(LinkedHashMap row, String input_type) {
         if (row.fastq_2?.trim()) {
             fastq_meta = [ meta, file(row.fastq_1), file(row.fastq_2) ]
         }else{
+            meta.single_end = true
             fastq_meta = [ meta, file(row.fastq_1) ]
         }
     }

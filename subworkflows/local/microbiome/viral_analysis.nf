@@ -148,7 +148,7 @@ workflow VIRAL_ANALYSIS {
                             .concat( CLUSTER_VIRUS.out.representative )
 
         ch_abundance_input = reads.combine( ch_all_sequences )
-                                .map { meta_reads, reads, meta_sequences, sequences -> [ [id: meta_reads.id, label: meta_sequences.id ], reads, sequences ] }
+                    .map { meta_reads, reads, meta_sequences, sequences -> [ meta_reads + [label: meta_sequences.id], reads, sequences ] }
 
         ABUNDANCE ( ch_abundance_input )
         ch_versions =  ch_versions.mix( ABUNDANCE.out.versions )

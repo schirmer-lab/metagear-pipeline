@@ -123,7 +123,7 @@ workflow GENE_ANALYSIS {
 
         } else {
             ch_abundance_input = clean_reads.combine( ch_representative_genes )
-                                .map { meta_reads, reads, meta_genes, genes -> [ [id: meta_reads.id, label: meta_genes.id ], reads, genes ] }
+                                .map { meta_reads, reads, meta_genes, genes -> [ meta_reads + [label: meta_genes.id], reads, genes ] }
 
             ABUNDANCE ( ch_abundance_input )
             ch_versions =  ch_versions.mix(ABUNDANCE.out.versions)
