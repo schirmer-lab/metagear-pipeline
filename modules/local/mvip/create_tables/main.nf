@@ -55,8 +55,8 @@ process MERGE_TABLES {
         --ictv-taxonomy ${ictv_taxonomy} \\
         --output-file ./${prefix}_Merged_Genomad_CheckV_Summary.tsv
 
-    # Create list of id to keep
-    cat ./${prefix}_Merged_Genomad_CheckV_Summary.filtered.tsv | grep -v virus_id | cut -f2 > ${prefix}_viral_ids_to_keep.txt
+    # Create list of id to keep (grep -v returns 1 when no lines remain; || true prevents pipefail exit)
+    cat ./${prefix}_Merged_Genomad_CheckV_Summary.filtered.tsv | (grep -v virus_id || true) | cut -f2 > ${prefix}_viral_ids_to_keep.txt
 
     # Filter plasmids using FDR and Hallmark genes:
     awk -F'\\t' 'BEGIN{OFS="\\t"}
