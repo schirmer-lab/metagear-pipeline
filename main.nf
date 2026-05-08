@@ -30,6 +30,7 @@ workflow SCHIRMERLAB {
 
         METAGEAR (  )
 
+
     emit:
         versions = METAGEAR.out.versions  // channel: /path/to/multiqc_report.html
         summary_data = METAGEAR.out.summary_data // channel: [ val(meta), [ etc ] ]

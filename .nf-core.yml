@@ -1,5 +1,4 @@
 lint:
-  included_configs: false
   files_exist:
     - conf/igenomes.config
     - conf/igenomes_ignored.config
@@ -18,6 +17,7 @@ lint:
     - docs/images/nf-core-metagear_logo_light.png
     - docs/images/nf-core-metagear_logo_dark.png
     - .github/ISSUE_TEMPLATE/bug_report.yml
+  included_configs: false
   multiqc_config:
     - report_comment
   nextflow_config:
@@ -27,7 +27,7 @@ lint:
     - validation.help.afterText
     - validation.summary.beforeText
     - validation.summary.afterText
-nf_core_version: 3.2.1
+nf_core_version: 4.0.2
 repository_type: pipeline
 template:
   author: Shen Jin, Emilio Rios, Svenja Schorlemmer
