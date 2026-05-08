@@ -13,7 +13,7 @@ nextflow_process {
 
     setup {
         run("UNTAR") {
-            script "../../../untar/main.nf"
+            script "../../../../nf-core/untar/main.nf"
             process {
                 """
                 input[0] = Channel.of(
@@ -27,7 +27,7 @@ nextflow_process {
         }
 
         run("GUNZIP") {
-            script "../../../gunzip/main.nf"
+            script "../../../../nf-core/gunzip/main.nf"
             process {
                 """
                 input[0] = Channel.of(

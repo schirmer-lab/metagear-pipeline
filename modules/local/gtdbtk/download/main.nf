@@ -39,5 +39,3 @@ process GTDBTK_DOWNLOAD_DB {
     """
 
 }
-
-

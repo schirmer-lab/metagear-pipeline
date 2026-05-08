@@ -69,5 +69,3 @@ process DRAMV {
     END_VERSIONS
     """
 }
-
-

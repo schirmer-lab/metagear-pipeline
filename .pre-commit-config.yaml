@@ -25,9 +25,11 @@ repos:
               subworkflows/(?!local/).*|
               .*\.snap$
           )$
-  - repo: https://github.com/seqeralabs/nf-lint-pre-commit
-    rev: v0.3.0
-    hooks:
-      - id: nextflow-lint
-        files: '\.nf$|nextflow\.config$'
-        args: ["-output", "json"]
+  # nextflow-lint hook intentionally disabled until the v2 syntax migration:
+  #   - replace `include from "$projectDir/..."` with relative paths in
+  #     all subworkflows/ and main.nf
+  #   - rewrite the switch/case block in modules/local/interproscan/main.nf
+  #     as if/else
+  #   - drop NXF_SYNTAX_PARSER=v1 from .github/workflows/nf-test.yml and
+  #     metagear.env once the codebase parses cleanly under v2
+  # Re-enable the seqeralabs/nf-lint-pre-commit hook after the migration.

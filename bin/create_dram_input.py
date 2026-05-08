@@ -32,12 +32,14 @@ from typing import Dict, List, Optional, Tuple
 # IO helpers
 # ----------------------------
 
+
 def open_maybe_gzip(path: Optional[str]):
     if path is None:
         return None
     if path.endswith(".gz"):
         return io.TextIOWrapper(gzip.open(path, "rb"), encoding="utf-8", newline="")
     return open(path, "r", encoding="utf-8", newline="")
+
 
 def fasta_lengths(path: Optional[str]) -> Dict[str, int]:
     if not path:
@@ -57,6 +59,7 @@ def fasta_lengths(path: Optional[str]) -> Dict[str, int]:
             lens[name] = L
     return lens
 
+
 def read_id_set(path: Optional[str]) -> set:
     s = set()
     if not path:
@@ -68,12 +71,14 @@ def read_id_set(path: Optional[str]) -> set:
                 s.add(t)
     return s
 
+
 # ----------------------------
 # Hallmark classification (conservative, tuned to PHROGs vocab)
 # ----------------------------
 
 EXCLUDE_LYSIS = re.compile(r"\b(holin|endolysin|lysozyme|spanin)\b", re.I)
-HALLMARK_PATTERN = re.compile(r"""(?xi)
+HALLMARK_PATTERN = re.compile(
+    r"""(?xi)
     # Packaging & head
     \bportal\b|
     \bterminase\b|
@@ -92,7 +97,9 @@ HALLMARK_PATTERN = re.compile(r"""(?xi)
               fiber(?:\s+(?:assembly|protein|and\s+host\s+specificity))?|
               length\s+tape\s+measure)\b|
     \breceptor\s+binding\s+tail\s+protein\b|\bpre-?neck\s+appendage\b
-""")
+"""
+)
+
 
 def is_hallmark(annot: str) -> bool:
     if not annot:
@@ -100,27 +107,45 @@ def is_hallmark(annot: str) -> bool:
     a = annot.lower()
     if EXCLUDE_LYSIS.search(a):
         # Only treat as hallmark if clearly embedded in tail structure context
-        if "tail" in a and any(k in a for k in (
-            "fiber","tube","sheath","spike","collar","tape measure","terminator","assembly","chaperone"
-        )):
+        if "tail" in a and any(
+            k in a
+            for k in (
+                "fiber",
+                "tube",
+                "sheath",
+                "spike",
+                "collar",
+                "tape measure",
+                "terminator",
+                "assembly",
+                "chaperone",
+            )
+        ):
             return True
         return False
     return bool(HALLMARK_PATTERN.search(a))
+
 
 # ----------------------------
 # Pharokka TSV parsing
 # ----------------------------
 
-def detect_pharokka_header(header: List[str]) -> Dict[str,int]:
+
+def detect_pharokka_header(header: List[str]) -> Dict[str, int]:
     lc = [h.strip().lower() for h in header]
     need = {}
-    for k in ("id","phrog","annot"):
+    for k in ("id", "phrog", "annot"):
         if k not in lc:
-            raise KeyError(f"Required column '{k}' not found in Pharokka TSV header: {header}")
+            raise KeyError(
+                f"Required column '{k}' not found in Pharokka TSV header: {header}"
+            )
         need[k] = lc.index(k)
-    if "length" in lc: need["length"] = lc.index("length")
-    if "category" in lc: need["category"] = lc.index("category")
+    if "length" in lc:
+        need["length"] = lc.index("length")
+    if "category" in lc:
+        need["category"] = lc.index("category")
     return need
+
 
 def parse_pharokka_id(gid: str) -> Tuple[str, int, int, int, str]:
     # {contig}::{gene_index}::{start}::{end}::{strand}
@@ -130,8 +155,9 @@ def parse_pharokka_id(gid: str) -> Tuple[str, int, int, int, str]:
     contig = parts[0]
     gi = int(parts[1])
     start, end = int(parts[2]), int(parts[3])
-    strand = parts[4] if parts[4] in ("+","-") else "+"
+    strand = parts[4] if parts[4] in ("+", "-") else "+"
     return contig, gi, start, end, strand
+
 
 # ----------------------------
 # Protein FASTA parsing (authoritative ORF list)
@@ -139,13 +165,15 @@ def parse_pharokka_id(gid: str) -> Tuple[str, int, int, int, str]:
 
 ORF = namedtuple("ORF", "contig gi start end strand")
 
+
 def parse_protein_header(h: str) -> Optional[ORF]:
     """
     Expect: >contig::idx::start::end::strand
     Returns ORF(contig, idx, start, end, strand) or None if unparsable.
     """
     h = h.strip()
-    if h.startswith(">"): h = h[1:]
+    if h.startswith(">"):
+        h = h[1:]
     # Split off trailing description if present
     h = h.split()[0]
     parts = h.split("::")
@@ -154,11 +182,13 @@ def parse_protein_header(h: str) -> Optional[ORF]:
     try:
         contig = parts[0]
         gi = int(parts[1])
-        start = int(parts[2]); end = int(parts[3])
-        strand = parts[4] if parts[4] in ("+","-") else "+"
+        start = int(parts[2])
+        end = int(parts[3])
+        strand = parts[4] if parts[4] in ("+", "-") else "+"
         return ORF(contig, gi, start, end, strand)
     except Exception:
         return None
+
 
 def load_orfs_from_proteins(faa_path: str) -> Dict[str, List[ORF]]:
     """
@@ -171,9 +201,11 @@ def load_orfs_from_proteins(faa_path: str) -> Dict[str, List[ORF]]:
         for line in f:
             if line.startswith(">"):
                 orf = parse_protein_header(line.strip())
-                if orf is None: continue
+                if orf is None:
+                    continue
                 key = (orf.contig, orf.gi, orf.start, orf.end, orf.strand)
-                if key in seen: continue
+                if key in seen:
+                    continue
                 seen.add(key)
                 per_contig[orf.contig].append(orf)
     # Sort by provided index, then by start for stability; enforce 1..N numbering later
@@ -181,9 +213,11 @@ def load_orfs_from_proteins(faa_path: str) -> Dict[str, List[ORF]]:
         per_contig[c].sort(key=lambda r: (r.gi, r.start, r.end))
     return per_contig
 
+
 # ----------------------------
 # Core builder
 # ----------------------------
+
 
 def build_affi(
     pharokka_tsv: str,
@@ -200,13 +234,14 @@ def build_affi(
     orfs_by_contig = load_orfs_from_proteins(proteins_faa)
 
     # Map Pharokka by (contig,start,end,strand)
-    pk: Dict[Tuple[str,int,int,str], Tuple[str,str]] = {}
+    pk: Dict[Tuple[str, int, int, str], Tuple[str, str]] = {}
     with open_maybe_gzip(pharokka_tsv) as pf:
         reader = csv.reader(pf, delimiter="\t")
         header = next(reader)
         idx = detect_pharokka_header(header)
         for row in reader:
-            if not row or len(row) < len(header): continue
+            if not row or len(row) < len(header):
+                continue
             gid = row[idx["id"]].strip()
             phrog = row[idx["phrog"]].strip()
             annot = (row[idx["annot"]] or "").strip()
@@ -275,11 +310,11 @@ def build_affi(
                     r.strand,
                     top_hit,
                     "nan",  # score
-                    "-",    # evalue
-                    cat,    # category
-                    "-",    # pfam_id
+                    "-",  # evalue
+                    cat,  # category
+                    "-",  # pfam_id
                     "nan",  # pfam_score
-                    "-",    # trailing
+                    "-",  # trailing
                 ]
                 out.write("|".join(row) + "\n")
 
@@ -293,29 +328,69 @@ def build_affi(
                 out.write(f">{contig}|0|{topo}\n")  # no per-ORF lines
 
     # Summary
-    print(f"[INFO] Contigs with ORFs (proteins_faa): {len(orfs_by_contig)}", file=sys.stderr)
+    print(
+        f"[INFO] Contigs with ORFs (proteins_faa): {len(orfs_by_contig)}",
+        file=sys.stderr,
+    )
     if fasta_contigs:
         missing = [c for c in fasta_contigs if c not in orfs_by_contig]
         if missing:
-            print(f"[WARN] {len(missing)} contig(s) in FASTA had no ORFs in proteins_faa. Headers with N=0 were emitted.", file=sys.stderr)
+            print(
+                f"[WARN] {len(missing)} contig(s) in FASTA had no ORFs in proteins_faa. Headers with N=0 were emitted.",
+                file=sys.stderr,
+            )
     print(f"[INFO] Total ORFs written            : {total_orfs}", file=sys.stderr)
     print(f"[INFO] ORFs with PHROG annotations  : {matched}", file=sys.stderr)
     if matched == 0:
-        print("[WARN] No PHROG matches were joined; check coordinate patterns and tolerance.", file=sys.stderr)
+        print(
+            "[WARN] No PHROG matches were joined; check coordinate patterns and tolerance.",
+            file=sys.stderr,
+        )
+
 
 # ----------------------------
 # CLI
 # ----------------------------
 
+
 def main():
-    ap = argparse.ArgumentParser(description="VirSorter2-style affi for DRAM-v from Pharokka + protein FASTA (no Prodigal needed).")
-    ap.add_argument("--pharokka", required=True, help="Pharokka TSV (columns: ID, phrog, annot). IDs encode coords.")
-    ap.add_argument("--proteins-faa", required=True, help="Protein FASTA with headers: contig::idx::start::end::strand")
-    ap.add_argument("--out-affi", required=True, help="Output affi file (pipe-delimited)")
-    ap.add_argument("--contigs-fasta", default=None, help="Contigs FASTA (sets contig lengths; ensures headers for all contigs)")
-    ap.add_argument("--circular-list", default=None, help="File with circular contig IDs (one per line)")
-    ap.add_argument("--labels-out", default=None, help="Optional per-ORF label table (not emitted here to keep code compact)")
-    ap.add_argument("--coord-tolerance", type=int, default=5, help="±N nt allowed when matching Pharokka to proteins (default 5)")
+    ap = argparse.ArgumentParser(
+        description="VirSorter2-style affi for DRAM-v from Pharokka + protein FASTA (no Prodigal needed)."
+    )
+    ap.add_argument(
+        "--pharokka",
+        required=True,
+        help="Pharokka TSV (columns: ID, phrog, annot). IDs encode coords.",
+    )
+    ap.add_argument(
+        "--proteins-faa",
+        required=True,
+        help="Protein FASTA with headers: contig::idx::start::end::strand",
+    )
+    ap.add_argument(
+        "--out-affi", required=True, help="Output affi file (pipe-delimited)"
+    )
+    ap.add_argument(
+        "--contigs-fasta",
+        default=None,
+        help="Contigs FASTA (sets contig lengths; ensures headers for all contigs)",
+    )
+    ap.add_argument(
+        "--circular-list",
+        default=None,
+        help="File with circular contig IDs (one per line)",
+    )
+    ap.add_argument(
+        "--labels-out",
+        default=None,
+        help="Optional per-ORF label table (not emitted here to keep code compact)",
+    )
+    ap.add_argument(
+        "--coord-tolerance",
+        type=int,
+        default=5,
+        help="±N nt allowed when matching Pharokka to proteins (default 5)",
+    )
     args = ap.parse_args()
 
     build_affi(
@@ -327,6 +402,7 @@ def main():
         labels_out=args.labels_out,
         coord_tolerance=args.coord_tolerance,
     )
+
 
 if __name__ == "__main__":
     main()

@@ -8,9 +8,6 @@ include { softwareVersionsToYAML } from "$projectDir/subworkflows/nf-core/utils_
 include { methodsDescriptionText } from "$projectDir/subworkflows/local/utils_nfcore_metagear_pipeline"
 
 /* --- CONFIG FILES --- */
-ch_multiqc_config = Channel.fromPath("$projectDir/assets/multiqc_config.yml", checkIfExists: true)
-ch_multiqc_custom_config = params.multiqc_config ? Channel.fromPath( params.multiqc_config, checkIfExists: true ) : Channel.empty()
-ch_multiqc_logo = params.multiqc_logo ? Channel.fromPath( params.multiqc_logo, checkIfExists: true ) : Channel.empty()
 ch_multiqc_custom_methods_description = params.multiqc_methods_description ? file(params.multiqc_methods_description, checkIfExists: true) : file("$projectDir/assets/methods_description_template.yml", checkIfExists: true)
 
 
@@ -51,17 +48,27 @@ workflow SUMMARY {
         ch_multiqc_files = ch_multiqc_files.mix( ch_methods_description.collectFile( name: 'methods_description_mqc.yaml', sort: true ) )
         ch_multiqc_files = ch_multiqc_files.mix( ch_summary_data.collect() )
 
+        // New nf-core MULTIQC module takes one tuple-shaped input:
+        //   tuple(meta, files, config, logo, replace_names, sample_names)
+        // Build it from the collected files + the right config (custom or
+        // default) + optional logo. Empty lists for replace/sample names.
         MULTIQC (
-            ch_multiqc_files.collect(),
-            ch_multiqc_config.toList(),
-            ch_multiqc_custom_config.toList(),
-            ch_multiqc_logo.toList(),
-            [],
-            []
+            ch_multiqc_files.collect().map { files ->
+                [
+                    [id: 'metagear'],
+                    files,
+                    params.multiqc_config
+                        ? file(params.multiqc_config, checkIfExists: true)
+                        : file("$projectDir/assets/multiqc_config.yml", checkIfExists: true),
+                    params.multiqc_logo ? file(params.multiqc_logo, checkIfExists: true) : [],
+                    [],
+                    []
+                ]
+            }
         )
 
     emit:
-        multiqc_report = MULTIQC.out.report.toList() // channel: /path/to/multiqc_report.html
+        multiqc_report = MULTIQC.out.report.map { _meta, report -> [report] }.toList()  // channel: list of [report] paths
         versions = ch_versions   // channel: [ path(versions.yml) ]
 
 }

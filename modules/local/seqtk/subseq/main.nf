@@ -97,4 +97,3 @@ process SEQTK_SPLIT_BY_LENGTH {
     END_VERSIONS
     """
 }
-

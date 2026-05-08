@@ -66,7 +66,7 @@ process FIND_REPRESENTATIVES {
     #############################################
     # PASS 1: Map each input ID -> representative
     #############################################
-    
+
     set +o pipefail
 
     "\${SRC_CMD[@]}" | "\$AWK_BIN" -v ids="\$TMP_IDS" -v miss="\$MISS_LOG" '
@@ -98,7 +98,7 @@ process FIND_REPRESENTATIVES {
         }
       }
     ' > "\$TMP_ALL"
-  
+
     rc=("\${PIPESTATUS[@]}")   # rc[0]=gzip/cat, rc[1]=awk
     set -o pipefail
 

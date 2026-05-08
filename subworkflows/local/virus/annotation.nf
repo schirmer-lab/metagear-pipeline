@@ -88,4 +88,3 @@ workflow VIRAL_ANNOTATION {
         iphop_genomes = IPHOP_PREDICT.out.iphop_genome
         versions = ch_versions
 }
-

@@ -23,6 +23,11 @@ env:
   NXF_ANSI_LOG: false
   NXF_SINGULARITY_CACHEDIR: ${{ github.workspace }}/.singularity
   NXF_SINGULARITY_LIBRARYDIR: ${{ github.workspace }}/.singularity
+  # The pipeline still uses the legacy parser (GString interpolation in
+  # `include from "$projectDir/..."`, switch statements, etc.). The wrapper
+  # sets this in metagear.env at runtime; CI also needs it so nf-test can
+  # parse our modules/subworkflows. Drop once the v2-syntax migration lands.
+  NXF_SYNTAX_PARSER: "v1"
 
 jobs:
   nf-test-changes:
@@ -69,10 +74,14 @@ jobs:
         profile: [conda, docker, singularity]
         isMain:
           - ${{ github.base_ref == 'master' || github.base_ref == 'main' }}
-        # Exclude conda and singularity on dev
+        # Exclude conda and singularity on dev branches.
+        # Conda profile additionally disabled on master until module-level
+        # conda envs are aligned (currently bioconda solver fails on
+        # iphop=1.3.2 transitive deps, and other modules are unverified).
+        # Re-enable by removing the unconditional `profile: "conda"` entry
+        # below once the conda envs across modules are known good.
         exclude:
-          - isMain: false
-            profile: "conda"
+          - profile: "conda"
           - isMain: false
             profile: "singularity"
         NXF_VER:

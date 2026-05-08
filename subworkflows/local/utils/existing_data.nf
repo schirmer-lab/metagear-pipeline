@@ -49,7 +49,7 @@ def createExistingFileChannel(param_path, transform_fn = null) {
         // Apply transformation if provided
         if ( transform_fn ) {
             ch_existing_data = ch_existing_data.map( transform_fn )
-        } 
+        }
 
         return ch_existing_data
     }

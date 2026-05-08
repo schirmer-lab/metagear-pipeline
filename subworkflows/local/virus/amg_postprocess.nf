@@ -30,4 +30,3 @@ workflow AMG_POSTPROCESS {
         amgs_fna = EXTRACT_AMGS.out.amgs_fna
         versions = ch_versions
 }
-

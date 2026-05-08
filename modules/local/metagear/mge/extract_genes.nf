@@ -29,4 +29,3 @@ process EXTRACT_GENES {
     END_VERSIONS
     """
 }
-

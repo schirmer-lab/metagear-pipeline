@@ -83,32 +83,15 @@ workflow PIPELINE_INITIALISATION {
         nextflow_cli_args
     )
 
-    //
-    // Create channel from input file provided through params.input
-    //
-
-    channel
-        .fromList(samplesheetToList(input, "${projectDir}/assets/schema_input.json"))
-        .map {
-            meta, fastq_1, fastq_2 ->
-                if (!fastq_2) {
-                    return [ meta.id, meta + [ single_end:true ], [ fastq_1 ] ]
-                } else {
-                    return [ meta.id, meta + [ single_end:false ], [ fastq_1, fastq_2 ] ]
-                }
-        }
-        .groupTuple()
-        .map { samplesheet ->
-            validateInputSamplesheet(samplesheet)
-        }
-        .map {
-            meta, fastqs ->
-                return [ meta, fastqs.flatten() ]
-        }
-        .set { ch_samplesheet }
+    // NOTE: TEMPLATE constructs a samplesheet channel from `params.input` here
+    // and emits it as `PIPELINE_INITIALISATION.out.samplesheet`. Our
+    // SCHIRMERLAB workflow doesn't consume that channel (we have our own
+    // INPUT_CHECK subworkflow that reads `params.input` directly) so we don't
+    // build it. If a future refactor adopts the TEMPLATE-style flow, restore
+    // the `channel.fromList(samplesheetToList(...))` block here and the
+    // `validateInputSamplesheet` helper at the bottom of this file.
 
     emit:
-    samplesheet = ch_samplesheet
     versions    = ch_versions
 }
 

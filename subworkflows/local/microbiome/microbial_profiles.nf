@@ -72,13 +72,13 @@ workflow MICROBIAL_PROFILES {
                                         .groupTuple(by: 0)
 
                 MERGE_VIRAL_PROFILES( ch_all_viral_profiles )
-            } 
+            }
 
 
         }
 
         // ch_metaphlan_profiles.view()
-        
+
         ch_reads_profiles = validated_input.join ( ch_metaphlan_profiles , by: 0)
 
         HUMANN_FUNCTION ( ch_reads_profiles, humann3_uniref90_db, humann3_chocoplhan_db )
@@ -129,4 +129,3 @@ workflow METAPHLAN_PROFILES {
         versions = ch_versions
 
 }
-

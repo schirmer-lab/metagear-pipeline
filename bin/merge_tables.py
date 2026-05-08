@@ -142,7 +142,11 @@ def main(
         usecols=checkv_cols,
     )
 
-    if provirus_checkv and os.path.exists(provirus_checkv) and os.path.getsize(provirus_checkv) > 0:
+    if (
+        provirus_checkv
+        and os.path.exists(provirus_checkv)
+        and os.path.getsize(provirus_checkv) > 0
+    ):
         df_provirus_CHECKV = pd.read_csv(
             provirus_checkv,
             sep="\t",
@@ -179,7 +183,11 @@ def main(
         usecols=genomad_cols,
     )
 
-    if provirus_genomad and os.path.exists(provirus_genomad) and os.path.getsize(provirus_genomad) > 0:
+    if (
+        provirus_genomad
+        and os.path.exists(provirus_genomad)
+        and os.path.getsize(provirus_genomad) > 0
+    ):
         df_provirus_GENOMAD = pd.read_csv(
             provirus_genomad,
             sep="\t",

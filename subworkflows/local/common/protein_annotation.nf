@@ -29,7 +29,7 @@ workflow PROTEIN_ANNOTATION {
         ch_proteins = proteins.map { meta, path ->
             def newMeta = meta.clone()
             newMeta.id = newMeta.id.replace("gene","protein")
-            newMeta.single_end = true // needed by seqkit split2 
+            newMeta.single_end = true // needed by seqkit split2
             newMeta.is_proteins = true // needed by amrfinderplus
             return tuple(newMeta, path)
         }

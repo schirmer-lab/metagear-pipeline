@@ -15,7 +15,9 @@ LOG_FORMAT = "%(asctime)s | %(levelname)s | %(message)s"
 LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
-def _setup_logger(logger_name: str, log_file: Path | None = None, log_level: str = "INFO") -> logging.Logger:
+def _setup_logger(
+    logger_name: str, log_file: Path | None = None, log_level: str = "INFO"
+) -> logging.Logger:
     """Configure and return a logger that writes to stdout and optionally a file."""
 
     level = getattr(logging, log_level.upper(), logging.INFO)
@@ -51,7 +53,9 @@ def _load_gene_map(all_msps_fp: str, sel_category: set[str]) -> pd.DataFrame:
         dtype={"msp_name": "string", "gene_category": "string", "gene_name": "string"},
     )
 
-    df = df[df["gene_category"].isin(sel_category)].dropna(subset=["gene_name", "msp_name"])
+    df = df[df["gene_category"].isin(sel_category)].dropna(
+        subset=["gene_name", "msp_name"]
+    )
     df = df.drop_duplicates(subset=["gene_name", "msp_name"])
     df = df.rename(columns={"gene_name": "gene_name", "msp_name": "msp_name"})
     return df[["gene_name", "msp_name"]]
@@ -63,7 +67,9 @@ def _read_csv_chunks(csv_path: str, chunk_size: int, **kwargs):
     for engine in ("pyarrow", "c"):
         try:
             return pd.read_csv(csv_path, engine=engine, chunksize=chunk_size, **kwargs)
-        except ValueError as exc:  # pragma: no cover - engine availability is environment specific
+        except (
+            ValueError
+        ) as exc:  # pragma: no cover - engine availability is environment specific
             if "engine" in str(exc) and engine == "pyarrow":
                 continue
             raise
@@ -199,7 +205,11 @@ def _extract_fasta_by_ids(
     """Extract sequences from *fasta_source* for the provided IDs and write them to *output_path*."""
 
     owns_fasta = not isinstance(fasta_source, Fasta)
-    fasta = fasta_source if not owns_fasta else Fasta(fasta_source, rebuild=False, as_raw=True)
+    fasta = (
+        fasta_source
+        if not owns_fasta
+        else Fasta(fasta_source, rebuild=False, as_raw=True)
+    )
     deduped_ids = list(dict.fromkeys(header_ids))
     max_workers = max(1, threads)
     missing_ids: list[str] = []
@@ -220,14 +230,21 @@ def _extract_fasta_by_ids(
                     out_f.write(record)
         else:
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                futures = {executor.submit(fetch_record, seq_id): seq_id for seq_id in deduped_ids}
+                futures = {
+                    executor.submit(fetch_record, seq_id): seq_id
+                    for seq_id in deduped_ids
+                }
                 for future in as_completed(futures):
                     record = future.result()
                     if record:
                         out_f.write(record)
 
     if missing_ids:
-        message = f"Missing {len(missing_ids)} sequence ids" if len(missing_ids) > 5 else f"Missing sequence ids: {', '.join(missing_ids)}"
+        message = (
+            f"Missing {len(missing_ids)} sequence ids"
+            if len(missing_ids) > 5
+            else f"Missing sequence ids: {', '.join(missing_ids)}"
+        )
         if logger:
             logger.warning(message)
         else:
@@ -282,7 +299,9 @@ def _extract_fasta_by_ids(
     "--log-level",
     default="INFO",
     show_default=True,
-    type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], case_sensitive=False),
+    type=click.Choice(
+        ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], case_sensitive=False
+    ),
     help="Verbosity of log output.",
 )
 @click.option(
@@ -308,9 +327,13 @@ def get_msp_abd(
         raise click.ClickException("Invalid method. Choose either 'median' or 'mean'.")
 
     if not rpkm_fp or not all_msps_fp or not save_fp:
-        raise click.ClickException("'--rpkm-fp', '--all-msps-fp', and '--save-fp' are required inputs.")
+        raise click.ClickException(
+            "'--rpkm-fp', '--all-msps-fp', and '--save-fp' are required inputs."
+        )
 
-    logger = _setup_logger("postminer.get_msp_abd", Path(log_file) if log_file else None, log_level)
+    logger = _setup_logger(
+        "postminer.get_msp_abd", Path(log_file) if log_file else None, log_level
+    )
     logger.info("Starting MSP abundance calculation using the %s method", method)
 
     chunk_size = max(1, int(chunk_size))
@@ -327,7 +350,9 @@ def get_msp_abd(
 
     core_gene_count = gene_map_df["gene_name"].nunique()
     total_msps = gene_map_df["msp_name"].nunique()
-    logger.info("Found %d MSPs covering %d unique core genes", total_msps, core_gene_count)
+    logger.info(
+        "Found %d MSPs covering %d unique core genes", total_msps, core_gene_count
+    )
 
     gene_name_set = set(gene_map_df["gene_name"].tolist())
     msp_sums: dict[str, np.ndarray] = {}
@@ -354,8 +379,12 @@ def get_msp_abd(
         filtered_chunk = filtered_chunk.reset_index()
         index_col_name = filtered_chunk.columns[0]
         if index_col_name != "gene_name":
-            filtered_chunk = filtered_chunk.rename(columns={index_col_name: "gene_name"})
-        merged = filtered_chunk.merge(gene_map_df, on="gene_name", how="inner", copy=False)
+            filtered_chunk = filtered_chunk.rename(
+                columns={index_col_name: "gene_name"}
+            )
+        merged = filtered_chunk.merge(
+            gene_map_df, on="gene_name", how="inner", copy=False
+        )
         matched_rows = merged.shape[0]
         total_matched_rows += matched_rows
 
@@ -392,24 +421,32 @@ def get_msp_abd(
 
     if method == "mean":
         if not msp_sums:
-            raise click.ClickException("No overlapping core genes were found between the inputs.")
+            raise click.ClickException(
+                "No overlapping core genes were found between the inputs."
+            )
 
         result_matrix = {}
         for msp_id, totals in msp_sums.items():
             counts = msp_counts[msp_id]
             with np.errstate(divide="ignore", invalid="ignore"):
-                mean_values = np.divide(totals, counts, out=np.zeros_like(totals), where=counts != 0)
+                mean_values = np.divide(
+                    totals, counts, out=np.zeros_like(totals), where=counts != 0
+                )
             result_matrix[msp_id] = mean_values
     else:
         if not msp_median_buffers:
-            raise click.ClickException("No overlapping core genes were found between the inputs.")
+            raise click.ClickException(
+                "No overlapping core genes were found between the inputs."
+            )
 
         result_matrix = {}
         for msp_id, matrices in msp_median_buffers.items():
             stacked = matrices[0] if len(matrices) == 1 else np.vstack(matrices)
             result_matrix[msp_id] = np.nanmedian(stacked, axis=0)
 
-    result_df = pd.DataFrame.from_dict(result_matrix, orient="index", columns=sample_columns)
+    result_df = pd.DataFrame.from_dict(
+        result_matrix, orient="index", columns=sample_columns
+    )
     result_df.index.name = "msp_name"
     result_df.sort_index(inplace=True)
 
@@ -462,7 +499,9 @@ def get_msp_abd(
     "--log-level",
     default="INFO",
     show_default=True,
-    type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], case_sensitive=False),
+    type=click.Choice(
+        ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], case_sensitive=False
+    ),
     help="Verbosity of log output.",
 )
 @click.option(
@@ -482,9 +521,13 @@ def get_msp_pangenome(
     progress_every,
 ):
     if not gene_catalog_fp or not all_msps_fp or not msp_pangenome_dir:
-        raise click.ClickException("'--gene-catalog-fp', '--all-msps-fp', and '--msp-pangenome-dir' are required inputs.")
+        raise click.ClickException(
+            "'--gene-catalog-fp', '--all-msps-fp', and '--msp-pangenome-dir' are required inputs."
+        )
 
-    logger = _setup_logger("postminer.get_msp_pangenome", Path(log_file) if log_file else None, log_level)
+    logger = _setup_logger(
+        "postminer.get_msp_pangenome", Path(log_file) if log_file else None, log_level
+    )
 
     threads = max(1, int(threads))
     progress_every = max(1, int(progress_every))
@@ -499,7 +542,9 @@ def get_msp_pangenome(
     )
 
     if gene_map_df.empty:
-        raise click.ClickException("No genes were found for the requested MSP categories.")
+        raise click.ClickException(
+            "No genes were found for the requested MSP categories."
+        )
 
     gene_map_df["gene_name"] = gene_map_df["gene_name"].astype(str)
     gene_map_df["msp_name"] = gene_map_df["msp_name"].astype(str)
@@ -516,7 +561,9 @@ def get_msp_pangenome(
 
     fasta = Fasta(gene_catalog_fp, rebuild=False, as_raw=True)
     try:
-        for idx, (msp_id, group_df) in enumerate(gene_map_df.groupby("msp_name", sort=False), start=1):
+        for idx, (msp_id, group_df) in enumerate(
+            gene_map_df.groupby("msp_name", sort=False), start=1
+        ):
             output_path = output_dir / f"{msp_id}.pangenome.fasta"
             _extract_fasta_by_ids(
                 fasta,
@@ -538,7 +585,9 @@ def get_msp_pangenome(
         if hasattr(fasta, "close"):
             fasta.close()
 
-    logger.info("Completed MSP pangenome sequence extraction. Output folder: %s", output_dir)
+    logger.info(
+        "Completed MSP pangenome sequence extraction. Output folder: %s", output_dir
+    )
 
 
 if __name__ == "__main__":

@@ -45,7 +45,7 @@ process PHAROKKA_PROTEINS {
         --proteins-faa \${INPUT} \\
         --contigs-fasta ${contigs} \\
         --out-affi ${prefix}-affi-contigs-for-dramv.tab
-        
+
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
