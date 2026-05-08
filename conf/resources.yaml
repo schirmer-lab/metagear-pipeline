@@ -1,0 +1,87 @@
+# MetaGEAR — process resource configuration (master file).
+#
+# Edit this file, then regenerate conf/resources.config with the bash
+# generator that ships in the sibling metagear-tools repo, e.g.:
+#
+#   bash ../metagear-tools/lib/build_resources_config.sh \
+#        conf/resources.yaml conf/resources.config
+#
+# Format
+# ------
+#   labels:        defines `withLabel:` resource tiers (consumed by `label '…'`
+#                  declarations in modules)
+#   processes:     one row per process. The `label:` field is informational
+#                  (the actual label is in the module file); `cpus`/`memory_gb`/
+#                  `time_h` are emitted as a `withName:` override when present.
+#                  A row with only `label:` is documentation — no override.
+#
+# Memory and time get `* task.attempt` from the generator so retries escalate.
+# `process.resourceLimits` (in nextflow.config) caps the result.
+#
+# Optional `note: "..."` field on any entry is emitted as a Groovy comment.
+
+labels:
+  process_single:      { cpus:  1, memory_gb:   6, time_h:  4 }
+  process_low:         { cpus:  2, memory_gb:  12, time_h:  4 }
+  process_medium:      { cpus:  6, memory_gb:  36, time_h:  8 }
+  process_high:        { cpus: 12, memory_gb:  72, time_h: 16 }
+  process_long:        { time_h: 20 }                              # time-only stack
+  process_high_memory: { memory_gb: 200 }                          # memory-only stack
+
+processes:
+
+  # === Setup ===
+  SAMPLESHEET_CHECK:           { label: process_single }
+  RENAME_FILES:                { label: process_single }
+
+  # === Assembly ===
+  MEGAHIT:                     { label: process_high,    cpus: 12, memory_gb: 24, time_h: 16 }   # was 72 GB
+
+  # === Viral detection ===
+  GENOMAD_PASS1:               { label: process_high,    cpus: 12, memory_gb: 24, time_h: 16 }
+  GENOMAD_PASS2:               { label: process_high,    cpus: 12, memory_gb: 24, time_h: 16 }
+  CHECKV_PASS1:                { label: process_medium,  cpus:  12, memory_gb: 24, time_h:  16 }
+  CHECKV_PASS2:                { label: process_medium,  cpus:  12, memory_gb: 24, time_h:  16 }
+  MERGE_TABLES:                { label: process_medium,  cpus:  8, memory_gb:  16, time_h:  16 }
+  EXTRACT_SEQUENCES:           { label: process_single }
+
+  # === Clustering ===
+  VAMB_CONCATENATE_FASTA:      { label: process_medium,  cpus:  2, memory_gb:  8, time_h:  4 }   # I/O bound
+  MMSEQS_EASY_CLUSTER:         { label: process_high,    cpus: 12, memory_gb: 32, time_h: 16 }
+
+  # === Gene call ===
+  PRODIGAL:                    { label: process_single }
+  FILTER_PRODIGAL:             { label: process_medium,  cpus:  2, memory_gb:  8, time_h:  4 }
+  EXTRACT_GENES:               { label: process_low }
+
+  # === Microbial profiling ===
+  HUMANN_FUNCTION:             { label: process_medium,  cpus: 12, memory_gb: 24, time_h: 24 }   # bumped from 36 GB
+
+  # === Protein call / annotation ===
+  TRANSLATE_DNA2PROT:          { label: process_medium,  cpus:  8, memory_gb:  16, time_h:  4 }
+  SEQKIT_SPLIT2:               { label: process_medium,  cpus:  8, memory_gb:  16, time_h:  4 }
+  INTERPROSCAN:                { label: process_long,    cpus: 12, memory_gb: 24, time_h: 24, note: "process_long sets only time — needs explicit cpu/mem" }
+  FUNCTIONALGROUP_ANNOTATION:  { label: process_medium,  cpus: 12, memory_gb: 24, time_h: 24 }
+  AMRFINDERPLUS_RUN:           { label: process_medium,  cpus: 12, memory_gb: 24, time_h: 24 }
+
+  # === Viral annotation ===
+  PHAROKKA_PROTEINS:           { label: process_high,    cpus: 24, memory_gb: 68, time_h: 24 }
+  IPHOP_PREDICT:               { label: process_high,    cpus: 24, memory_gb: 68, time_h: 24, note: "iPHoP DB ~110 GB on disk" }
+  VIRSORTER2_4DRAMV:           { label: "(none)",        cpus: 12, memory_gb: 24, time_h: 24, note: "module has no label" }
+  DRAMV:                       { label: "(none)",        cpus: 12, memory_gb: 24, time_h: 24, note: "module has no label" }
+
+  # === Abundance ===
+  BWA_INDEX:                   { label: "(dynamic)",     note: "module sets memory dynamically: { 6.B * fasta.size() }" }
+  COVERM_MAKE:                 { label: process_medium,  cpus: 12, memory_gb: 24, time_h: 24 }
+  COVERM_CONTIG:               { label: process_medium,  cpus: 12, memory_gb: 24, time_h: 24 }
+  COVERM_CONTIG_MERGE:         { label: process_medium,  cpus: 12, memory_gb: 24, time_h: 24 }
+
+  # === AMG post-process ===
+  EXTRACT_AMGS:                { label: process_low }
+  MMSEQS_EASYSEARCH:           { label: process_high,    cpus: 12, memory_gb: 32, time_h: 16 }
+  MAP_AMG_CATALOG:             { label: process_low }
+
+  # === Summary ===
+  FIND_REPRESENTATIVES:        { label: process_low }
+  MERGE_CLUSTER_ANNOTATIONS:   { label: process_low }
+  COLLECT_TABLES:              { label: process_low }
