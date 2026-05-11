@@ -10,3 +10,11 @@ null/
 metagear_run.config
 metagear_user.config
 .vscode
+.lineage/
+
+# nf-test scratch / runtime files
+.nf-test/
+.nf-test.log
+.nf-test-*.nf
+# nf-test binary (installed via package manager; not vendored)
+/nf-test

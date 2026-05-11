@@ -4,8 +4,8 @@ process GTDBTK_CLASSIFYWF {
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/gtdbtk:2.3.0--pyhdfd78af_0':
-        'biocontainers/gtdbtk:2.3.0--pyhdfd78af_0' }"
+        'https://depot.galaxyproject.org/singularity/gtdbtk:2.4.0--pyhdfd78af_0':
+        'biocontainers/gtdbtk:2.4.0--pyhdfd78af_0' }"
 
     input:
     tuple val(meta), path(genome_dir), val(db)

@@ -2,7 +2,6 @@
 
 include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
 
-include { CDHIT_CDHIT } from "$projectDir/modules/local/cdhit/cdhit"
 include { TRANSLATE_DNA2PROT } from "$projectDir/modules/local/metagear/utils/translate_dna2prot"
 
 /* --- Initialization for standalone process --- */
@@ -25,20 +24,15 @@ workflow PROTEIN_CALL {
         gene_catalog // meta, sequences
 
     main:
+        ch_versions = Channel.empty()
 
         // translate DNA to protein
         TRANSLATE_DNA2PROT ( gene_catalog )
+        ch_versions =  ch_versions.mix(TRANSLATE_DNA2PROT.out.versions)
 
-        ch_protein_catalog = TRANSLATE_DNA2PROT.out.prot_fasta_output.map(it -> [[id: "protein_catalog"],it[1]])
-
-        CDHIT_CDHIT ( ch_protein_catalog )
-
-        ch_versions = TRANSLATE_DNA2PROT.out.versions.first()
-                        .mix(CDHIT_CDHIT.out.versions.first())
-
+        ch_proteins = TRANSLATE_DNA2PROT.out.prot_fasta_output
 
     emit:
-        protein_catalog = CDHIT_CDHIT.out.fasta
-        protein_catalog_clusters = CDHIT_CDHIT.out.clusters
+        proteins = ch_proteins
         versions = ch_versions
 }

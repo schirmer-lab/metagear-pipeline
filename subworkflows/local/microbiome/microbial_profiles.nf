@@ -2,8 +2,10 @@
 
 include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
 
+include { createExistingDirChannel } from "$projectDir/subworkflows/local/utils/existing_data"
+
 include { METAPHLAN_METAPHLAN } from "$projectDir/modules/local/metaphlan4.1/metaphlan/main"
-include { METAPHLAN_MERGE_PROFILES } from "$projectDir/modules/local/metaphlan4.1/metaphlan/main"
+include { METAPHLAN_MERGE_PROFILES as MERGE_MICROBIAL_PROFILES; METAPHLAN_MERGE_PROFILES as MERGE_VIRAL_PROFILES } from "$projectDir/modules/local/metaphlan4.1/metaphlan/main"
 
 include { HUMANN_FUNCTION; HUMANN_MERGE_PROFILES } from "$projectDir/modules/local/humann3/main"
 
@@ -45,17 +47,42 @@ workflow MICROBIAL_PROFILES {
 
         ch_versions = Channel.empty()
 
-        METAPHLAN_METAPHLAN ( validated_input, metaphlan_db )
+        ch_metaphlan_profiles = Channel.empty()
 
-        ch_all_microbial_profiles = METAPHLAN_METAPHLAN.out.microbial_profile
-                                    .map { [ [id: 'microbial'], it[1] ] }
-                                    .groupTuple(by: 0)
+        if ( params.metaphlan_dir ) {
+            ch_metaphlan_profiles = createExistingDirChannel ( params.metaphlan_dir, "*_microbial_profile.txt", "_microbial_profile", false )
 
-        METAPHLAN_MERGE_PROFILES( ch_all_microbial_profiles )
+        }else {
 
-        ch_reads_profiles = validated_input.join (METAPHLAN_METAPHLAN.out.microbial_profile, by: 0)
+            METAPHLAN_METAPHLAN ( validated_input, metaphlan_db )
+            ch_versions = ch_versions.mix( METAPHLAN_METAPHLAN.out.versions.first() )
+
+            ch_metaphlan_profiles = METAPHLAN_METAPHLAN.out.microbial_profile
+
+            ch_all_microbial_profiles = ch_metaphlan_profiles
+                                        .map { [ [id: 'microbial'], it[1] ] }
+                                        .groupTuple(by: 0)
+
+            MERGE_MICROBIAL_PROFILES( ch_all_microbial_profiles )
+            ch_versions = ch_versions.mix( MERGE_MICROBIAL_PROFILES.out.versions.first() )
+
+            if ( params.include_viral ) {
+                ch_all_viral_profiles = METAPHLAN_METAPHLAN.out.viral_profile
+                                        .map { [ [id: 'viral'], it[1] ] }
+                                        .groupTuple(by: 0)
+
+                MERGE_VIRAL_PROFILES( ch_all_viral_profiles )
+            }
+
+
+        }
+
+        // ch_metaphlan_profiles.view()
+
+        ch_reads_profiles = validated_input.join ( ch_metaphlan_profiles , by: 0)
 
         HUMANN_FUNCTION ( ch_reads_profiles, humann3_uniref90_db, humann3_chocoplhan_db )
+        ch_versions = ch_versions.mix( HUMANN_FUNCTION.out.versions.first() )
 
         ch_all_gene_families = HUMANN_FUNCTION.out.gene_family
                                 .map { [ [id: 'gene_families'], it[1] ] }
@@ -67,13 +94,9 @@ workflow MICROBIAL_PROFILES {
 
         HUMANN_MERGE_PROFILES ( ch_all_gene_families.concat( ch_all_path_abundances ) )
 
-        ch_versions = METAPHLAN_METAPHLAN.out.versions.first()
-                        .mix( METAPHLAN_MERGE_PROFILES.out.versions.first() )
-                        .mix( HUMANN_FUNCTION.out.versions.first() )
-
     emit:
         // TODO: implement emission of all relevant channels
-        merged_profiles = METAPHLAN_MERGE_PROFILES.out.merged_profiles
+        // merged_profiles = MERGE_MICROBIAL_PROFILES.out.merged_profiles
         versions = ch_versions
 
 }
@@ -96,14 +119,13 @@ workflow METAPHLAN_PROFILES {
                                     .map { [ [id: 'microbial'], it[1] ] }
                                     .groupTuple(by: 0)
 
-        METAPHLAN_MERGE_PROFILES( ch_all_microbial_profiles )
+        MERGE_MICROBIAL_PROFILES( ch_all_microbial_profiles )
 
         ch_versions = METAPHLAN_METAPHLAN.out.versions.first()
-                        .mix( METAPHLAN_MERGE_PROFILES.out.versions.first() )
+                        .mix( MERGE_MICROBIAL_PROFILES.out.versions.first() )
 
     emit:
-        merged_profiles = METAPHLAN_MERGE_PROFILES.out.merged_profiles
+        merged_profiles = MERGE_MICROBIAL_PROFILES.out.merged_profiles
         versions = ch_versions
 
 }
-

@@ -4,10 +4,32 @@ repos:
     hooks:
       - id: prettier
         additional_dependencies:
-          - prettier@3.2.5
-
-  - repo: https://github.com/editorconfig-checker/editorconfig-checker.python
-    rev: "3.1.2"
+          - prettier@3.8.3
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
     hooks:
-      - id: editorconfig-checker
-        alias: ec
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+        exclude: |
+          (?x)^(
+              .*ro-crate-metadata.json$|
+              modules/(?!local/).*|
+              subworkflows/(?!local/).*|
+              .*\.snap$
+          )$
+      - id: end-of-file-fixer
+        exclude: |
+          (?x)^(
+              .*ro-crate-metadata.json$|
+              modules/(?!local/).*|
+              subworkflows/(?!local/).*|
+              .*\.snap$
+          )$
+  # nextflow-lint hook intentionally disabled until the v2 syntax migration:
+  #   - replace `include from "$projectDir/..."` with relative paths in
+  #     all subworkflows/ and main.nf
+  #   - rewrite the switch/case block in modules/local/interproscan/main.nf
+  #     as if/else
+  #   - drop NXF_SYNTAX_PARSER=v1 from .github/workflows/nf-test.yml and
+  #     metagear.env once the codebase parses cleanly under v2
+  # Re-enable the seqeralabs/nf-lint-pre-commit hook after the migration.

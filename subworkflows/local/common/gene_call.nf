@@ -2,13 +2,11 @@
 
 include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
 
-include { MEGAHIT } from "$projectDir/modules/local/megahit/main"
 include { PRODIGAL } from "$projectDir/modules/nf-core/prodigal"
 include { FILTER_PRODIGAL } from "$projectDir/modules/local/metagear/utils/filter_prodigal"
 
-include { VAMB_CONCATENATE_FASTA } from "$projectDir/modules/local/vamb/main"
-
-include { CDHIT_CDHITEST } from "$projectDir/modules/local/cdhit/cdhitest/main"
+include { EXTRACT_GENES } from "$projectDir/modules/local/metagear/mge/extract_genes"
+// include { FIND_REPRESENTATIVES } from "$projectDir/modules/local/metagear/mge/cluster_utils"
 
 /* --- Initialization for standalone process --- */
 workflow GENE_CALL_INIT {
@@ -28,37 +26,44 @@ workflow GENE_CALL_INIT {
 workflow GENE_CALL {
 
     take:
-        ch_clean_reads // meta, reads
+        sequences // tuple (meta, reads) -> [ [id: sample1_*plasmid|votu*, label: plasmid_genes|votu_genes|genes ], fasta ]
 
     main:
 
-        MEGAHIT (
-            ch_clean_reads.map { meta, fastq -> [ meta, fastq ] }
-        )
+        // sequences.map { meta, _ -> meta.id = meta.label ? meta.id + '.' + meta.label : meta.id + '.genes' }
 
-        PRODIGAL ( MEGAHIT.out.contigs, "gff" )
+        // Build gene catalog from scratch
+        PRODIGAL ( sequences, "gff" )
 
         FILTER_PRODIGAL ( PRODIGAL.out.nucleotide_fasta )
 
-        ch_merged_genes = FILTER_PRODIGAL.out.filtered_fasta.map{ it -> it[1] }
-                .collect()
-                .map{ it -> [ [id: "genes"], it ] }
-
-        VAMB_CONCATENATE_FASTA ( ch_merged_genes )
-
-        ch_input_catalog = VAMB_CONCATENATE_FASTA.out.catalog.map { it -> tuple([id: "gene_catalog"], it[1]) }
-
-        CDHIT_CDHITEST ( ch_input_catalog )
-
-        ch_versions = MEGAHIT.out.versions.first()
-                        .mix(PRODIGAL.out.versions.first())
+        ch_versions = PRODIGAL.out.versions.first()
                         .mix(FILTER_PRODIGAL.out.versions.first())
-                        .mix(VAMB_CONCATENATE_FASTA.out.versions)
-                        .mix(CDHIT_CDHITEST.out.versions)
 
 
     emit:
-        contigs = MEGAHIT.out.contigs
-        gene_catalog = CDHIT_CDHITEST.out.fasta
+        genes = FILTER_PRODIGAL.out.filtered_fasta
         versions = ch_versions
+}
+
+workflow VIRAL_GENE_CALL {
+
+    take:
+        viral_sequences // tuple (meta, reads) -> [ [id: sample1_*plasmid|votu*, label: plasmid_genes|votu_genes|genes ], fasta ]
+
+    main:
+        ch_versions = Channel.empty()
+
+        EXTRACT_GENES ( viral_sequences )
+        ch_versions =  ch_versions.mix( EXTRACT_GENES.out.versions)
+
+        // EXTRACT_GENES.out.extracted_gene_ids
+        //         .map {meta, file -> [ [id: meta.label], file ]}
+        //         .groupTuple( by:0 )
+        //         .view()
+
+    emit:
+        versions = ch_versions
+        genes = EXTRACT_GENES.out.extracted_genes
+        gene_ids =  EXTRACT_GENES.out.extracted_gene_ids
 }

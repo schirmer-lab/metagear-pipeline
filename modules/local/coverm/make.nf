@@ -1,5 +1,5 @@
 process COVERM_MAKE {
-    tag "${meta.id}"
+    tag "${meta.label ? meta.id + ': ' + meta.label : meta.id}"
     label 'process_medium'
 
     conda "bioconda::coverm==0.7.0--hb4818e0_2"
@@ -23,7 +23,9 @@ process COVERM_MAKE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     // def reference_stem = reference[0].getName().toString().replaceFirst(/\.[^.]+$/, '')
 
-    input = meta.single_end ? "--single ${reads}" : "-1 ${reads[0]} -2 ${reads[1]}"
+    def is_single_end = (meta.single_end ?: false) || ((reads instanceof List) && reads.size() == 1)
+    def single_read = (reads instanceof List) ? reads[0] : reads
+    input = is_single_end ? "--single ${single_read}" : "-1 ${reads[0]} -2 ${reads[1]}"
     out = meta.label ?: 'out'
     """
     if [[ "${ref_is_index}" == "true" ]]; then
@@ -34,9 +36,14 @@ process COVERM_MAKE {
         REFERENCE="${ref}"
     fi
 
-    TMPDIR=./coverm_tmp
+    mkdir -p \$PWD/coverm_tmp
+    export TMPDIR=\$PWD/coverm_tmp
+
     echo \${REFERENCE}
     coverm make $args -t $task.cpus -r \${REFERENCE} $input -o $out
+
+    rm -rf \$PWD/coverm_tmp
+
     mv $out/*$prefix*.bam $out/${prefix}.bam
 
     cat <<-END_VERSIONS > versions.yml

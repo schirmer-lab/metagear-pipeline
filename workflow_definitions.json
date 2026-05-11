@@ -11,7 +11,14 @@
                 {
                     "name": "download_databases",
                     "description": "Install Databases (Kneaddata, MetaPhlAn, HUMAnN)",
-                    "parameters": []
+                    "parameters": [
+                        {
+                            "name": "databases",
+                            "required": false,
+                            "default": "all",
+                            "description": "Databases to install (default: all, gene_analysis, viral_analysis)"
+                        }
+                    ]
                 },
                 {
                     "name": "qc_dna",
@@ -31,7 +38,12 @@
                     "name": "microbial_profiles",
                     "description": "Get microbial profiles with MetaPhlAn and HUMAnN",
                     "parameters": [
-                        { "name": "input", "required": true, "description": "Input .csv file for microbial profiles" }
+                        { "name": "input", "required": true, "description": "Input .csv file for microbial profiles" },
+                        {
+                            "name": "metaphlan_dir",
+                            "required": false,
+                            "description": "MetaPhlan profiles (DIRECTORY: optional). Folder containing individual MetaPhlan profiles (.txt)"
+                        }
                     ]
                 },
                 {
@@ -40,14 +52,91 @@
                     "parameters": [
                         { "name": "input", "required": true, "description": "Input .csv file for gene analysis" },
                         {
-                            "name": "contig_catalog",
+                            "name": "contigs_dir",
                             "required": false,
-                            "description": "Contigs catalog (if available)"
+                            "description": "Contigs (DIRECTORY: optional). Folder containing SAMPLE_ID.contigs.fa.gz files"
+                        },
+                        {
+                            "name": "genes_dir",
+                            "required": false,
+                            "description": "Genes (DIRECTORY: optional). Folder containing SAMPLE_ID.all.genes.filtered.fasta files"
                         },
                         {
                             "name": "metaphlan_profiles",
                             "required": false,
                             "description": "MetaPhlAn profiles (if available)"
+                        },
+                        {
+                            "name": "representative_genes",
+                            "required": false,
+                            "description": "Representative-genes catalog (FILE: optional). Dereplicated genes from all samples."
+                        },
+                        {
+                            "name": "representative_proteins",
+                            "required": false,
+                            "description": "Representative-proteins catalog (FILE: optional). Dereplicated proteins from all samples."
+                        },
+                        {
+                            "name": "representative_proteins_annotations",
+                            "required": false,
+                            "description": "Representative-proteins annotations (FILE: optional). Functional annotations for representative proteins."
+                        },
+                        {
+                            "name": "representative_genes_tpm",
+                            "required": false,
+                            "description": "Representative-genes TPM (FILE: optional). TPM values for representative genes."
+                        },
+                        {
+                            "name": "representative_genes_rpkm",
+                            "required": false,
+                            "description": "Representative-genes RPKM (FILE: optional). RPKM values for representative genes."
+                        },
+                        {
+                            "name": "representative_genes_count",
+                            "required": false,
+                            "description": "Representative-genes counts (FILE: optional). Counts for representative genes."
+                        }
+                    ]
+                },
+                {
+                    "name": "viral_analysis",
+                    "description": "Viral analysis workflow",
+                    "parameters": [
+                        { "name": "input", "required": true, "description": "Input .csv file for viral analysis" },
+                        {
+                            "name": "contigs_dir",
+                            "required": false,
+                            "description": "Contigs (DIRECTORY: optional). Folder containing SAMPLE_ID.contigs.fa.gz files"
+                        },
+                        {
+                            "name": "genes_dir",
+                            "required": false,
+                            "description": "Genes (DIRECTORY: optional). Folder containing SAMPLE_ID.all.genes.filtered.fasta files"
+                        },
+                        {
+                            "name": "all_genes",
+                            "required": false,
+                            "description": "All-genes catalog (FILE: optional). Concatenated genes from all samples."
+                        },
+                        {
+                            "name": "representative_genes",
+                            "required": false,
+                            "description": "Representative-genes catalog (FILE: optional). Dereplicated genes from all samples."
+                        },
+                        {
+                            "name": "representative_proteins",
+                            "required": false,
+                            "description": "Representative-proteins catalog (FILE: optional). Dereplicated proteins from all samples."
+                        },
+                        {
+                            "name": "representative_proteins_annotations",
+                            "required": false,
+                            "description": "Representative-proteins annotations (FILE: optional). Functional annotations for representative proteins."
+                        },
+                        {
+                            "name": "viral_annotation",
+                            "required": false,
+                            "description": "Perform viral annotation (default: true)."
                         }
                     ]
                 }

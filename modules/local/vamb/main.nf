@@ -20,7 +20,7 @@ process VAMB_CONCATENATE_FASTA {
 
     def args2 = task.ext.args2 ?: '.default' // Name for the resulting contig
     def m = args2 =~ /--catalog_name\s+(\S+)/
-    def catalog_name = m.find() ? m.group(1) : ''
+    def catalog_name = m.find() ? '.' + m.group(1) : ''
 
     """
 
@@ -35,7 +35,7 @@ process VAMB_CONCATENATE_FASTA {
         temp_files+=(\$temp_file)
     done
 
-    concatenate_fasta.py $args ${prefix}.${catalog_name}.fna.gz \${temp_files[@]}
+    concatenate_fasta.py $args ${prefix}${catalog_name}.fna.gz \${temp_files[@]}
 
     # Remove the temporary files
     rm -rf tmp_batches

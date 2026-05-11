@@ -41,14 +41,6 @@
                     "description": "MultiQC report title. Printed as page header, used for filename if not otherwise specified.",
                     "fa_icon": "fas fa-file-signature"
                 },
-                "module": {
-                    "type": "string",
-                    "description": "Module for laucher workflow (module)."
-                },
-                "subworkflow": {
-                    "type": "string",
-                    "description": "Process for laucher workflow (subworkflow)."
-                },
                 "workflow": {
                     "type": "string",
                     "description": "Entry point (workflow)."
@@ -169,13 +161,6 @@
                     "fa_icon": "fas fa-palette",
                     "hidden": true
                 },
-                "hook_url": {
-                    "type": "string",
-                    "description": "Incoming hook URL for messaging service",
-                    "fa_icon": "fas fa-people-group",
-                    "help_text": "Incoming hook URL for messaging service. Currently, MS Teams and Slack are supported.",
-                    "hidden": true
-                },
                 "multiqc_config": {
                     "type": "string",
                     "format": "file-path",
@@ -212,6 +197,41 @@
                     "type": "string",
                     "fa_icon": "far calendar",
                     "description": "Suffix to add to the trace report filename. Default is the date and time in the format yyyy-MM-dd_HH-mm-ss.",
+                    "hidden": true
+                },
+                "help": {
+                    "type": ["boolean", "string"],
+                    "description": "Display the help message."
+                },
+                "help_full": {
+                    "type": "boolean",
+                    "description": "Display the full detailed help message."
+                },
+                "show_hidden": {
+                    "type": "boolean",
+                    "description": "Display hidden parameters in the help message (only works when --help or --help_full are provided)."
+                },
+                "max_cpus": {
+                    "type": "integer",
+                    "default": 16,
+                    "description": "Maximum number of CPUs that can be requested for any single task (cap enforced by process.resourceLimits and executor.cpus). Overridable by the metagear-tools wrapper's user config.",
+                    "fa_icon": "fas fa-microchip",
+                    "hidden": true
+                },
+                "max_memory": {
+                    "type": "string",
+                    "default": "128.GB",
+                    "pattern": "^\\d+(\\.\\d+)?\\.?\\s*(K|M|G|T)?B$",
+                    "description": "Maximum memory that can be requested for any single task (cap enforced by process.resourceLimits and executor.memory). Overridable by the metagear-tools wrapper's user config.",
+                    "fa_icon": "fas fa-memory",
+                    "hidden": true
+                },
+                "max_time": {
+                    "type": "string",
+                    "default": "24.h",
+                    "pattern": "^(\\d+\\.?\\s*(s|m|h|d|day)\\s*)+$",
+                    "description": "Maximum amount of time that can be requested for any single task (cap enforced by process.resourceLimits). Overridable by the metagear-tools wrapper's user config.",
+                    "fa_icon": "far fa-clock",
                     "hidden": true
                 }
             }

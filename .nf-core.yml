@@ -1,5 +1,4 @@
 lint:
-  included_configs: false
   files_exist:
     - conf/igenomes.config
     - conf/igenomes_ignored.config
@@ -18,6 +17,8 @@ lint:
     - docs/images/nf-core-metagear_logo_light.png
     - docs/images/nf-core-metagear_logo_dark.png
     - .github/ISSUE_TEMPLATE/bug_report.yml
+    - .gitignore
+  included_configs: false
   multiqc_config:
     - report_comment
   nextflow_config:
@@ -27,7 +28,16 @@ lint:
     - validation.help.afterText
     - validation.summary.beforeText
     - validation.summary.afterText
-nf_core_version: 3.2.1
+    # Load-bearing for the metagear-tools wrapper's resource-override architecture:
+    # max_cpus / max_memory / max_time are real params here (declared in
+    # nextflow_schema.json) consumed by process.resourceLimits and the
+    # executor.cpus/memory caps. nf-core 3.x deprecates these in favour of
+    # literal resourceLimits, but our wrapper architecture relies on params
+    # so the user can override them in $INSTALL_DIR/metagear.config.
+    - params.max_cpus
+    - params.max_memory
+    - params.max_time
+nf_core_version: 4.0.2
 repository_type: pipeline
 template:
   author: Shen Jin, Emilio Rios, Svenja Schorlemmer

@@ -20,13 +20,22 @@ process MSP_SEQUENCES {
 
     script:
     def args = task.ext.args ?: ''
+    def prefix = task.ext.prefix ?: "${meta.id}"
     """
+
+    INPUT=$gene_catalog
+    if [[ $gene_catalog == *.gz ]]
+    then
+        gunzip -c $gene_catalog >| \$PWD/${prefix}_plain.fa
+        INPUT=\$PWD/${prefix}_plain.fa
+    fi
+
     # Create output directory for pangenome sequences
     mkdir -p pangenome_sequences
 
     # Run the post-MSP mining utility to extract pangenome sequences
     postminer_utils.py helper get-msp-pangenome \\
-        --gene-catalog-fp ${gene_catalog} \\
+        --gene-catalog-fp \${INPUT} \\
         --all-msps-fp ${all_msps} \\
         --msp-pangenome-dir pangenome_sequences/ \\
         ${args}

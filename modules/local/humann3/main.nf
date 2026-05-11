@@ -1,5 +1,4 @@
 process HUMANN_FUNCTION {
-    maxForks 4
     tag "$meta.id"
     label 'process_medium'
 
@@ -28,7 +27,7 @@ process HUMANN_FUNCTION {
     def prefix = task.ext.prefix ?: "${meta.id}"
 
     """
-    gunzip -c ${fasta} > ${prefix}_qc.fasta
+    gunzip -c ${fasta} >| ${prefix}_qc.fasta
 
     humann --input ${prefix}_qc.fasta \\
         --input-format fasta --taxonomic-profile ${profile} \\
@@ -39,7 +38,7 @@ process HUMANN_FUNCTION {
         --threads $task.cpus \\
         $args
 
-    gzip ${prefix}_qc.fasta
+    gzip -f ${prefix}_qc.fasta
     rm -r ${prefix}/${prefix}_qc_humann_temp
 
     humann_renorm_table --input ${prefix}/${prefix}_qc_genefamilies.tsv --output ${prefix}/${prefix}_qc_genefamilies_cpm.tsv $args2
@@ -102,7 +101,7 @@ process HUMANN_DATABASES {
         tuple val(database), val(build)
 
     output:
-        tuple val(database), path("humann_*/$database"), emit: database
+        tuple val(database), path("humann_*/${database}_db"), emit: database
         path "versions.yml", emit: versions
 
     when:
@@ -113,6 +112,8 @@ process HUMANN_DATABASES {
 
     """
     humann_databases --download $database $build ./humann_$database $args
+
+    mv ./humann_$database/$database ./humann_$database/${database}_db
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

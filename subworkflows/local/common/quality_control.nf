@@ -1,6 +1,7 @@
 /* --- Perform quality control on reads --- */
 
 include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
+include { CONCATENATE_READS } from "$projectDir/modules/local/metagear/utils/concatenate_reads"
 
 include { FASTQC as FASTQC_RAW; FASTQC as FASTQC_CLEAN} from "$projectDir/modules/nf-core/fastqc/main"
 include { TRIMGALORE } from "$projectDir/modules/nf-core/trimgalore/main"
@@ -19,8 +20,10 @@ workflow QUALITY_CONTROL_INIT {
         def kneaddata_dbs = params.kneaddata_refdb.collect { file(it) }
         kneaddata_refdb = Channel.value(kneaddata_dbs)
 
+        CONCATENATE_READS ( INPUT_CHECK.out.validated_input )
+
     emit:
-        validated_input = INPUT_CHECK.out.validated_input
+        validated_input = CONCATENATE_READS.out
         kneaddata_refdb = kneaddata_refdb
         versions = INPUT_CHECK.out.versions
 
