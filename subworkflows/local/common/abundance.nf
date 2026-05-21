@@ -15,14 +15,14 @@ workflow ABUNDANCE {
 
         /* -- Build index for abundance estimation (only once) --- */
         ch_catalogs = reads_with_sequences
-                        .map { meta, reads, catalog -> [ [id: meta.label, src: catalog.toString()], catalog ] }
+                        .map { meta, reads, catalog -> [ [id: meta.label, src: catalog.getName()], catalog ] }
                         .unique()
 
         BWA_INDEX ( ch_catalogs )
 
         // Combine back the index with reads and catalog for abundance estimation
         ch_reads_with_index = reads_with_sequences
-                        .map { meta, reads, catalog -> [ [id: meta.label, src: catalog.toString()], meta, reads ] }
+                        .map { meta, reads, catalog -> [ [id: meta.label, src: catalog.getName()], meta, reads ] }
                         .combine( BWA_INDEX.out.index, by: 0 )
                         .map { src, meta, reads, index -> [ meta, reads, index ] }
 
