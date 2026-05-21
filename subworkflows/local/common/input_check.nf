@@ -2,6 +2,16 @@
 
 include { SAMPLESHEET_CHECK; RENAME_FILES; } from "$projectDir/modules/local/metagear/samplesheet_check"
 
+// Allowed biome values (SemiBin2 pretrained environments + 'global' fallback).
+// Keep in sync with assets/schema_input.json. Validated in Groovy (not in
+// bin/input_validator.py) so adding/removing biomes doesn't invalidate the
+// per-task bin/ hash that Nextflow uses for caching.
+def BIOMES = [
+    'human_gut', 'human_oral', 'mouse_gut', 'dog_gut', 'cat_gut',
+    'ocean', 'soil', 'built_environment', 'wastewater', 'chicken_caecum',
+    'global'
+]
+
 workflow INPUT_CHECK {
     take:
         samplesheet // file: /path/to/samplesheet.csv
@@ -66,6 +76,18 @@ def create_input_channel(LinkedHashMap row, String input_type) {
     if (input_type == "grouped_reads") {
         meta.group = row.group
         meta.tag = row.tag
+    }
+
+    // The samplesheet's optional `biome` column is validated here (against the
+    // SemiBin2 environment list) but intentionally NOT copied into meta.
+    // Adding a key to meta would change every downstream task's cache hash for
+    // existing workflows that don't need biome (gene_analysis, viral_analysis,
+    // microbial_profiles). The future bacterial_binning subworkflow will read
+    // biome from the CSV directly in its _INIT and join it onto its reads
+    // channel locally, scoping the meta change to just its own processes.
+    def biome_value = row.biome?.trim()
+    if (biome_value && !BIOMES.contains(biome_value)) {
+        exit 1, "Invalid biome '${biome_value}' for sample '${meta.id}'. Allowed values: ${BIOMES.join(', ')} (or leave blank to default to 'global')."
     }
 
     def fastq_meta = []

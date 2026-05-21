@@ -6,6 +6,7 @@ include { GTDBTK_DOWNLOAD_DB } from "$projectDir/modules/local/gtdbtk/download/m
 
 include { GENOMAD_DOWNLOAD } from "$projectDir/modules/nf-core/genomad/download/main"
 include { CHECKV_DOWNLOADDATABASE } from "$projectDir/modules/nf-core/checkv/downloaddatabase/main"
+include { CHECKM2_DATABASEDOWNLOAD } from "$projectDir/modules/nf-core/checkm2/databasedownload/main"
 // include { VIRSORTER2_SETUP } from "$projectDir/modules/local/virsorter2/setup"
 include { DRAM_SETUP } from "$projectDir/modules/local/dram/setup"
 include { IPHOP_DOWNLOAD } from "$projectDir/modules/local/iphop/download/main"
@@ -34,7 +35,8 @@ workflow DATABASES_INIT {
                                             [ 'dram', file( params.dram_db ) ],
                                             [ 'iphop', file( params.iphop_db ) ],
                                             [ 'amrfinder', file( params.amrfinder_db ) ],
-                                            [ 'pharokka', file( params.pharokka_db ) ] )
+                                            [ 'pharokka', file( params.pharokka_db ) ],
+                                            [ 'checkm2', file( params.checkm2_db ) ] )
 
         //TODO: Currently only 1 kneaddata database is supported. Ensure ch_kneaddata_databases keep consistent with ch_database_destinations.
 
@@ -115,6 +117,17 @@ workflow DATABASES {
             pharokka_database = pharokka.pharokka_db.map { [ "pharokka", it ] }
             ch_versions = ch_versions.mix( pharokka.versions )
             ch_databases_data = ch_databases_data.concat( pharokka_database )
+
+        }
+
+        if ( params.databases == "all" || params.databases.contains("contig_classification") ) {
+
+            checkm2 = CHECKM2_DATABASEDOWNLOAD ( Channel.value([]) )
+            ch_checkm2_database = checkm2.database.map { meta, file -> [ "checkm2", file ] }
+            // TODO: CHECKM2_DATABASEDOWNLOAD reports versions via the new topic channel
+            //       pattern (not path 'versions.yml'); wire into ch_versions once the
+            //       pipeline standardises on topic channels.
+            ch_databases_data = ch_databases_data.concat( ch_checkm2_database )
 
         }
 

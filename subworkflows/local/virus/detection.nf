@@ -10,6 +10,7 @@ include { CHECKV_ADAPT_OUTPUT } from "$projectDir/modules/local/checkv/adapt"
 include { MERGE_TABLES } from "$projectDir/modules/local/mvip/create_tables"
 
 include { SEQTK_SUBSEQ as EXTRACT_SEQUENCES } from "$projectDir/modules/local/seqtk/subseq/main"
+include { GENOMAD_EXTRACT_CHROMOSOME } from "$projectDir/modules/local/genomad/extract_chromosome/main"
 include { VAMB_CONCATENATE_FASTA } from "$projectDir/modules/local/vamb/main"
 
 workflow VIRAL_DETECTION {
@@ -66,6 +67,20 @@ workflow VIRAL_DETECTION {
         // Extract sequences to keep after filtering
         EXTRACT_SEQUENCES ( virus_to_keep.concat ( plasmids_to_keep ) )
 
+        // Derive the chromosome partition: input contigs MINUS filtered virus/plasmid IDs.
+        // Uses MERGE_TABLES filtered ID lists so only high-confidence virus/plasmid calls
+        // are removed; ambiguous and low-confidence contigs stay in the chromosome pool
+        // (asymmetric policy for downstream bacterial binning). MERGE_TABLES outputs are
+        // optional, so substitute an empty ID file when a sample had no virus/plasmid calls.
+        def empty_ids = file("$projectDir/assets/empty.txt", checkIfExists: true)
+        ch_chromosome_input = contigs
+                                .join( MERGE_TABLES.out.sequence_ids, by: 0, remainder: true )
+                                .map { items -> [ items[0], items[1], items[2] ?: empty_ids ] }
+                                .join( MERGE_TABLES.out.plasmid_sequence_ids, by: 0, remainder: true )
+                                .map { items -> [ items[0], items[1], items[2], items[3] ?: empty_ids ] }
+
+        GENOMAD_EXTRACT_CHROMOSOME ( ch_chromosome_input )
+
         // Concatenate all viral sequences for clustering (derreplicated catalogs)
         ch_catalog_input = EXTRACT_SEQUENCES.out.sequences
                                 .map { meta, fasta -> [ [id: meta.label], fasta ] }   // normalize meta
@@ -75,6 +90,7 @@ workflow VIRAL_DETECTION {
         ch_versions = GENOMAD_PASS1.out.versions.first()
                         .mix(CHECKV_PASS1.out.versions.first())
                         .mix(EXTRACT_SEQUENCES.out.versions)
+                        .mix(GENOMAD_EXTRACT_CHROMOSOME.out.versions.first())
                     // .mix(MERGE_TABLES.out.versions.first()) //TODO: versions is not being generated correctly, skipping for now
 
 
@@ -84,6 +100,8 @@ workflow VIRAL_DETECTION {
 
         plasmid_sequences = EXTRACT_SEQUENCES.out.sequences.filter { meta, _ -> meta.label == 'plasmid' }
         plasmid_ids =  MERGE_TABLES.out.plasmid_sequence_ids
+
+        chromosome_sequences = GENOMAD_EXTRACT_CHROMOSOME.out.chromosome_fasta
 
         sequences = EXTRACT_SEQUENCES.out.sequences
 

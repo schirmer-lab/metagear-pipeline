@@ -10,13 +10,13 @@
             "definitions": [
                 {
                     "name": "download_databases",
-                    "description": "Install Databases (Kneaddata, MetaPhlAn, HUMAnN)",
+                    "description": "Install Databases (Kneaddata, MetaPhlAn, HUMAnN, CheckM2)",
                     "parameters": [
                         {
                             "name": "databases",
                             "required": false,
                             "default": "all",
-                            "description": "Databases to install (default: all, gene_analysis, viral_analysis)"
+                            "description": "Databases to install (default: all, gene_analysis, viral_analysis, contig_classification)"
                         }
                     ]
                 },
