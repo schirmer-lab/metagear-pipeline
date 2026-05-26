@@ -90,6 +90,13 @@ processes:
   BINETTE: { label: process_high, cpus: 12, memory_gb: 32, time_h: 16, note: "Runs CheckM2 internally (DIAMOND); refines SemiBin2+MetaBAT2 bins" }
   GTDBTK_CLASSIFYWF: { label: process_high_memory, cpus: 16, memory_gb: 64, time_h: 24, note: "Module labeled process_high_memory (memory-only tier sets 200 GB, no cpus/time). Per-process override: 16 cpu / 64 GB / 24 h. pplacer is the memory hog and largely single-threaded; cpus mostly help the HMMER + ANI screen steps." }
 
+  # === Integrated classification (per-contig TSV) ===
+  TIARA_TIARA: { label: process_medium, cpus: 4, memory_gb: 8, time_h: 4, note: "K-mer + small DL model; CPU-bound (no DB). Per-sample contigs are small enough that 8 GB / 4 cpu finishes in <1 h." }
+  EXTRACT_UNBINNED: { label: process_single, cpus: 2, memory_gb: 4, time_h: 2, note: "Subtraction-only: collect bin contig IDs and run seqkit grep -v on chromosome FASTA." }
+  MMSEQS_EASYTAXONOMY: { label: process_high, cpus: 8, memory_gb: 32, time_h: 16, note: "REQUIRES params.max_memory >= 32.GB in metagear.config — mmseqs reads available memory off /proc/meminfo (cgroup-aware), so a lower max_memory cap will starve it and emit 'Cannot fit databases into <X>G'. The module pre-flight-checks /proc/meminfo and fails fast with a clear error if available memory is below 24 GiB. --split-memory-limit is set dynamically (70% of task.memory) in the per-workflow config; concurrency is left to Nextflow's normal scheduler so the host runs as many parallel tasks as (host_memory / task.memory) permits." }
+  MERGE_CONTIG_CLASSIFICATION: { label: process_single, cpus: 2, memory_gb: 8, time_h: 1, note: "Pure-python join of evidence channels; scales with per-sample contig count (a few hundred k contigs at most)." }
+  MMSEQS_DATABASES: { label: process_medium, cpus: 8, memory_gb: 32, time_h: 24, note: "One-time setup: downloads + indexes GTDB taxonomy DB via `mmseqs databases GTDB`. The 24h ceiling allows for ~30-50 GB download on a slow link plus index build." }
+
   # === AMG post-process ===
   EXTRACT_AMGS: { label: process_low }
   MMSEQS_EASYSEARCH: { label: process_high, cpus: 12, memory_gb: 32, time_h: 16 }

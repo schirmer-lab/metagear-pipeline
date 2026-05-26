@@ -7,6 +7,7 @@ include { GTDBTK_DOWNLOAD_DB } from "$projectDir/modules/local/gtdbtk/download/m
 include { GENOMAD_DOWNLOAD } from "$projectDir/modules/nf-core/genomad/download/main"
 include { CHECKV_DOWNLOADDATABASE } from "$projectDir/modules/nf-core/checkv/downloaddatabase/main"
 include { CHECKM2_DATABASEDOWNLOAD } from "$projectDir/modules/nf-core/checkm2/databasedownload/main"
+include { MMSEQS_DATABASES } from "$projectDir/modules/local/mmseqs/databases/main"
 // include { VIRSORTER2_SETUP } from "$projectDir/modules/local/virsorter2/setup"
 include { DRAM_SETUP } from "$projectDir/modules/local/dram/setup"
 include { IPHOP_DOWNLOAD } from "$projectDir/modules/local/iphop/download/main"
@@ -36,7 +37,8 @@ workflow DATABASES_INIT {
                                             [ 'iphop', file( params.iphop_db ) ],
                                             [ 'amrfinder', file( params.amrfinder_db ) ],
                                             [ 'pharokka', file( params.pharokka_db ) ],
-                                            [ 'checkm2', file( params.checkm2_db ) ] )
+                                            [ 'checkm2', file( params.checkm2_db ) ],
+                                            [ 'mmseqs_taxonomy', file( params.mmseqs_taxonomy_db ) ] )
 
         //TODO: Currently only 1 kneaddata database is supported. Ensure ch_kneaddata_databases keep consistent with ch_database_destinations.
 
@@ -128,6 +130,24 @@ workflow DATABASES {
             //       pattern (not path 'versions.yml'); wire into ch_versions once the
             //       pipeline standardises on topic channels.
             ch_databases_data = ch_databases_data.concat( ch_checkm2_database )
+
+        }
+
+        // MMseqs2 taxonomy DB (used by INTEGRATED_CLASSIFICATION's contig fallback).
+        // Triggered both by the umbrella "contig_classification" group AND by the
+        // dedicated "mmseqs_taxonomy" group, so `--databases mmseqs_taxonomy` pulls
+        // only this one DB.
+        if ( params.databases == "all"
+                || params.databases.contains("contig_classification")
+                || params.databases.contains("mmseqs_taxonomy") ) {
+
+            // Default to GTDB; override with `process.withName:'.*MMSEQS_DATABASES'.ext.db_name`
+            // or by setting params.mmseqs_taxonomy_source.
+            def mmseqs_source = params.mmseqs_taxonomy_source ?: 'GTDB'
+            mmseqs_tax = MMSEQS_DATABASES ( Channel.value(mmseqs_source) )
+            ch_mmseqs_taxonomy_database = mmseqs_tax.database.map { dir -> [ "mmseqs_taxonomy", dir ] }
+            ch_versions = ch_versions.mix( mmseqs_tax.versions )
+            ch_databases_data = ch_databases_data.concat( ch_mmseqs_taxonomy_database )
 
         }
 

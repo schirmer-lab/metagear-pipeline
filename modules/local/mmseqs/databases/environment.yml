@@ -1,0 +1,6 @@
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - bioconda::mmseqs2=17.b804f
+  - conda-forge::wget=1.25.0

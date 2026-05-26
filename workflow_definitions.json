@@ -1,146 +1,220 @@
 {
-    "metagear": {
-        "workflows": {
-            "global_parameters": [
-                { "name": "outdir", "required": false, "default": "results", "description": "Output directory" },
-                { "name": "help", "required": false, "description": "Display help information" },
-                { "name": "debug", "required": false, "default": false, "description": "Enable debug mode" },
-                { "name": "config", "required": false, "description": "Custom configuration file" }
-            ],
-            "definitions": [
-                {
-                    "name": "download_databases",
-                    "description": "Install Databases (Kneaddata, MetaPhlAn, HUMAnN, CheckM2)",
-                    "parameters": [
-                        {
-                            "name": "databases",
-                            "required": false,
-                            "default": "all",
-                            "description": "Databases to install (default: all, gene_analysis, viral_analysis, contig_classification)"
-                        }
-                    ]
-                },
-                {
-                    "name": "qc_dna",
-                    "description": "Quality Control for DNA",
-                    "parameters": [
-                        { "name": "input", "required": true, "description": "Input .csv file for quality control" }
-                    ]
-                },
-                {
-                    "name": "qc_rna",
-                    "description": "Quality Control for RNA",
-                    "parameters": [
-                        { "name": "input", "required": true, "description": "Input .csv file for quality control" }
-                    ]
-                },
-                {
-                    "name": "microbial_profiles",
-                    "description": "Get microbial profiles with MetaPhlAn and HUMAnN",
-                    "parameters": [
-                        { "name": "input", "required": true, "description": "Input .csv file for microbial profiles" },
-                        {
-                            "name": "metaphlan_dir",
-                            "required": false,
-                            "description": "MetaPhlan profiles (DIRECTORY: optional). Folder containing individual MetaPhlan profiles (.txt)"
-                        }
-                    ]
-                },
-                {
-                    "name": "gene_analysis",
-                    "description": "Gene centric analysis workflow",
-                    "parameters": [
-                        { "name": "input", "required": true, "description": "Input .csv file for gene analysis" },
-                        {
-                            "name": "contigs_dir",
-                            "required": false,
-                            "description": "Contigs (DIRECTORY: optional). Folder containing SAMPLE_ID.contigs.fa.gz files"
-                        },
-                        {
-                            "name": "genes_dir",
-                            "required": false,
-                            "description": "Genes (DIRECTORY: optional). Folder containing SAMPLE_ID.all.genes.filtered.fasta files"
-                        },
-                        {
-                            "name": "metaphlan_profiles",
-                            "required": false,
-                            "description": "MetaPhlAn profiles (if available)"
-                        },
-                        {
-                            "name": "representative_genes",
-                            "required": false,
-                            "description": "Representative-genes catalog (FILE: optional). Dereplicated genes from all samples."
-                        },
-                        {
-                            "name": "representative_proteins",
-                            "required": false,
-                            "description": "Representative-proteins catalog (FILE: optional). Dereplicated proteins from all samples."
-                        },
-                        {
-                            "name": "representative_proteins_annotations",
-                            "required": false,
-                            "description": "Representative-proteins annotations (FILE: optional). Functional annotations for representative proteins."
-                        },
-                        {
-                            "name": "representative_genes_tpm",
-                            "required": false,
-                            "description": "Representative-genes TPM (FILE: optional). TPM values for representative genes."
-                        },
-                        {
-                            "name": "representative_genes_rpkm",
-                            "required": false,
-                            "description": "Representative-genes RPKM (FILE: optional). RPKM values for representative genes."
-                        },
-                        {
-                            "name": "representative_genes_count",
-                            "required": false,
-                            "description": "Representative-genes counts (FILE: optional). Counts for representative genes."
-                        }
-                    ]
-                },
-                {
-                    "name": "viral_analysis",
-                    "description": "Viral analysis workflow",
-                    "parameters": [
-                        { "name": "input", "required": true, "description": "Input .csv file for viral analysis" },
-                        {
-                            "name": "contigs_dir",
-                            "required": false,
-                            "description": "Contigs (DIRECTORY: optional). Folder containing SAMPLE_ID.contigs.fa.gz files"
-                        },
-                        {
-                            "name": "genes_dir",
-                            "required": false,
-                            "description": "Genes (DIRECTORY: optional). Folder containing SAMPLE_ID.all.genes.filtered.fasta files"
-                        },
-                        {
-                            "name": "all_genes",
-                            "required": false,
-                            "description": "All-genes catalog (FILE: optional). Concatenated genes from all samples."
-                        },
-                        {
-                            "name": "representative_genes",
-                            "required": false,
-                            "description": "Representative-genes catalog (FILE: optional). Dereplicated genes from all samples."
-                        },
-                        {
-                            "name": "representative_proteins",
-                            "required": false,
-                            "description": "Representative-proteins catalog (FILE: optional). Dereplicated proteins from all samples."
-                        },
-                        {
-                            "name": "representative_proteins_annotations",
-                            "required": false,
-                            "description": "Representative-proteins annotations (FILE: optional). Functional annotations for representative proteins."
-                        },
-                        {
-                            "name": "viral_annotation",
-                            "required": false,
-                            "description": "Perform viral annotation (default: true)."
-                        }
-                    ]
-                }
-            ]
+  "metagear": {
+    "workflows": {
+      "global_parameters": [
+        {
+          "name": "outdir",
+          "required": false,
+          "default": "results",
+          "description": "Output directory"
+        },
+        {
+          "name": "help",
+          "required": false,
+          "description": "Display help information"
+        },
+        {
+          "name": "debug",
+          "required": false,
+          "default": false,
+          "description": "Enable debug mode"
+        },
+        {
+          "name": "config",
+          "required": false,
+          "description": "Custom configuration file"
         }
+      ],
+      "definitions": [
+        {
+          "name": "download_databases",
+          "description": "Install Databases (Kneaddata, MetaPhlAn, HUMAnN, CheckM2, MMseqs2 taxonomy)",
+          "parameters": [
+            {
+              "name": "databases",
+              "required": false,
+              "default": "all",
+              "description": "Databases to install. Accepted values: all | gene_analysis | viral_analysis | contig_classification | mmseqs_taxonomy. Multiple values comma-separated. Default: all. The `contig_classification` group bundles CheckM2 + the MMseqs2 GTDB taxonomy DB; use `mmseqs_taxonomy` to pull only the latter."
+            }
+          ]
+        },
+        {
+          "name": "qc_dna",
+          "description": "Quality Control for DNA",
+          "parameters": [
+            {
+              "name": "input",
+              "required": true,
+              "description": "Input .csv file for quality control"
+            }
+          ]
+        },
+        {
+          "name": "qc_rna",
+          "description": "Quality Control for RNA",
+          "parameters": [
+            {
+              "name": "input",
+              "required": true,
+              "description": "Input .csv file for quality control"
+            }
+          ]
+        },
+        {
+          "name": "microbial_profiles",
+          "description": "Get microbial profiles with MetaPhlAn and HUMAnN",
+          "parameters": [
+            {
+              "name": "input",
+              "required": true,
+              "description": "Input .csv file for microbial profiles"
+            },
+            {
+              "name": "metaphlan_dir",
+              "required": false,
+              "description": "MetaPhlan profiles (DIRECTORY: optional). Folder containing individual MetaPhlan profiles (.txt)"
+            }
+          ]
+        },
+        {
+          "name": "gene_analysis",
+          "description": "Gene centric analysis workflow",
+          "parameters": [
+            {
+              "name": "input",
+              "required": true,
+              "description": "Input .csv file for gene analysis"
+            },
+            {
+              "name": "contigs_dir",
+              "required": false,
+              "description": "Contigs (DIRECTORY: optional). Folder containing SAMPLE_ID.contigs.fa.gz files"
+            },
+            {
+              "name": "genes_dir",
+              "required": false,
+              "description": "Genes (DIRECTORY: optional). Folder containing SAMPLE_ID.all.genes.filtered.fasta files"
+            },
+            {
+              "name": "metaphlan_profiles",
+              "required": false,
+              "description": "MetaPhlAn profiles (if available)"
+            },
+            {
+              "name": "representative_genes",
+              "required": false,
+              "description": "Representative-genes catalog (FILE: optional). Dereplicated genes from all samples."
+            },
+            {
+              "name": "representative_proteins",
+              "required": false,
+              "description": "Representative-proteins catalog (FILE: optional). Dereplicated proteins from all samples."
+            },
+            {
+              "name": "representative_proteins_annotations",
+              "required": false,
+              "description": "Representative-proteins annotations (FILE: optional). Functional annotations for representative proteins."
+            },
+            {
+              "name": "representative_genes_tpm",
+              "required": false,
+              "description": "Representative-genes TPM (FILE: optional). TPM values for representative genes."
+            },
+            {
+              "name": "representative_genes_rpkm",
+              "required": false,
+              "description": "Representative-genes RPKM (FILE: optional). RPKM values for representative genes."
+            },
+            {
+              "name": "representative_genes_count",
+              "required": false,
+              "description": "Representative-genes counts (FILE: optional). Counts for representative genes."
+            }
+          ]
+        },
+        {
+          "name": "viral_analysis",
+          "description": "Viral analysis workflow",
+          "parameters": [
+            {
+              "name": "input",
+              "required": true,
+              "description": "Input .csv file for viral analysis"
+            },
+            {
+              "name": "contigs_dir",
+              "required": false,
+              "description": "Contigs (DIRECTORY: optional). Folder containing SAMPLE_ID.contigs.fa.gz files"
+            },
+            {
+              "name": "genes_dir",
+              "required": false,
+              "description": "Genes (DIRECTORY: optional). Folder containing SAMPLE_ID.all.genes.filtered.fasta files"
+            },
+            {
+              "name": "all_genes",
+              "required": false,
+              "description": "All-genes catalog (FILE: optional). Concatenated genes from all samples."
+            },
+            {
+              "name": "representative_genes",
+              "required": false,
+              "description": "Representative-genes catalog (FILE: optional). Dereplicated genes from all samples."
+            },
+            {
+              "name": "representative_proteins",
+              "required": false,
+              "description": "Representative-proteins catalog (FILE: optional). Dereplicated proteins from all samples."
+            },
+            {
+              "name": "representative_proteins_annotations",
+              "required": false,
+              "description": "Representative-proteins annotations (FILE: optional). Functional annotations for representative proteins."
+            },
+            {
+              "name": "viral_annotation",
+              "required": false,
+              "description": "Perform viral annotation (default: true)."
+            }
+          ]
+        },
+        {
+          "name": "integrated_classification",
+          "description": "Integrated contig + MAG classification: assembly, viral/plasmid partition via geNomad, bacterial binning (SemiBin2 + MetaBAT2 + Binette + CheckM2), and GTDB-Tk taxonomy on MIMAG-passing bins. v1 minimum; contig fallback, plasmid typing, and per-contig TSV merge are deferred.",
+          "parameters": [
+            {
+              "name": "input",
+              "required": true,
+              "description": "Input .csv file (samplesheet). Supports an optional `biome` column (between `sample` and `fastq_1`) used to pick the SemiBin2 pretrained model; defaults to `global` when empty."
+            },
+            {
+              "name": "contigs_dir",
+              "required": false,
+              "description": "Contigs (DIRECTORY: optional). Folder containing SAMPLE_ID.contigs.fa.gz files; skips reassembly when provided."
+            },
+            {
+              "name": "chromosome_dir",
+              "required": false,
+              "description": "Chromosome partition (DIRECTORY: optional). Folder containing SAMPLE_ID.chromosome.fna.gz files produced by a prior GENOMAD_EXTRACT_CHROMOSOME step. When provided, skips the entire VIRAL_DETECTION subworkflow (geNomad + CheckV passes + chromosome extraction). WARNING: does not check geNomad parameter consistency — re-run VIRAL_DETECTION instead of reusing if FDR thresholds or score calibration have changed."
+            },
+            {
+              "name": "mmseqs_taxonomy_db",
+              "required": false,
+              "description": "Path to a pre-built MMseqs2 taxonomy database (e.g. GTDB built via `mmseqs databases GTDB <out> <tmp>`). Used for contig-level taxonomy fallback on the post-Binette unbinned set. Required for the per-contig classification TSV step. Typically set globally in ~/.metagear/metagear.config instead of per-invocation."
+            },
+            {
+              "name": "viral_ids_dir",
+              "required": false,
+              "description": "Viral contig IDs directory (DIRECTORY: optional). Folder containing SAMPLE_ID_viral_ids_to_keep.txt files produced by a prior viral_analysis run (MERGE_TABLES output). Lets the per-contig TSV classify virus contigs even when --chromosome_dir bypassed VIRAL_DETECTION. Auto-discovered by --reuse-outputs."
+            },
+            {
+              "name": "plasmid_ids_dir",
+              "required": false,
+              "description": "Plasmid contig IDs directory (DIRECTORY: optional). Folder containing SAMPLE_ID_plasmid_ids_to_keep.txt files. Same pattern as --viral_ids_dir."
+            }
+          ]
+        }
+      ]
     }
+  }
 }

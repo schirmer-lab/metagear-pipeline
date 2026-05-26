@@ -11,6 +11,8 @@ include { GENE_ANALYSIS_INIT; GENE_ANALYSIS } from "$projectDir/subworkflows/loc
 
 include { VIRAL_ANALYSIS_INIT; VIRAL_ANALYSIS } from "$projectDir/subworkflows/local/microbiome/viral_analysis"
 
+include { INTEGRATED_CLASSIFICATION_INIT; INTEGRATED_CLASSIFICATION } from "$projectDir/subworkflows/local/microbiome/integrated_classification"
+
 /* --- RUN MAIN WORKFLOW --- */
 workflow METAGEAR {
 
@@ -65,6 +67,24 @@ workflow METAGEAR {
 
             VIRAL_ANALYSIS ( init.reads, init.genomad_db, init.checkv_db, init.pharokka_db, init.virsorter2_db, init.dram_db, init.iphop_db, init.amrfinder_db )
             ch_versions = VIRAL_ANALYSIS.out.versions
+        }
+
+        // Integrated classification — v1 minimum: assembly + viral/plasmid
+        // partitioning (geNomad) + bacterial binning (SemiBin2+MetaBAT2 →
+        // Binette → CheckM2 → GTDB-Tk). Contig fallback, plasmid typing,
+        // and per-contig TSV merge are deferred to a follow-up.
+        if ( params.workflow == "integrated_classification" ) {
+            init = INTEGRATED_CLASSIFICATION_INIT ( )
+
+            INTEGRATED_CLASSIFICATION (
+                init.reads,
+                init.genomad_db,
+                init.checkv_db,
+                init.checkm2_db,
+                init.mmseqs_taxonomy_db,
+                init.biome_lookup
+            )
+            ch_versions = INTEGRATED_CLASSIFICATION.out.versions
         }
 
 
