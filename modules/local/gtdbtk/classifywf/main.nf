@@ -35,6 +35,10 @@ process GTDBTK_CLASSIFYWF {
     // def mash_mode       = mash_db ? "--mash_db ${mash_db}" : "--skip_ani_screen"
     def mash_mode       = "--skip_ani_screen"
     // ${task.cpus} to fix!
+    // task.ext.extension lets callers point GTDB-Tk at non-default FASTA suffixes.
+    // Defaults to 'fasta' to match the MSP pipeline (pangenome_sequences/*.pangenome.fasta);
+    // BACTERIAL_BINNING overrides to 'fa' because Binette emits final_bins/*.fa.
+    def ext_extension   = task.ext.extension ?: 'fasta'
 
     // export GTDBTK_DATA_PATH="\$(find -L ${db} -name 'metadata' -type d -exec dirname {} \\;)"
     """
@@ -49,7 +53,7 @@ process GTDBTK_CLASSIFYWF {
         --prefix "${prefix}" \\
         --out_dir ${prefix} \\
         --cpus $task.cpus \\
-        --extension fasta \\
+        --extension ${ext_extension} \\
         ${mash_mode} \\
         ${pplacer_scratch}
 

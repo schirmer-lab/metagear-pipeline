@@ -1,111 +1,198 @@
 {
-    "name": "schirmer-lab/metagear",
-    "homePage": "https://github.com/schirmer-lab/metagear",
-    "repos": {
-        "https://github.com/nf-core/modules.git": {
-            "modules": {
-                "nf-core": {
-                    "amrfinderplus/run": {
-                        "branch": "master",
-                        "git_sha": "48c86d92fe761cb3faafdb38e4d8ca3bf6d1c657",
-                        "installed_by": ["modules"]
-                    },
-                    "amrfinderplus/update": {
-                        "branch": "master",
-                        "git_sha": "41dfa3f7c0ffabb96a6a813fe321c6d1cc5b6e46",
-                        "installed_by": ["modules"]
-                    },
-                    "bwa/index": {
-                        "branch": "master",
-                        "git_sha": "a29f18660f5e3748d44d6f716241e70c942c065d",
-                        "installed_by": ["modules"]
-                    },
-                    "bwamem2/index": {
-                        "branch": "master",
-                        "git_sha": "a29f18660f5e3748d44d6f716241e70c942c065d",
-                        "installed_by": ["modules"]
-                    },
-                    "checkv/downloaddatabase": {
-                        "branch": "master",
-                        "git_sha": "05954dab2ff481bcb999f24455da29a5828af08d",
-                        "installed_by": ["modules"]
-                    },
-                    "fastqc": {
-                        "branch": "master",
-                        "git_sha": "b1966f36ec9de31927b2603d8f499960b2a4c294",
-                        "installed_by": ["modules"]
-                    },
-                    "genomad/download": {
-                        "branch": "master",
-                        "git_sha": "5c9c6d55abdc05dbe3dc81b1cf4997d605c13795",
-                        "installed_by": ["modules"]
-                    },
-                    "genomad/endtoend": {
-                        "branch": "master",
-                        "git_sha": "5c9c6d55abdc05dbe3dc81b1cf4997d605c13795",
-                        "installed_by": ["modules"]
-                    },
-                    "gunzip": {
-                        "branch": "master",
-                        "git_sha": "0902eac3012baaf4f9ab6513c8c55acc9353c96c",
-                        "installed_by": ["modules"]
-                    },
-                    "multiqc": {
-                        "branch": "master",
-                        "git_sha": "008f9d3e61209bf995edac3ba531f54e269e1215",
-                        "installed_by": ["modules"]
-                    },
-                    "pharokka/installdatabases": {
-                        "branch": "master",
-                        "git_sha": "41dfa3f7c0ffabb96a6a813fe321c6d1cc5b6e46",
-                        "installed_by": ["modules"]
-                    },
-                    "pharokka/pharokka": {
-                        "branch": "master",
-                        "git_sha": "41dfa3f7c0ffabb96a6a813fe321c6d1cc5b6e46",
-                        "installed_by": ["modules"]
-                    },
-                    "prodigal": {
-                        "branch": "master",
-                        "git_sha": "05954dab2ff481bcb999f24455da29a5828af08d",
-                        "installed_by": ["modules"]
-                    },
-                    "seqkit/split2": {
-                        "branch": "master",
-                        "git_sha": "05954dab2ff481bcb999f24455da29a5828af08d",
-                        "installed_by": ["modules"]
-                    },
-                    "trimgalore": {
-                        "branch": "master",
-                        "git_sha": "05954dab2ff481bcb999f24455da29a5828af08d",
-                        "installed_by": ["modules"]
-                    },
-                    "untar": {
-                        "branch": "master",
-                        "git_sha": "6d46786420b4d7bc88eba026eb389c0c5535d120",
-                        "installed_by": ["modules"]
-                    }
-                }
-            },
-            "subworkflows": {
-                "nf-core": {
-                    "utils_nextflow_pipeline": {
-                        "branch": "master",
-                        "git_sha": "05954dab2ff481bcb999f24455da29a5828af08d",
-                        "installed_by": ["subworkflows"]
-                    },
-                    "utils_nfcore_pipeline": {
-                        "branch": "master",
-                        "git_sha": "a3fb7351b1fdb2b1de282b765816bbea190e86a8",
-                        "installed_by": ["subworkflows"]
-                    },
-                    "utils_nfschema_plugin": {
-                        "branch": "master",
-                        "git_sha": "fdc08b8b1ae74f56686ce21f7ea11ad11990ce57",
-                        "installed_by": ["subworkflows"]
-                    }
-                }
-            }
+  "name": "schirmer-lab/metagear",
+  "homePage": "https://github.com/schirmer-lab/metagear",
+  "repos": {
+    "https://github.com/nf-core/modules.git": {
+      "modules": {
+        "nf-core": {
+          "amrfinderplus/run": {
+            "branch": "master",
+            "git_sha": "48c86d92fe761cb3faafdb38e4d8ca3bf6d1c657",
+            "installed_by": [
+              "modules"
+            ]
+          },
+          "amrfinderplus/update": {
+            "branch": "master",
+            "git_sha": "41dfa3f7c0ffabb96a6a813fe321c6d1cc5b6e46",
+            "installed_by": [
+              "modules"
+            ]
+          },
+          "bwa/index": {
+            "branch": "master",
+            "git_sha": "a29f18660f5e3748d44d6f716241e70c942c065d",
+            "installed_by": [
+              "modules"
+            ]
+          },
+          "bwamem2/index": {
+            "branch": "master",
+            "git_sha": "a29f18660f5e3748d44d6f716241e70c942c065d",
+            "installed_by": [
+              "modules"
+            ]
+          },
+          "checkm2/databasedownload": {
+            "branch": "master",
+            "git_sha": "6d46786420b4d7bc88eba026eb389c0c5535d120",
+            "installed_by": [
+              "modules"
+            ]
+          },
+          "checkm2/predict": {
+            "branch": "master",
+            "git_sha": "6d46786420b4d7bc88eba026eb389c0c5535d120",
+            "installed_by": [
+              "modules"
+            ]
+          },
+          "checkv/downloaddatabase": {
+            "branch": "master",
+            "git_sha": "05954dab2ff481bcb999f24455da29a5828af08d",
+            "installed_by": [
+              "modules"
+            ]
+          },
+          "fastqc": {
+            "branch": "master",
+            "git_sha": "b1966f36ec9de31927b2603d8f499960b2a4c294",
+            "installed_by": [
+              "modules"
+            ]
+          },
+          "genomad/download": {
+            "branch": "master",
+            "git_sha": "5c9c6d55abdc05dbe3dc81b1cf4997d605c13795",
+            "installed_by": [
+              "modules"
+            ]
+          },
+          "genomad/endtoend": {
+            "branch": "master",
+            "git_sha": "5c9c6d55abdc05dbe3dc81b1cf4997d605c13795",
+            "installed_by": [
+              "modules"
+            ]
+          },
+          "gunzip": {
+            "branch": "master",
+            "git_sha": "0902eac3012baaf4f9ab6513c8c55acc9353c96c",
+            "installed_by": [
+              "modules"
+            ]
+          },
+          "metabat2/jgisummarizebamcontigdepths": {
+            "branch": "master",
+            "git_sha": "6d46786420b4d7bc88eba026eb389c0c5535d120",
+            "installed_by": [
+              "modules"
+            ]
+          },
+          "metabat2/metabat2": {
+            "branch": "master",
+            "git_sha": "6d46786420b4d7bc88eba026eb389c0c5535d120",
+            "installed_by": [
+              "modules"
+            ]
+          },
+          "multiqc": {
+            "branch": "master",
+            "git_sha": "008f9d3e61209bf995edac3ba531f54e269e1215",
+            "installed_by": [
+              "modules"
+            ]
+          },
+          "pharokka/installdatabases": {
+            "branch": "master",
+            "git_sha": "41dfa3f7c0ffabb96a6a813fe321c6d1cc5b6e46",
+            "installed_by": [
+              "modules"
+            ]
+          },
+          "pharokka/pharokka": {
+            "branch": "master",
+            "git_sha": "41dfa3f7c0ffabb96a6a813fe321c6d1cc5b6e46",
+            "installed_by": [
+              "modules"
+            ]
+          },
+          "prodigal": {
+            "branch": "master",
+            "git_sha": "05954dab2ff481bcb999f24455da29a5828af08d",
+            "installed_by": [
+              "modules"
+            ]
+          },
+          "samtools/index": {
+            "branch": "master",
+            "git_sha": "6d46786420b4d7bc88eba026eb389c0c5535d120",
+            "installed_by": [
+              "modules"
+            ]
+          },
+          "semibin/singleeasybin": {
+            "branch": "master",
+            "git_sha": "6d46786420b4d7bc88eba026eb389c0c5535d120",
+            "installed_by": [
+              "modules"
+            ]
+          },
+          "seqkit/split2": {
+            "branch": "master",
+            "git_sha": "05954dab2ff481bcb999f24455da29a5828af08d",
+            "installed_by": [
+              "modules"
+            ]
+          },
+          "tiara/tiara": {
+            "branch": "master",
+            "git_sha": "6d46786420b4d7bc88eba026eb389c0c5535d120",
+            "installed_by": [
+              "modules"
+            ]
+          },
+          "trimgalore": {
+            "branch": "master",
+            "git_sha": "05954dab2ff481bcb999f24455da29a5828af08d",
+            "installed_by": [
+              "modules"
+            ]
+          },
+          "untar": {
+            "branch": "master",
+            "git_sha": "6d46786420b4d7bc88eba026eb389c0c5535d120",
+            "installed_by": [
+              "modules"
+            ]
+          }
         }
+      },
+      "subworkflows": {
+        "nf-core": {
+          "utils_nextflow_pipeline": {
+            "branch": "master",
+            "git_sha": "05954dab2ff481bcb999f24455da29a5828af08d",
+            "installed_by": [
+              "subworkflows"
+            ]
+          },
+          "utils_nfcore_pipeline": {
+            "branch": "master",
+            "git_sha": "a3fb7351b1fdb2b1de282b765816bbea190e86a8",
+            "installed_by": [
+              "subworkflows"
+            ]
+          },
+          "utils_nfschema_plugin": {
+            "branch": "master",
+            "git_sha": "fdc08b8b1ae74f56686ce21f7ea11ad11990ce57",
+            "installed_by": [
+              "subworkflows"
+            ]
+          }
+        }
+      }
     }
+  }
 }

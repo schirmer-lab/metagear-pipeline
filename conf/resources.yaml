@@ -82,6 +82,14 @@ processes:
   COVERM_CONTIG: { label: process_medium, cpus: 12, memory_gb: 24, time_h: 24 }
   COVERM_CONTIG_MERGE: { label: process_medium, cpus: 12, memory_gb: 24, time_h: 24 }
 
+  # === Bacterial binning ===
+  SAMTOOLS_INDEX: { label: process_low, cpus: 4, memory_gb: 8, time_h: 2 }
+  METABAT2_JGISUMMARIZEBAMCONTIGDEPTHS: { label: process_low, cpus: 4, memory_gb: 8, time_h: 4 }
+  METABAT2_METABAT2: { label: process_medium, cpus: 8, memory_gb: 16, time_h: 8 }
+  SEMIBIN_SINGLEEASYBIN: { label: process_high, cpus: 12, memory_gb: 32, time_h: 16, note: "SemiBin2 single_easy_bin: model inference + binning; --environment from meta.biome" }
+  BINETTE: { label: process_high, cpus: 12, memory_gb: 32, time_h: 16, note: "Runs CheckM2 internally (DIAMOND); refines SemiBin2+MetaBAT2 bins" }
+  GTDBTK_CLASSIFYWF: { label: process_high_memory, cpus: 16, memory_gb: 64, time_h: 24, note: "Module labeled process_high_memory (memory-only tier sets 200 GB, no cpus/time). Per-process override: 16 cpu / 64 GB / 24 h. pplacer is the memory hog and largely single-threaded; cpus mostly help the HMMER + ANI screen steps." }
+
   # === AMG post-process ===
   EXTRACT_AMGS: { label: process_low }
   MMSEQS_EASYSEARCH: { label: process_high, cpus: 12, memory_gb: 32, time_h: 16 }
