@@ -113,10 +113,21 @@ workflow VIRAL_ANALYSIS {
 
         ch_genes_reformatted = ch_genes.map { meta, file -> [ [id: meta.src ], file ]  }
 
-        ch_viral_genes = VIRAL_DETECTION.out.viral_ids.join(ch_genes_reformatted, by:0)
+        // Normalize the viral_ids / plasmid_ids meta to `[id: meta.id]` before
+        // joining against ch_genes_reformatted. Nextflow's .join(by: 0) compares
+        // the full Map at position 0, and VIRAL_DETECTION.out.{viral,plasmid}_ids
+        // inherit extra meta fields from upstream (e.g. `single_end: true` set in
+        // input_check.nf for single-end samplesheets, since 446e6c7) that the
+        // gene channel doesn't carry. Without this normalization the join
+        // produces zero tuples for single-end cohorts and VIRAL_ANNOTATION +
+        // AMG_POSTPROCESS silently never fire.
+        ch_viral_ids_for_join   = VIRAL_DETECTION.out.viral_ids.map   { meta, ids -> [ [id: meta.id], ids ] }
+        ch_plasmid_ids_for_join = VIRAL_DETECTION.out.plasmid_ids.map { meta, ids -> [ [id: meta.id], ids ] }
+
+        ch_viral_genes = ch_viral_ids_for_join.join(ch_genes_reformatted, by:0)
                             .map { [ [id: it[0].id +'.virus.genes', src: it[0].id, label: 'virus'], it[1], it[2] ] }
                             .mix (
-                                VIRAL_DETECTION.out.plasmid_ids.join(ch_genes_reformatted, by:0)
+                                ch_plasmid_ids_for_join.join(ch_genes_reformatted, by:0)
                                 .map { [ [id: it[0].id +'.plasmid.genes', src: it[0].id, label: 'plasmid'], it[1], it[2] ] }
                             )
 
@@ -150,7 +161,7 @@ workflow VIRAL_ANALYSIS {
         ch_abundance_input = reads.combine( ch_all_sequences )
                     .map { meta_reads, reads, meta_sequences, sequences -> [ meta_reads + [label: meta_sequences.id], reads, sequences ] }
 
-        ABUNDANCE ( ch_abundance_input )
+        ABUNDANCE ( ch_abundance_input, 'contig', file("$projectDir/assets/empty.txt") )
         ch_versions =  ch_versions.mix( ABUNDANCE.out.versions )
 
         virus_representative_proteins = FIND_REPRESENTATIVES.out.representative_proteins.filter { meta, _ -> meta.id == 'virus.genes' }.map { it[1] }

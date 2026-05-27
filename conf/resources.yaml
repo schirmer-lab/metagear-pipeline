@@ -72,7 +72,7 @@ processes:
 
   # === Viral annotation ===
   PHAROKKA_PROTEINS: { label: process_high, cpus: 24, memory_gb: 68, time_h: 24 }
-  IPHOP_PREDICT: { label: process_high, cpus: 24, memory_gb: 68, time_h: 24, note: "iPHoP DB ~110 GB on disk" }
+  IPHOP_PREDICT: { label: process_high, cpus: 24, memory_gb: 120, time_h: 24, note: "Heavy I/O + mmap workload — observed peak_rss ~197 GB (mostly shared host-DB mmap), 3 TB read per batch, 40% CPU utilization (I/O bound). The 120 GB request acts as elastic concurrency control: on a 500 GB node it caps at ~4 concurrent (avoids GPFS bandwidth contention that stretches per-batch wall clock past the SLURM 24h limit); on a 1 TB node it scales to 8 concurrent automatically. Don't use maxForks here — the goal is for concurrency to grow with hardware." }
   VIRSORTER2_4DRAMV: { label: "(none)", cpus: 12, memory_gb: 24, time_h: 24, note: "module has no label" }
   DRAMV: { label: "(none)", cpus: 12, memory_gb: 24, time_h: 24, note: "module has no label" }
 
@@ -96,6 +96,16 @@ processes:
   MMSEQS_EASYTAXONOMY: { label: process_high, cpus: 8, memory_gb: 32, time_h: 16, note: "REQUIRES params.max_memory >= 32.GB in metagear.config — mmseqs reads available memory off /proc/meminfo (cgroup-aware), so a lower max_memory cap will starve it and emit 'Cannot fit databases into <X>G'. The module pre-flight-checks /proc/meminfo and fails fast with a clear error if available memory is below 24 GiB. --split-memory-limit is set dynamically (70% of task.memory) in the per-workflow config; concurrency is left to Nextflow's normal scheduler so the host runs as many parallel tasks as (host_memory / task.memory) permits." }
   MERGE_CONTIG_CLASSIFICATION: { label: process_single, cpus: 2, memory_gb: 8, time_h: 1, note: "Pure-python join of evidence channels; scales with per-sample contig count (a few hundred k contigs at most)." }
   MMSEQS_DATABASES: { label: process_medium, cpus: 8, memory_gb: 32, time_h: 24, note: "One-time setup: downloads + indexes GTDB taxonomy DB via `mmseqs databases GTDB`. The 24h ceiling allows for ~30-50 GB download on a slow link plus index build." }
+
+  # === Cohort dereplication (v2) ===
+  PREPARE_DREP_INPUTS: { label: process_single, cpus: 2, memory_gb: 4, time_h: 1, note: "Per-sample bin rename + genomeInfo CSV slice for dRep." }
+  STAGE_DREP_WORK: { label: process_single, cpus: 2, memory_gb: 4, time_h: 1, note: "Concat per-sample genomeInfo CSVs into a single cohort CSV staged inside drep_work_seed/." }
+  DREP_DEREPLICATE: { label: process_high, cpus: 16, memory_gb: 64, time_h: 24, note: "All-vs-all skani similarity matrix scales O(N^2) in genome count; 64 GB tolerates ~2000 bins. --S_algorithm skani is fast vs ANImf. 24h is the cluster hard limit; if the cohort grows large enough that dRep can't finish in that window, batch the inputs (split bins into groups, dereplicate-within, then merge representatives in a final pass)." }
+  BUILD_MAG_CATALOG: { label: process_low, cpus: 2, memory_gb: 8, time_h: 2, note: "seqkit-based header rename + concat of dRep winners; emits contig_to_mag.tsv for coverm genome." }
+  GATHER_GENOMES_DIR: { label: process_single, cpus: 2, memory_gb: 4, time_h: 1 }
+  COVERM_GENOME: { label: process_medium, cpus: 12, memory_gb: 24, time_h: 24, note: "Same coverm container as COVERM_CONTIG; per-MAG aggregation via --genome-definition." }
+  ENRICH_PER_CONTIG_TSV: { label: process_single, cpus: 2, memory_gb: 8, time_h: 1, note: "Pure-python join of per-sample contigs.tsv with cohort Cdb/Wdb/GTDB-Tk." }
+  SUMMARIZE_MAG_CATALOG: { label: process_single, cpus: 2, memory_gb: 8, time_h: 1, note: "Cohort-level mag_catalog.csv. Pure-python." }
 
   # === AMG post-process ===
   EXTRACT_AMGS: { label: process_low }

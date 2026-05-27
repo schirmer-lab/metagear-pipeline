@@ -213,6 +213,32 @@
               "description": "Plasmid contig IDs directory (DIRECTORY: optional). Folder containing SAMPLE_ID_plasmid_ids_to_keep.txt files. Same pattern as --viral_ids_dir."
             }
           ]
+        },
+        {
+          "name": "cohort_dereplication",
+          "description": "Cohort-level MAG dereplication and taxonomy assignment: dRep (skani backend) on per-sample Binette bins, GTDB-Tk on cluster representatives, coverm-genome MAG×sample abundance, and back-fill of integrated_classification's per-contig TSV with cohort lineage. Builds on a prior `integrated_classification` run; reads its bin and per-contig outputs from disk.",
+          "parameters": [
+            {
+              "name": "input",
+              "required": true,
+              "description": "Input .csv file (samplesheet). Same shape as integrated_classification — the samplesheet is needed because abundance back-mapping uses the per-sample reads."
+            },
+            {
+              "name": "bins_dir",
+              "required": true,
+              "description": "Per-sample Binette outputs (DIRECTORY). Points at integrated_classification's `binning/binette/` parent directory. The subworkflow tolerates both the current nested `<sample>/<sample>/final_bins/...` layout (Binette emits a `${meta.id}/` prefix dir that the publishDir adds another sample dir on top of) and a future flattened `<sample>/final_bins/...` layout."
+            },
+            {
+              "name": "per_contig_tsv_dir",
+              "required": true,
+              "description": "Per-contig classification TSV directory (DIRECTORY). Points at integrated_classification's `per_contig/` output (flat layout: `<sample>.contigs.tsv`). Required for the per-contig TSV enrichment step."
+            },
+            {
+              "name": "gtdb_tk_db",
+              "required": false,
+              "description": "Path to a GTDB-Tk database (R220 or compatible). Typically set globally in ~/.metagear/metagear.config; this parameter exists so a user can point at an alternate release per-invocation."
+            }
+          ]
         }
       ]
     }

@@ -13,6 +13,8 @@ include { VIRAL_ANALYSIS_INIT; VIRAL_ANALYSIS } from "$projectDir/subworkflows/l
 
 include { INTEGRATED_CLASSIFICATION_INIT; INTEGRATED_CLASSIFICATION } from "$projectDir/subworkflows/local/microbiome/integrated_classification"
 
+include { COHORT_DEREPLICATION_INIT; COHORT_DEREPLICATION } from "$projectDir/subworkflows/local/microbiome/cohort_dereplication"
+
 /* --- RUN MAIN WORKFLOW --- */
 workflow METAGEAR {
 
@@ -85,6 +87,21 @@ workflow METAGEAR {
                 init.biome_lookup
             )
             ch_versions = INTEGRATED_CLASSIFICATION.out.versions
+        }
+
+        // Cohort dereplication — v2: dRep (skani) on per-sample bins, GTDB-Tk
+        // on cluster representatives, coverm-genome MAG×sample abundance, and
+        // back-fill of v1's per-contig TSV with the cohort lineage.
+        if ( params.workflow == "cohort_dereplication" ) {
+            init = COHORT_DEREPLICATION_INIT ( )
+
+            COHORT_DEREPLICATION (
+                init.reads,
+                init.bins_inputs,
+                init.per_contig_tsv,
+                init.gtdb_tk_db
+            )
+            ch_versions = COHORT_DEREPLICATION.out.versions
         }
 
 
