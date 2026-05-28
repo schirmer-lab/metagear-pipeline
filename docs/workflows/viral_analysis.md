@@ -48,7 +48,7 @@ The two-pass geNomad + CheckV is the central novelty: it recovers viral sequence
 | `virus/checkv/virus/<sample>/virus.*`                 | CheckV pass-1 output (completeness/contamination).                     |
 | `virus/genomad/provirus/<sample>/`                    | geNomad pass-2 (on trimmed proviruses).                                |
 | `virus/checkv/provirus/<sample>/provirus.*`           | CheckV pass-2.                                                         |
-| `virus/merge_filter/`                                 | Merged + filtered viral and plasmid tables (ICTV taxonomy applied).    |
+| `virus/per_sample/<sample>/`                          | Per-sample viral detection intermediates: `virus.summary[.filtered].tsv`, `virus.ids.txt`, `virus.filtered.fna.gz`, plus the plasmid counterparts. |
 | `catalogs/virus.representative.fa.gz`                 | **Non-redundant viral catalog.**                                       |
 | `catalogs/virus.clusters.tsv`                         | Viral cluster membership.                                              |
 | `catalogs/plasmid.representative.fa.gz`               | **Non-redundant plasmid catalog.**                                     |

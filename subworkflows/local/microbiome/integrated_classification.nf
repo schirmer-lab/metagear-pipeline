@@ -89,7 +89,7 @@ workflow INTEGRATED_CLASSIFICATION {
         // When --chromosome_dir bypasses this, viral/plasmid channels are empty
         // unless --viral_ids_dir / --plasmid_ids_dir restore them from disk
         // (typical use: a prior viral_analysis run already published these
-        // under results/virus/merge_filter/, which the wrapper's auto-reuse
+        // under results/virus/per_sample/, which the wrapper's auto-reuse
         // picks up).
         ch_chromosome_seqs   = Channel.empty()
         ch_viral_sequences   = Channel.empty()
@@ -117,21 +117,19 @@ workflow INTEGRATED_CLASSIFICATION {
         // / --plasmid_ids_dir, load those instead. Lets `--chromosome_dir` users
         // still classify virus/plasmid contigs in the per-contig TSV, and lets
         // anyone preserve viral_analysis's MERGE_TABLES outputs across re-runs.
+        //
+        // Per-sample subdir layout produced by viral_detection.config under
+        //   results/virus/per_sample/<sample>/{virus,plasmid}.ids.txt
+        // sample id is derived from the parent directory's name, so the
+        // helper createExistingDirChannel (which keys off the filename
+        // baseName) doesn't fit — using an inline channel here instead.
         if ( params.viral_ids_dir ) {
-            ch_viral_ids = createExistingDirChannel (
-                params.viral_ids_dir,
-                "*_viral_ids_to_keep.txt",
-                "_viral_ids_to_keep",
-                null
-            )
+            ch_viral_ids = Channel.fromPath("${params.viral_ids_dir}/*/virus.ids.txt")
+                                .map { f -> [ [id: f.parent.name], f ] }
         }
         if ( params.plasmid_ids_dir ) {
-            ch_plasmid_ids = createExistingDirChannel (
-                params.plasmid_ids_dir,
-                "*_plasmid_ids_to_keep.txt",
-                "_plasmid_ids_to_keep",
-                null
-            )
+            ch_plasmid_ids = Channel.fromPath("${params.plasmid_ids_dir}/*/plasmid.ids.txt")
+                                .map { f -> [ [id: f.parent.name], f ] }
         }
 
         // ─── 3. Bacterial binning on the chromosome partition ────────────────
