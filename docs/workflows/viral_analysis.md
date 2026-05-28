@@ -54,7 +54,11 @@ The two-pass geNomad + CheckV is the central novelty: it recovers viral sequence
 | `catalogs/plasmid.representative.fa.gz`               | **Non-redundant plasmid catalog.**                                     |
 | `catalogs/plasmid.clusters.tsv`                       | Plasmid cluster membership.                                            |
 | `catalogs/all.genes.representative.fa` (etc.)         | Gene-level catalog (same form as `gene_analysis`).                     |
-| `virus/viral_clusters/<scope>.clusters.annotated.tsv` | Gene-cluster annotations for viral/plasmid scopes.                     |
+| `clusters/all.genes.clusters.annotated.tsv`           | Cohort gene-cluster annotations with per-member class labels.          |
+| `clusters/all.genes.clusters.aggregated.tsv`          | Per-representative rollup of cluster annotations.                      |
+| `virus/clusters/<scope>.genes.clusters.annotated.tsv` | Virus/plasmid-scoped gene cluster annotations.                         |
+| `virus/clusters/<scope>.genes.representative_ids.txt` | Reps for clusters touching `<scope>` (virus or plasmid).               |
+| `virus/clusters/<scope>-exclusive.genes.representative_ids.txt` | Reps for clusters whose members are entirely `<scope>`.            |
 | `virus/pharokka/`                                     | Pharokka annotations (`*.gff`, `*.fna`, `*.faa`).                      |
 | `virus/virsorter2/`                                   | VirSorter2 output prepared for DRAM-v.                                 |
 | `virus/dramv/parts/`, `virus/dramv/`                  | DRAM-v annotations and AMG calls.                                      |
@@ -63,7 +67,13 @@ The two-pass geNomad + CheckV is the central novelty: it recovers viral sequence
 | `coverm/plasmid.{count,rpkm,tpm}.tsv`                 | **Plasmid abundance matrices.**                                        |
 | `coverm/all.genes.{count,rpkm,tpm}.tsv`               | Gene-level abundance matrices.                                         |
 | `coverm/virus.amg_{count,rpkm,tpm}.tsv`               | **AMG abundance matrices** (post-processed).                           |
-| `virus/collect/`                                      | Collected summary tables across viral, plasmid, AMG, host predictions. |
+| `virus/summary/virus.tsv`                             | **All viral candidates** (geNomad + CheckV + taxonomy, cohort).        |
+| `virus/summary/virus.filtered.tsv`                    | **FDR-passing viral candidates.**                                      |
+| `virus/summary/plasmid.tsv`                           | All plasmid candidates.                                                |
+| `virus/summary/plasmid.filtered.tsv`                  | **FDR-passing plasmid candidates.**                                    |
+| `virus/summary/amg.tsv`                               | DRAM-V auxiliary metabolic gene calls (cohort).                        |
+| `virus/summary/host.genome.tsv`                       | iPHoP host predictions, genome-level.                                  |
+| `virus/summary/host.genus.tsv`                        | iPHoP host predictions, genus-level.                                   |
 | `pipeline_info/viral_analysis_multiqc_report.html`    | Consolidated MultiQC.                                                  |
 
 The bolded rows are the primary deliverables for most downstream analyses.
