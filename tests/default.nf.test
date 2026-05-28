@@ -16,7 +16,7 @@ nextflow_pipeline {
             assert workflow.success
             assertAll(
                 { assert snapshot(
-                    removeNextflowVersion("$outputDir/pipeline_info/test_pipeline_software_mqc_versions.yml")
+                    removeNextflowVersion("$outputDir/pipeline_info/test_mqc_versions.yml")
                 ).match() }
             )
         }

@@ -31,20 +31,25 @@ workflow COHORT_DEREPLICATION_INIT {
         ch_reads = INPUT_CHECK.out.validated_input
 
         // ─── Per-sample Binette outputs ──────────────────────────────────────
-        // bacterial_binning.config publishes BINETTE flat:
-        //   ${outdir}/binning/binette/<sample>/final_bins/...
-        //   ${outdir}/binning/binette/<sample>/final_bins_quality_reports.tsv
-        //   ${outdir}/binning/binette/<sample>/final_contig_to_bin.tsv
-        // params.bins_dir points at the `binning/binette/` parent.
+        // bacterial_binning.config publishes the per-sample MAG deliverables to:
+        //   ${outdir}/assemblies/bins/<sample>/binette_binN.fa     (MAGs)
+        //   ${outdir}/assemblies/bins/<sample>/quality_report.tsv  (Binette QC)
+        //   ${outdir}/assemblies/bins/<sample>/contig_to_bin.tsv   (contig→bin map)
+        // params.bins_dir points at the `assemblies/bins/` parent.
+        //
+        // `bins` is the per-sample subdir itself (a directory of *.fa) rather
+        // than a separate final_bins/ subdir under it.
         ch_bins_inputs = ch_reads
             .map { meta, _reads ->
                 def base = file("${params.bins_dir}/${meta.id}")
-                def bins = file("${base}/final_bins")
-                def qc   = file("${base}/final_bins_quality_reports.tsv")
-                def c2b  = file("${base}/final_contig_to_bin.tsv")
-                return [meta, bins, qc, c2b]
+                def qc   = file("${base}/quality_report.tsv")
+                def c2b  = file("${base}/contig_to_bin.tsv")
+                // `bins` was historically the final_bins/ subdir; with the
+                // new layout the FASTAs sit directly under <sample>/. Pass
+                // the same dir, and PREPARE_DREP_INPUTS globs `*.fa` in it.
+                return [meta, base, qc, c2b]
             }
-            .filter { _meta, bins, qc, _c2b -> bins.isDirectory() && qc.exists() }
+            .filter { _meta, base, qc, _c2b -> base.isDirectory() && qc.exists() }
 
         // ─── Per-sample v1 per-contig TSVs ───────────────────────────────────
         // Flat layout from MERGE_CONTIG_CLASSIFICATION's publishDir:

@@ -5,7 +5,7 @@ cohort-level MAG taxonomy and cluster IDs from cohort_dereplication.
 For each contig that was bin-attributable in v1 (classifier == 'binette'),
 we look up:
 
-    1. which Binette bin owns the contig    (from final_contig_to_bin.tsv)
+    1. which Binette bin owns the contig    (from contig_to_bin.tsv)
     2. which dRep secondary cluster that bin belongs to    (from Cdb.csv)
     3. which genome is the cluster winner    (from Wdb.csv)
     4. which GTDB lineage the winner received    (from gtdbtk.*.summary.tsv)
@@ -78,7 +78,7 @@ def _load_gtdb(gtdb_dir: Path) -> Dict[str, str]:
 
 
 def _load_contig_to_bin(c2b_tsv: Path, sample_id: str) -> Dict[str, str]:
-    """Binette's final_contig_to_bin.tsv: contig_name<TAB>bin_name.
+    """Binette's contig_to_bin.tsv: contig_name<TAB>bin_name.
     Returns contig_name -> renamed_bin (`<sample>.<binette_bin_name>.fa`)
     so the value can be joined directly against Cdb's `genome` column."""
     out: Dict[str, str] = {}
@@ -105,7 +105,7 @@ def main() -> int:
     parser.add_argument("--contigs", required=True, type=Path,
                         help="v1 per-sample contigs.tsv")
     parser.add_argument("--contig-to-bin", required=True, type=Path,
-                        help="Binette final_contig_to_bin.tsv for the same sample")
+                        help="Binette contig_to_bin.tsv for the same sample")
     parser.add_argument("--cdb", required=True, type=Path,
                         help="dRep Cdb.csv (cohort cluster table)")
     parser.add_argument("--wdb", required=True, type=Path,

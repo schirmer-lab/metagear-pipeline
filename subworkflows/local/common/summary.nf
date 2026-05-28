@@ -25,10 +25,14 @@ workflow SUMMARY {
         //
         // Collate and save software versions
         //
+        // Name keeps the `_mqc_versions` suffix so MultiQC's custom-content
+        // discovery picks it up (the `_mqc_<id>` token tells MultiQC to render
+        // this as the Software Versions section of the report). Dropped the
+        // redundant "pipeline_software_" prefix that lived in the old name.
         softwareVersionsToYAML(ch_versions)
             .collectFile(
                 storeDir: "${params.outdir}/pipeline_info",
-                name:  "${params.workflow}_pipeline_software_mqc_versions.yml",
+                name:  "${params.workflow}_mqc_versions.yml",
                 sort: true,
                 newLine: true
             ).set { ch_collated_versions }
