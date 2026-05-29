@@ -15,7 +15,7 @@ Priority for ``primary_class`` (highest to lowest, first match wins):
     1. ``virus``     — contig in viral_ids
     2. ``plasmid``   — contig in plasmid_ids
     3. ``bacteria``  — contig is a member of a Binette bin (assume bacteria;
-                       v2 cohort_dereplication + GTDB-Tk will refine into
+                       v2 dereplication + GTDB-Tk will refine into
                        bacteria vs archaea)
     4. ``eukaryote`` — Tiara called it eukarya
     5. ``archaea``   — Tiara called it archaea AND no bin/virus/plasmid above
@@ -323,7 +323,7 @@ def merge(
                 classifier = "genomad"
             elif contig_id in bin_membership:
                 # v1: every Binette bin is assumed bacterial (we filter at MIMAG
-                # MQ+ which is a bacterial-MAG threshold). v2 cohort_dereplication
+                # MQ+ which is a bacterial-MAG threshold). v2 dereplication
                 # + GTDB-Tk will refine bacteria vs archaea at the species level.
                 primary_class = "bacteria"
                 classifier = "binette"

@@ -200,7 +200,7 @@
             {
               "name": "enable_contig_taxonomy",
               "required": false,
-              "description": "Run MMseqs2 easy-taxonomy on the unbinned chromosome partition to populate per-contig lineage in the merged TSV. Default false — disabled because per-contig LCA on unbinned contigs is low-confidence and the GTDB DB makes it expensive (requires task.memory >=96 GiB, hours per sample). Bin-attributable contigs already get trustworthy lineage from GTDB-Tk in cohort_dereplication; viral/plasmid contigs from geNomad. Enable only when you want exploratory sub-domain signal on the unbinned set."
+              "description": "Run MMseqs2 easy-taxonomy on the unbinned chromosome partition to populate per-contig lineage in the merged TSV. Default false — disabled because per-contig LCA on unbinned contigs is low-confidence and the GTDB DB makes it expensive (requires task.memory >=96 GiB, hours per sample). Bin-attributable contigs already get trustworthy lineage from GTDB-Tk in dereplication; viral/plasmid contigs from geNomad. Enable only when you want exploratory sub-domain signal on the unbinned set."
             },
             {
               "name": "mmseqs_taxonomy_db",
@@ -225,8 +225,8 @@
           ]
         },
         {
-          "name": "cohort_dereplication",
-          "description": "Cohort-level MAG dereplication and taxonomy assignment: dRep (skani backend) on per-sample Binette bins, GTDB-Tk on cluster representatives, coverm-genome MAG×sample abundance, and back-fill of integrated_classification's per-contig TSV with cohort lineage. Builds on a prior `integrated_classification` run; reads its bin and per-contig outputs from disk.",
+          "name": "dereplication",
+          "description": "MAG dereplication and taxonomy assignment: dRep (skani backend) on per-sample Binette bins, GTDB-Tk on cluster representatives, coverm-genome MAG×sample abundance, and back-fill of integrated_classification's per-contig TSV with cohort lineage. Builds on a prior `integrated_classification` run; reads its bin and per-contig outputs from disk.",
           "parameters": [
             {
               "name": "input",

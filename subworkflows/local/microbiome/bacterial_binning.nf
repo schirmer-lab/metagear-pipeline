@@ -130,7 +130,7 @@ workflow BACTERIAL_BINNING {
         // runs than needed) and produces redundant calls because dRep at 95%
         // ANI is by construction the GTDB species threshold — every bin in a
         // dRep cluster maps to the same species. The canonical taxonomy step
-        // moves into the cohort_dereplication iteration: dRep dereplicates
+        // moves into the dereplication iteration: dRep dereplicates
         // across samples, then GTDB-Tk runs once on the representatives.
 
     emit:

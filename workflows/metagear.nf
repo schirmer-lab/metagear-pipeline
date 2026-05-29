@@ -13,7 +13,7 @@ include { VIRAL_ANALYSIS_INIT; VIRAL_ANALYSIS } from "$projectDir/subworkflows/l
 
 include { INTEGRATED_CLASSIFICATION_INIT; INTEGRATED_CLASSIFICATION } from "$projectDir/subworkflows/local/microbiome/integrated_classification"
 
-include { COHORT_DEREPLICATION_INIT; COHORT_DEREPLICATION } from "$projectDir/subworkflows/local/microbiome/cohort_dereplication"
+include { DEREPLICATION_INIT; DEREPLICATION } from "$projectDir/subworkflows/local/microbiome/dereplication"
 
 /* --- RUN MAIN WORKFLOW --- */
 workflow METAGEAR {
@@ -89,19 +89,19 @@ workflow METAGEAR {
             ch_versions = INTEGRATED_CLASSIFICATION.out.versions
         }
 
-        // Cohort dereplication — v2: dRep (skani) on per-sample bins, GTDB-Tk
+        // Dereplication — v2: dRep (skani) on per-sample bins, GTDB-Tk
         // on cluster representatives, coverm-genome MAG×sample abundance, and
         // a cohort MAG catalog summary. Per-contig taxonomy enrichment is left
         // as a downstream pandas join — see docs/recipes/per-contig-taxonomy-enrichment.md.
-        if ( params.workflow == "cohort_dereplication" ) {
-            init = COHORT_DEREPLICATION_INIT ( )
+        if ( params.workflow == "dereplication" ) {
+            init = DEREPLICATION_INIT ( )
 
-            COHORT_DEREPLICATION (
+            DEREPLICATION (
                 init.reads,
                 init.bins_inputs,
                 init.gtdb_tk_db
             )
-            ch_versions = COHORT_DEREPLICATION.out.versions
+            ch_versions = DEREPLICATION.out.versions
         }
 
 

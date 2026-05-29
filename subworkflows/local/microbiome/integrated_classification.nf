@@ -24,7 +24,7 @@ workflow INTEGRATED_CLASSIFICATION_INIT {
         //                        post-Binette unbinned set (long-tail)
         //
         // GTDB-Tk DB is intentionally NOT loaded — per-MAG taxonomy moves
-        // into the cohort_dereplication iteration (dRep + GTDB-Tk on the
+        // into the dereplication iteration (dRep + GTDB-Tk on the
         // dereplicated representatives; standard cohort practice).
         genomad_db          = Channel.fromPath("${params.genomad_db}",          checkIfExists: true).first()
         checkv_db           = Channel.fromPath("${params.checkv_db}",           checkIfExists: true).first()
@@ -182,7 +182,7 @@ workflow INTEGRATED_CLASSIFICATION {
         // signal on unbinned contigs is low-confidence (single-protein hits,
         // sub-domain precision discarded by the merge anyway) and the
         // ~200 GiB GTDB DB makes it expensive. Bin-attributable contigs
-        // already get trustworthy lineage from GTDB-Tk in cohort_dereplication.
+        // already get trustworthy lineage from GTDB-Tk in dereplication.
         // Enable with --enable_contig_taxonomy true for exploratory analysis.
         def ch_mmseqs_lca = Channel.empty()
         if ( params.enable_contig_taxonomy ) {
@@ -245,7 +245,7 @@ workflow INTEGRATED_CLASSIFICATION {
         }
 
     emit:
-        // Bacterial binning artefacts (per-MAG taxonomy moves to cohort_dereplication)
+        // Bacterial binning artefacts (per-MAG taxonomy moves to dereplication)
         bins             = BACTERIAL_BINNING.out.bins
         bin_qc_summary   = BACTERIAL_BINNING.out.bin_qc_summary
         unbinned_contigs = EXTRACT_UNBINNED.out.unbinned

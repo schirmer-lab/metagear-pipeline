@@ -4,11 +4,11 @@ After `integrated_classification`, each sample's `classification/per_contig/<sam
 attributes contigs to Binette MAGs but does **not** carry species-level lineage —
 `integrated_classification` only knows a contig is in a MAG, not what species that MAG is.
 
-`cohort_dereplication` produces all the pieces needed to fill in the lineage:
+`dereplication` produces all the pieces needed to fill in the lineage:
 
-- **`cohort_dereplication/drep/data_tables/Cdb.csv`** — per-genome cluster table (each MAG → secondary cluster)
-- **`cohort_dereplication/drep/data_tables/Wdb.csv`** — cluster winners (cluster → representative genome)
-- **`cohort_dereplication/gtdbtk/gtdbtk.{bac120,ar53}.summary.tsv`** — GTDB-Tk classification of each cluster representative
+- **`dereplication/drep/data_tables/Cdb.csv`** — per-genome cluster table (each MAG → secondary cluster)
+- **`dereplication/drep/data_tables/Wdb.csv`** — cluster winners (cluster → representative genome)
+- **`dereplication/gtdbtk/gtdbtk.{bac120,ar53}.summary.tsv`** — GTDB-Tk classification of each cluster representative
 - **`assemblies/bins/<sample>/<sample>.contig_to_bin.tsv`** — per-sample contig → bin mapping (from Binette)
 - **`classification/per_contig/<sample>.contigs.tsv`** — per-sample per-contig classification (from MERGE_CONTIG_CLASSIFICATION)
 
@@ -28,9 +28,9 @@ SAMPLE  = "SAMPLE-0"
 
 per_contig_tsv = RESULTS / f"classification/per_contig/{SAMPLE}.contigs.tsv"
 c2b_tsv        = RESULTS / f"assemblies/bins/{SAMPLE}/{SAMPLE}.contig_to_bin.tsv"
-cdb_csv        = RESULTS / "cohort_dereplication/drep/data_tables/Cdb.csv"
-wdb_csv        = RESULTS / "cohort_dereplication/drep/data_tables/Wdb.csv"
-gtdb_summaries = sorted((RESULTS / "cohort_dereplication/gtdbtk").glob("gtdbtk.*.summary.tsv"))
+cdb_csv        = RESULTS / "dereplication/drep/data_tables/Cdb.csv"
+wdb_csv        = RESULTS / "dereplication/drep/data_tables/Wdb.csv"
+gtdb_summaries = sorted((RESULTS / "dereplication/gtdbtk").glob("gtdbtk.*.summary.tsv"))
 
 # ─── Load ──────────────────────────────────────────────────────────────────
 per_contig = pd.read_csv(per_contig_tsv, sep="\t")
@@ -72,10 +72,10 @@ import pandas as pd
 from pathlib import Path
 
 RESULTS = Path("/path/to/results")
-cdb     = pd.read_csv(RESULTS / "cohort_dereplication/drep/data_tables/Cdb.csv")
-wdb     = pd.read_csv(RESULTS / "cohort_dereplication/drep/data_tables/Wdb.csv")
+cdb     = pd.read_csv(RESULTS / "dereplication/drep/data_tables/Cdb.csv")
+wdb     = pd.read_csv(RESULTS / "dereplication/drep/data_tables/Wdb.csv")
 gtdb    = pd.concat([pd.read_csv(f, sep="\t")
-                     for f in (RESULTS / "cohort_dereplication/gtdbtk").glob("gtdbtk.*.summary.tsv")],
+                     for f in (RESULTS / "dereplication/gtdbtk").glob("gtdbtk.*.summary.tsv")],
                     ignore_index=True)
 
 # Pre-build a single bin_file -> gtdb_lineage map for the whole cohort
@@ -110,10 +110,10 @@ For thousands of samples / millions of contigs, where loading everything in pand
 is awkward:
 
 ```sql
-CREATE TABLE cdb  AS SELECT * FROM read_csv_auto('results/cohort_dereplication/drep/data_tables/Cdb.csv');
-CREATE TABLE wdb  AS SELECT * FROM read_csv_auto('results/cohort_dereplication/drep/data_tables/Wdb.csv');
+CREATE TABLE cdb  AS SELECT * FROM read_csv_auto('results/dereplication/drep/data_tables/Cdb.csv');
+CREATE TABLE wdb  AS SELECT * FROM read_csv_auto('results/dereplication/drep/data_tables/Wdb.csv');
 CREATE TABLE gtdb AS SELECT user_genome, classification
-                    FROM read_csv_auto('results/cohort_dereplication/gtdbtk/gtdbtk.*.summary.tsv',
+                    FROM read_csv_auto('results/dereplication/gtdbtk/gtdbtk.*.summary.tsv',
                                        union_by_name=true);
 
 -- bin file -> gtdb lineage lookup (cohort-wide)
@@ -156,5 +156,5 @@ have whatever signal MERGE_CONTIG_CLASSIFICATION provided (Tiara label, etc.).
 ## See also
 
 - `docs/workflows/integrated_classification.md` — per-contig TSV schema
-- `docs/workflows/cohort_dereplication.md` — cohort outputs (dRep tables, GTDB-Tk
+- `docs/workflows/dereplication.md` — cohort outputs (dRep tables, GTDB-Tk
   summaries, MAG catalog)
