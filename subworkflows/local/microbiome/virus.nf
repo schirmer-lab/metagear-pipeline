@@ -20,7 +20,7 @@ include { FIND_REPRESENTATIVES; MERGE_CLUSTER_ANNOTATIONS } from "$projectDir/mo
 
 include { COLLECT_TABLES } from "$projectDir/modules/local/metagear/mge/summarize"
 
-workflow VIRAL_ANALYSIS_INIT {
+workflow VIRUS_INIT {
 
     main:
         if ( params.input ) { ch_input = file(params.input) } else { exit 1, 'Input samplesheet not specified!' }
@@ -49,7 +49,7 @@ workflow VIRAL_ANALYSIS_INIT {
 }
 
 
-workflow VIRAL_ANALYSIS {
+workflow VIRUS {
 
     take:
         reads // [meta, reads(fast1, fas2)]

@@ -81,7 +81,7 @@ def create_input_channel(LinkedHashMap row, String input_type) {
     // The samplesheet's optional `biome` column is validated here (against the
     // SemiBin2 environment list) but intentionally NOT copied into meta.
     // Adding a key to meta would change every downstream task's cache hash for
-    // existing workflows that don't need biome (gene_analysis, viral_analysis,
+    // existing workflows that don't need biome (genes, virus,
     // microbial_profiles). The future bacterial_binning subworkflow will read
     // biome from the CSV directly in its _INIT and join it onto its reads
     // channel locally, scoping the meta change to just its own processes.

@@ -11,7 +11,7 @@ include { CLASSIFY_GENES                           } from "$projectDir/modules/l
 include { createExistingDirChannel; createExistingFileChannel } from "$projectDir/subworkflows/local/utils/existing_data"
 
 
-workflow INTEGRATED_CLASSIFICATION_INIT {
+workflow CLASSIFICATION_INIT {
 
     main:
         if ( !params.input ) { exit 1, 'Input samplesheet not specified!' }
@@ -24,7 +24,7 @@ workflow INTEGRATED_CLASSIFICATION_INIT {
         //                        post-Binette unbinned set (long-tail)
         //
         // GTDB-Tk DB is intentionally NOT loaded — per-MAG taxonomy moves
-        // into the dereplication iteration (dRep + GTDB-Tk on the
+        // into the mag iteration (dRep + GTDB-Tk on the
         // dereplicated representatives; standard cohort practice).
         genomad_db          = Channel.fromPath("${params.genomad_db}",          checkIfExists: true).first()
         checkv_db           = Channel.fromPath("${params.checkv_db}",           checkIfExists: true).first()
@@ -49,7 +49,7 @@ workflow INTEGRATED_CLASSIFICATION_INIT {
 }
 
 
-workflow INTEGRATED_CLASSIFICATION {
+workflow CLASSIFICATION {
 
     take:
         reads               // [meta, [r1, r2]]
@@ -93,7 +93,7 @@ workflow INTEGRATED_CLASSIFICATION {
         // FDR-passed viral + plasmid ID sets (asymmetric policy per handoff §2).
         // When --chromosome_dir bypasses this, viral/plasmid channels are empty
         // unless --viral_ids_dir / --plasmid_ids_dir restore them from disk
-        // (typical use: a prior viral_analysis run already published these
+        // (typical use: a prior virus run already published these
         // under results/virus/per_sample/, which the wrapper's auto-reuse
         // picks up).
         ch_chromosome_seqs   = Channel.empty()
@@ -121,7 +121,7 @@ workflow INTEGRATED_CLASSIFICATION {
         // Explicit override: if the user (or auto-reuse) passed --viral_ids_dir
         // / --plasmid_ids_dir, load those instead. Lets `--chromosome_dir` users
         // still classify virus/plasmid contigs in the per-contig TSV, and lets
-        // anyone preserve viral_analysis's MERGE_TABLES outputs across re-runs.
+        // anyone preserve virus's MERGE_TABLES outputs across re-runs.
         //
         // Per-sample subdir layout produced by viral_detection.config under
         //   results/virus/per_sample/<sample>/{virus,plasmid}.ids.txt
@@ -182,7 +182,7 @@ workflow INTEGRATED_CLASSIFICATION {
         // signal on unbinned contigs is low-confidence (single-protein hits,
         // sub-domain precision discarded by the merge anyway) and the
         // ~200 GiB GTDB DB makes it expensive. Bin-attributable contigs
-        // already get trustworthy lineage from GTDB-Tk in dereplication.
+        // already get trustworthy lineage from GTDB-Tk in mag.
         // Enable with --enable_contig_taxonomy true for exploratory analysis.
         def ch_mmseqs_lca = Channel.empty()
         if ( params.enable_contig_taxonomy ) {
@@ -224,11 +224,11 @@ workflow INTEGRATED_CLASSIFICATION {
 
         // ─── 8. Classify gene-catalog representatives by per-contig class ────
         // Cross-walks the per-contig primary_class onto the gene clusters TSV
-        // from gene_analysis. Opt-in: only fires when --gene_clusters_tsv is
-        // set (typically auto-injected by the wrapper when a prior gene_analysis
+        // from genes. Opt-in: only fires when --gene_clusters_tsv is
+        // set (typically auto-injected by the wrapper when a prior genes
         // run is detected). Produces classification/all.genes.clusters.classified.refined.tsv
         // — a clean re-derivation from per-contig signal; does NOT merge with
-        // viral_analysis's `.draft` aggregated TSV. multi_class flags clusters
+        // virus's `.draft` aggregated TSV. multi_class flags clusters
         // whose members span ≥2 primary_classes (potentially interesting biology
         // like HGT or auxiliary metabolic genes, not necessarily errors).
         ch_classified_genes = Channel.empty()
@@ -245,7 +245,7 @@ workflow INTEGRATED_CLASSIFICATION {
         }
 
     emit:
-        // Bacterial binning artefacts (per-MAG taxonomy moves to dereplication)
+        // Bacterial binning artefacts (per-MAG taxonomy moves to mag)
         bins             = BACTERIAL_BINNING.out.bins
         bin_qc_summary   = BACTERIAL_BINNING.out.bin_qc_summary
         unbinned_contigs = EXTRACT_UNBINNED.out.unbinned
@@ -259,7 +259,7 @@ workflow INTEGRATED_CLASSIFICATION {
         plasmid_sequences    = ch_plasmid_sequences
         chromosome_contigs   = ch_chromosome_seqs
 
-        // The integrated_classification headline deliverable: per-contig TSV
+        // The classification headline deliverable: per-contig TSV
         per_contig_tsv       = MERGE_CONTIG_CLASSIFICATION.out.tsv
 
         // Gene-catalog classification (empty channel unless --gene_clusters_tsv set)

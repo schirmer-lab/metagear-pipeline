@@ -1,4 +1,4 @@
-# gene_analysis
+# genes
 
 De novo gene-centric analysis: assemble reads, call genes, build a non-redundant gene catalog, quantify it back across all samples, and group genes into metagenomic species pangenomes (MSPs). Use this when you need a sample-specific gene catalog or want to characterize organisms that are not in the MetaPhlAn reference.
 
@@ -70,7 +70,7 @@ End-to-end run:
 
 ```bash
 nextflow run schirmer-lab/metagear -profile docker \
-  --workflow gene_analysis \
+  --workflow genes \
   --input clean.csv \
   --outdir genes/ \
   --metaphlan_db /data/metagear/metaphlan \
@@ -82,7 +82,7 @@ Re-running only the MSP stage after upstream steps have completed:
 
 ```bash
 nextflow run schirmer-lab/metagear -profile docker \
-  --workflow gene_analysis \
+  --workflow genes \
   --input clean.csv \
   --outdir genes/ \
   --metaphlan_profiles previous_run/metaphlan/individual_profiles/ \

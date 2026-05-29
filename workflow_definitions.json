@@ -34,7 +34,7 @@
               "name": "databases",
               "required": false,
               "default": "all",
-              "description": "Databases to install. Accepted values: all | gene_analysis | viral_analysis | contig_classification | mmseqs_taxonomy. Multiple values comma-separated. Default: all. The `contig_classification` group bundles CheckM2 + the MMseqs2 GTDB taxonomy DB; use `mmseqs_taxonomy` to pull only the latter."
+              "description": "Databases to install. Accepted values: all | genes | virus | contig_classification | mmseqs_taxonomy. Multiple values comma-separated. Default: all. The `contig_classification` group bundles CheckM2 + the MMseqs2 GTDB taxonomy DB; use `mmseqs_taxonomy` to pull only the latter."
             }
           ]
         },
@@ -77,7 +77,7 @@
           ]
         },
         {
-          "name": "gene_analysis",
+          "name": "genes",
           "description": "Gene centric analysis workflow",
           "parameters": [
             {
@@ -133,7 +133,7 @@
           ]
         },
         {
-          "name": "viral_analysis",
+          "name": "virus",
           "description": "Viral analysis workflow",
           "parameters": [
             {
@@ -179,7 +179,7 @@
           ]
         },
         {
-          "name": "integrated_classification",
+          "name": "classification",
           "description": "Integrated contig + MAG classification: assembly, viral/plasmid partition via geNomad, bacterial binning (SemiBin2 + MetaBAT2 + Binette + CheckM2), and GTDB-Tk taxonomy on MIMAG-passing bins. v1 minimum; contig fallback, plasmid typing, and per-contig TSV merge are deferred.",
           "parameters": [
             {
@@ -200,7 +200,7 @@
             {
               "name": "enable_contig_taxonomy",
               "required": false,
-              "description": "Run MMseqs2 easy-taxonomy on the unbinned chromosome partition to populate per-contig lineage in the merged TSV. Default false — disabled because per-contig LCA on unbinned contigs is low-confidence and the GTDB DB makes it expensive (requires task.memory >=96 GiB, hours per sample). Bin-attributable contigs already get trustworthy lineage from GTDB-Tk in dereplication; viral/plasmid contigs from geNomad. Enable only when you want exploratory sub-domain signal on the unbinned set."
+              "description": "Run MMseqs2 easy-taxonomy on the unbinned chromosome partition to populate per-contig lineage in the merged TSV. Default false — disabled because per-contig LCA on unbinned contigs is low-confidence and the GTDB DB makes it expensive (requires task.memory >=96 GiB, hours per sample). Bin-attributable contigs already get trustworthy lineage from GTDB-Tk in mag; viral/plasmid contigs from geNomad. Enable only when you want exploratory sub-domain signal on the unbinned set."
             },
             {
               "name": "mmseqs_taxonomy_db",
@@ -210,7 +210,7 @@
             {
               "name": "viral_ids_dir",
               "required": false,
-              "description": "Viral contig IDs directory (DIRECTORY: optional). Folder containing SAMPLE_ID_viral_ids_to_keep.txt files produced by a prior viral_analysis run (MERGE_TABLES output). Lets the per-contig TSV classify virus contigs even when --chromosome_dir bypassed VIRAL_DETECTION. Auto-discovered by --reuse-outputs."
+              "description": "Viral contig IDs directory (DIRECTORY: optional). Folder containing SAMPLE_ID_viral_ids_to_keep.txt files produced by a prior virus run (MERGE_TABLES output). Lets the per-contig TSV classify virus contigs even when --chromosome_dir bypassed VIRAL_DETECTION. Auto-discovered by --reuse-outputs."
             },
             {
               "name": "plasmid_ids_dir",
@@ -220,23 +220,59 @@
             {
               "name": "gene_clusters_tsv",
               "required": false,
-              "description": "Path to all.genes.clusters.tsv (from a prior gene_analysis run). When provided, integrated_classification cross-walks per-contig primary_class onto the gene catalog and emits clusters/all.genes.clusters.aggregated.refined.tsv with a multi_class flag for clusters whose members span multiple classes (e.g. shared between bacteria and virus — potentially HGT, AMGs, or other interesting biology). Clean re-derivation from per-contig signal; does NOT merge with viral_analysis's existing aggregated TSV. Auto-discovered by --reuse-outputs."
+              "description": "Path to all.genes.clusters.tsv (from a prior genes run). When provided, classification cross-walks per-contig primary_class onto the gene catalog and emits clusters/all.genes.clusters.aggregated.refined.tsv with a multi_class flag for clusters whose members span multiple classes (e.g. shared between bacteria and virus — potentially HGT, AMGs, or other interesting biology). Clean re-derivation from per-contig signal; does NOT merge with virus's existing aggregated TSV. Auto-discovered by --reuse-outputs."
             }
           ]
         },
         {
-          "name": "dereplication",
-          "description": "MAG dereplication and taxonomy assignment: dRep (skani backend) on per-sample Binette bins, GTDB-Tk on cluster representatives, coverm-genome MAG×sample abundance, and back-fill of integrated_classification's per-contig TSV with cohort lineage. Builds on a prior `integrated_classification` run; reads its bin and per-contig outputs from disk.",
+          "name": "msp",
+          "description": "MSP — MetaSpecies Pangenomes. MSPminer co-abundance clustering on the gene catalog, GTDB-Tk taxonomy on MSP representative sequences, and MetaPhlAn cross-walk. Builds on a prior `genes` run; reads the gene catalog and per-sample abundance matrices from disk.",
           "parameters": [
             {
               "name": "input",
               "required": true,
-              "description": "Input .csv file (samplesheet). Same shape as integrated_classification — the samplesheet is needed because abundance back-mapping uses the per-sample reads."
+              "description": "Input .csv file (samplesheet). Same shape as genes — needed so MetaPhlAn profiles can be computed when --metaphlan_profiles is not provided."
+            },
+            {
+              "name": "representative_genes",
+              "required": false,
+              "description": "Representative-genes catalog (FILE). Dereplicated genes from all samples. Required input — auto-discovered by --reuse-outputs from a prior `genes` run; pipeline-side INIT exits with a clear error if neither --reuse-outputs nor an explicit value supplies it."
+            },
+            {
+              "name": "representative_genes_count",
+              "required": false,
+              "description": "Representative-genes counts (FILE). Required input — auto-discovered by --reuse-outputs."
+            },
+            {
+              "name": "representative_genes_rpkm",
+              "required": false,
+              "description": "Representative-genes RPKM (FILE). Required input — auto-discovered by --reuse-outputs."
+            },
+            {
+              "name": "metaphlan_profiles",
+              "required": false,
+              "description": "MetaPhlAn profiles (if available). When omitted, profiles are computed from the samplesheet reads."
+            },
+            {
+              "name": "gtdb_tk_db",
+              "required": false,
+              "description": "Path to a GTDB-Tk database (R220 or compatible). Typically set globally in ~/.metagear/metagear.config."
+            }
+          ]
+        },
+        {
+          "name": "mag",
+          "description": "MAG mag and taxonomy assignment: dRep (skani backend) on per-sample Binette bins, GTDB-Tk on cluster representatives, coverm-genome MAG×sample abundance, and back-fill of classification's per-contig TSV with cohort lineage. Builds on a prior `classification` run; reads its bin and per-contig outputs from disk.",
+          "parameters": [
+            {
+              "name": "input",
+              "required": true,
+              "description": "Input .csv file (samplesheet). Same shape as classification — the samplesheet is needed because abundance back-mapping uses the per-sample reads."
             },
             {
               "name": "bins_dir",
               "required": false,
-              "description": "Per-sample Binette deliverables (DIRECTORY). Points at integrated_classification's `assemblies/bins/` parent directory. Each sample subdir contains `<sample>_binN.fa` (MAG FASTAs, --prefix-ed by Binette at source), `quality_report.tsv` (renamed from final_bins_quality_reports.tsv at publish time), and `contig_to_bin.tsv` (renamed from final_contig_to_bin.tsv). Auto-discovered by --reuse-outputs. The pipeline-side INIT still enforces this (exits with a clear error) if neither --reuse-outputs nor an explicit value supplies it."
+              "description": "Per-sample Binette deliverables (DIRECTORY). Points at classification's `assemblies/bins/` parent directory. Each sample subdir contains `<sample>_binN.fa` (MAG FASTAs, --prefix-ed by Binette at source), `quality_report.tsv` (renamed from final_bins_quality_reports.tsv at publish time), and `contig_to_bin.tsv` (renamed from final_contig_to_bin.tsv). Auto-discovered by --reuse-outputs. The pipeline-side INIT still enforces this (exits with a clear error) if neither --reuse-outputs nor an explicit value supplies it."
             },
             {
               "name": "gtdb_tk_db",

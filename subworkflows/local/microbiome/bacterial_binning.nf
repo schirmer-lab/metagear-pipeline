@@ -130,14 +130,14 @@ workflow BACTERIAL_BINNING {
         // runs than needed) and produces redundant calls because dRep at 95%
         // ANI is by construction the GTDB species threshold — every bin in a
         // dRep cluster maps to the same species. The canonical taxonomy step
-        // moves into the dereplication iteration: dRep dereplicates
+        // moves into the mag iteration: dRep dereplicates
         // across samples, then GTDB-Tk runs once on the representatives.
 
     emit:
         bins             = BINETTE.out.bins
         bin_qc_summary   = BINETTE.out.quality
         // The TRUE post-Binette unbinned set is computed in
-        // integrated_classification.nf via EXTRACT_UNBINNED (chromosome FASTA
+        // classification.nf via EXTRACT_UNBINNED (chromosome FASTA
         // minus all bin-member contig IDs). MetaBAT2's `.unbinned` is just
         // its own loose-bin set, not what the per-contig TSV needs.
         versions         = ch_versions

@@ -53,7 +53,7 @@ nextflow run schirmer-lab/metagear -profile docker \
   --kneaddata_refdb /data/metagear/kneaddata/Homo_sapiens
 ```
 
-After this, build a `clean.csv` pointing at the `kneaddata/<sample>_paired_{1,2}.fastq.gz` files and feed it to `microbial_profiles`, `gene_analysis`, or `viral_analysis`.
+After this, build a `clean.csv` pointing at the `kneaddata/<sample>_paired_{1,2}.fastq.gz` files and feed it to `microbial_profiles`, `genes`, or `virus`.
 
 ## Notes
 

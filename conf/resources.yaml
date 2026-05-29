@@ -98,7 +98,7 @@ processes:
   CLASSIFY_GENES: { label: process_low, cpus: 2, memory_gb: 8, time_h: 1, note: "Pure-python single-pass over the cohort gene clusters TSV (~1.2M rows / 90 MB on HMP2). Memory footprint dominated by the contig→class dict (millions of contigs × ~50 bytes ≈ few hundred MB)." }
   MMSEQS_DATABASES: { label: process_medium, cpus: 8, memory_gb: 32, time_h: 24, note: "One-time setup: downloads + indexes GTDB taxonomy DB via `mmseqs databases GTDB`. The 24h ceiling allows for ~30-50 GB download on a slow link plus index build." }
 
-  # === Cohort dereplication (v2) ===
+  # === Cohort mag (v2) ===
   STAGE_DREP_WORK: { label: process_single, cpus: 2, memory_gb: 4, time_h: 1, note: "Concat per-sample genomeInfo CSVs into a single cohort CSV staged inside drep_work_seed/." }
   DREP_DEREPLICATE: { label: process_high, cpus: 16, memory_gb: 64, time_h: 24, note: "All-vs-all skani similarity matrix scales O(N^2) in genome count; 64 GB tolerates ~2000 bins. --S_algorithm skani is fast vs ANImf. 24h is the cluster hard limit; if the cohort grows large enough that dRep can't finish in that window, batch the inputs (split bins into groups, dereplicate-within, then merge representatives in a final pass)." }
   BUILD_MAG_CATALOG: { label: process_low, cpus: 2, memory_gb: 8, time_h: 2, note: "seqkit-based header rename + concat of dRep winners; emits contig_to_mag.tsv for coverm genome." }

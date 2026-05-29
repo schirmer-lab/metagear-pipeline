@@ -12,43 +12,26 @@ include { ABUNDANCE } from "$projectDir/subworkflows/local/common/abundance"
 
 include { CLUSTER_SEQUENCES as CLUSTER_GENES; CLUSTER_SEQUENCES as CLUSTER_PROTEINS } from "$projectDir/subworkflows/local/common/clustering"
 
-include { MSP } from "$projectDir/subworkflows/local/pangenome/msp"
-
-workflow GENE_ANALYSIS_INIT {
+workflow GENES_INIT {
 
     main:
         if ( params.input ) { ch_input = file(params.input) } else { exit 1, 'Input samplesheet not specified!' }
 
-        gtdb_tk_db = Channel.fromPath("${params.gtdb_tk_db}", checkIfExists: true)
         amrfinder_db = Channel.fromPath("${params.amrfinder_db}", checkIfExists: true)
-
-        metaphlan_db = Channel.empty()
-
-        if ( params.metaphlan_profiles ) {
-            metaphlan_profiles = Channel.fromPath("${params.metaphlan_profiles}", checkIfExists: true)
-        } else {
-            metaphlan_db = Channel.fromPath("${params.metaphlan_db}", checkIfExists: true).first()
-            metaphlan_profiles = false
-        }
 
         INPUT_CHECK ( ch_input, "reads" )
 
     emit:
         validated_input = INPUT_CHECK.out.validated_input
-        metaphlan_profiles
-        gtdb_tk_db
-        metaphlan_db
         amrfinder_db
         versions = INPUT_CHECK.out.versions
 }
 
 
-workflow GENE_ANALYSIS {
+workflow GENES {
 
     take:
         clean_reads // [meta, reads]
-        metaphlan_profiles
-        gtdb_tk_db
         amrfinder_db
 
     main:
@@ -132,11 +115,6 @@ workflow GENE_ANALYSIS {
             ch_representative_genes_rpkm = ABUNDANCE.out.rpkm
             ch_representative_genes_tpm = ABUNDANCE.out.tpm
         }
-
-
-
-        MSP ( ch_representative_genes, ch_representative_genes_count, ch_representative_genes_rpkm, gtdb_tk_db, metaphlan_profiles )
-        // ch_versions =  ch_versions.mix(MSP.out.versions) //TODO: Needs fixing, not working properly
 
     emit:
         // TODO: implement emission of all other relevant channels

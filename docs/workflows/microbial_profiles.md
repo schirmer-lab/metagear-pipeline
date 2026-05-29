@@ -58,7 +58,7 @@ nextflow run schirmer-lab/metagear -profile docker \
   --humann3_uniref90 /data/metagear/humann/uniref90_diamond
 ```
 
-Reusing existing MetaPhlAn profiles (e.g. from a prior `gene_analysis` run that emitted them):
+Reusing existing MetaPhlAn profiles (e.g. from a prior `genes` run that emitted them):
 
 ```bash
 nextflow run schirmer-lab/metagear -profile docker \
@@ -72,7 +72,7 @@ nextflow run schirmer-lab/metagear -profile docker \
 
 ## Notes
 
-- **MetaPhlAn 4 is reference-based.** Species that are not in the marker database will not be reported, even if they are abundant in your sample. For novel-organism discovery, complement with [gene_analysis](gene_analysis.md).
+- **MetaPhlAn 4 is reference-based.** Species that are not in the marker database will not be reported, even if they are abundant in your sample. For novel-organism discovery, complement with [genes](genes.md).
 - **HUMAnN memory.** HUMAnN scales with diversity; 16 GB+ per sample is typical and large/diverse samples (e.g. soil) may need much more.
 - **CPM units.** `humann_renorm_table` is run with `--units cpm`. If you need RPK or relative abundance, post-process the merged tables with the HUMAnN utilities.
-- **Viral profiling is optional and reference-limited.** `--include_virus true` produces MetaPhlAn's VSC table; for de novo viral discovery use [viral_analysis](viral_analysis.md) instead.
+- **Viral profiling is optional and reference-limited.** `--include_virus true` produces MetaPhlAn's VSC table; for de novo viral discovery use [virus](virus.md) instead.

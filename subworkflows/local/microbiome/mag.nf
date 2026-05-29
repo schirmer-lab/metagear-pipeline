@@ -8,7 +8,7 @@ include { GATHER_GENOMES_DIR           } from "$projectDir/modules/local/cohort/
 include { GTDBTK_CLASSIFYWF            } from "$projectDir/modules/local/gtdbtk/classifywf/main"
 include { SUMMARIZE_MAG_CATALOG        } from "$projectDir/modules/local/cohort/summarize_mag_catalog"
 
-workflow DEREPLICATION_INIT {
+workflow MAG_INIT {
 
     main:
         if ( !params.input )    { exit 1, 'Input samplesheet not specified (--input)' }
@@ -17,7 +17,7 @@ workflow DEREPLICATION_INIT {
 
         gtdb_tk_db = Channel.fromPath("${params.gtdb_tk_db}", checkIfExists: true).first()
         // NOTE: param name `gtdb_tk_db` matches the rest of the pipeline
-        // (gene_analysis, MSP). See subworkflows/local/setup/databases.nf.
+        // (genes, MSP). See subworkflows/local/setup/databases.nf.
 
         INPUT_CHECK ( ch_input, "reads" )
         ch_reads = INPUT_CHECK.out.validated_input
@@ -55,7 +55,7 @@ workflow DEREPLICATION_INIT {
 }
 
 
-workflow DEREPLICATION {
+workflow MAG {
 
     take:
         reads               // [meta, [r1, r2]]
@@ -83,9 +83,9 @@ workflow DEREPLICATION {
 
         STAGE_DREP_WORK ( ch_all_qc )
 
-        // ─── 2. Cohort dereplication ─────────────────────────────────────────
+        // ─── 2. Cohort mag ─────────────────────────────────────────
         // ext.args carries `--S_algorithm skani --genomeInfo drep_work/genomeInfo.csv
-        // -comp 50 -con 10` (see conf/metagear/dereplication.config).
+        // -comp 50 -con 10` (see conf/metagear/mag.config).
         ch_drep_input = ch_all_bins.map { files -> [ [id: 'cohort'], files ] }
         ch_drep_work  = STAGE_DREP_WORK.out.drep_work.map { dir -> [ [id: 'drep_work'], dir ] }
         DREP_DEREPLICATE ( ch_drep_input, ch_drep_work )
@@ -135,7 +135,7 @@ workflow DEREPLICATION {
 
         // ─── 5a. GTDB-Tk on cluster representatives ──────────────────────────
         // dRep emits winners as <sample>.binette_binN.fa; classifywf's
-        // task.ext.extension is set to 'fa' in dereplication.config.
+        // task.ext.extension is set to 'fa' in mag.config.
         GATHER_GENOMES_DIR ( ch_drep_reps_list )
 
         ch_gtdbtk_in = GATHER_GENOMES_DIR.out.dir.combine( gtdb_tk_db )

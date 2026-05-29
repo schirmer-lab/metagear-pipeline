@@ -7,13 +7,15 @@ include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
 include { QUALITY_CONTROL_INIT; QUALITY_CONTROL } from "$projectDir/subworkflows/local/common/quality_control"
 include { MICROBIAL_PROFILES_INIT; MICROBIAL_PROFILES; METAPHLAN_PROFILES  } from "$projectDir/subworkflows/local/microbiome/microbial_profiles"
 
-include { GENE_ANALYSIS_INIT; GENE_ANALYSIS } from "$projectDir/subworkflows/local/microbiome/gene_analysis"
+include { GENES_INIT; GENES } from "$projectDir/subworkflows/local/microbiome/genes"
 
-include { VIRAL_ANALYSIS_INIT; VIRAL_ANALYSIS } from "$projectDir/subworkflows/local/microbiome/viral_analysis"
+include { VIRUS_INIT; VIRUS } from "$projectDir/subworkflows/local/microbiome/virus"
 
-include { INTEGRATED_CLASSIFICATION_INIT; INTEGRATED_CLASSIFICATION } from "$projectDir/subworkflows/local/microbiome/integrated_classification"
+include { CLASSIFICATION_INIT; CLASSIFICATION } from "$projectDir/subworkflows/local/microbiome/classification"
 
-include { DEREPLICATION_INIT; DEREPLICATION } from "$projectDir/subworkflows/local/microbiome/dereplication"
+include { MAG_INIT; MAG } from "$projectDir/subworkflows/local/microbiome/mag"
+
+include { MSP_INIT; MSP } from "$projectDir/subworkflows/local/pangenome/msp"
 
 /* --- RUN MAIN WORKFLOW --- */
 workflow METAGEAR {
@@ -51,8 +53,20 @@ workflow METAGEAR {
             ch_versions = MICROBIAL_PROFILES.out.versions
         }
 
-        if ( params.workflow == "gene_analysis" ) {
-            init = GENE_ANALYSIS_INIT ( )
+        if ( params.workflow == "genes" ) {
+            init = GENES_INIT ( )
+
+            GENES ( init.validated_input, init.amrfinder_db )
+            ch_versions = GENES.out.versions
+        }
+
+        // MSP — gene-centric species (MetaSpecies Pangenomes). MSPminer
+        // co-abundance clustering on the gene catalog, GTDB-Tk taxonomy on
+        // MSP representative sequences, and MetaPhlAn cross-walk. Builds on a
+        // prior `genes` run; reads the gene catalog and per-sample abundance
+        // matrices from disk.
+        if ( params.workflow == "msp" ) {
+            init = MSP_INIT ( )
 
             ch_metaphlan_profiles = Channel.empty()
             if ( init.metaphlan_profiles ) {
@@ -60,25 +74,31 @@ workflow METAGEAR {
                 ch_metaphlan_profiles = METAPHLAN_PROFILES.out.merged_profiles.map{ it[1] }
             }
 
-            GENE_ANALYSIS ( init.validated_input, ch_metaphlan_profiles, init.gtdb_tk_db, init.amrfinder_db )
-            ch_versions = GENE_ANALYSIS.out.versions
+            MSP (
+                init.representative_genes,
+                init.representative_genes_count,
+                init.representative_genes_rpkm,
+                init.gtdb_tk_db,
+                ch_metaphlan_profiles
+            )
+            ch_versions = MSP.out.versions
         }
 
-        if ( params.workflow == "viral_analysis" ) {
-            init = VIRAL_ANALYSIS_INIT ( )
+        if ( params.workflow == "virus" ) {
+            init = VIRUS_INIT ( )
 
-            VIRAL_ANALYSIS ( init.reads, init.genomad_db, init.checkv_db, init.pharokka_db, init.virsorter2_db, init.dram_db, init.iphop_db, init.amrfinder_db )
-            ch_versions = VIRAL_ANALYSIS.out.versions
+            VIRUS ( init.reads, init.genomad_db, init.checkv_db, init.pharokka_db, init.virsorter2_db, init.dram_db, init.iphop_db, init.amrfinder_db )
+            ch_versions = VIRUS.out.versions
         }
 
         // Integrated classification — v1 minimum: assembly + viral/plasmid
         // partitioning (geNomad) + bacterial binning (SemiBin2+MetaBAT2 →
         // Binette → CheckM2 → GTDB-Tk). Contig fallback, plasmid typing,
         // and per-contig TSV merge are deferred to a follow-up.
-        if ( params.workflow == "integrated_classification" ) {
-            init = INTEGRATED_CLASSIFICATION_INIT ( )
+        if ( params.workflow == "classification" ) {
+            init = CLASSIFICATION_INIT ( )
 
-            INTEGRATED_CLASSIFICATION (
+            CLASSIFICATION (
                 init.reads,
                 init.genomad_db,
                 init.checkv_db,
@@ -86,22 +106,22 @@ workflow METAGEAR {
                 init.mmseqs_taxonomy_db,
                 init.biome_lookup
             )
-            ch_versions = INTEGRATED_CLASSIFICATION.out.versions
+            ch_versions = CLASSIFICATION.out.versions
         }
 
         // Dereplication — v2: dRep (skani) on per-sample bins, GTDB-Tk
         // on cluster representatives, coverm-genome MAG×sample abundance, and
         // a cohort MAG catalog summary. Per-contig taxonomy enrichment is left
         // as a downstream pandas join — see docs/recipes/per-contig-taxonomy-enrichment.md.
-        if ( params.workflow == "dereplication" ) {
-            init = DEREPLICATION_INIT ( )
+        if ( params.workflow == "mag" ) {
+            init = MAG_INIT ( )
 
-            DEREPLICATION (
+            MAG (
                 init.reads,
                 init.bins_inputs,
                 init.gtdb_tk_db
             )
-            ch_versions = DEREPLICATION.out.versions
+            ch_versions = MAG.out.versions
         }
 
 

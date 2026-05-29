@@ -51,8 +51,8 @@ workflow ABUNDANCE {
                                 }
 
         // Branch on mode. The contig arm is byte-identical to the pre-mode flow
-        // (same process, same input channel) so existing gene_analysis /
-        // viral_analysis / msp -resume runs cache-hit.
+        // (same process, same input channel) so existing genes /
+        // virus / msp -resume runs cache-hit.
         if ( mode == 'genome' ) {
             // Attach the cohort-global contig→genome definition to every batch.
             // `combine` against a value/queue channel of one item broadcasts.

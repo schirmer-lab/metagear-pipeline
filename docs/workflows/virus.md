@@ -1,10 +1,10 @@
-# viral_analysis
+# virus
 
 End-to-end viral and plasmid analysis: detect viral/plasmid contigs from a metagenome assembly, cluster them into non-redundant catalogs, annotate them, predict their bacterial hosts, and identify auxiliary metabolic genes (AMGs). Use this when your question is about phages, plasmids, mobile genetic elements, or the metabolic functions viruses confer on their hosts.
 
 ## What it does
 
-1. **Assembly** — MEGAHIT, same as in [gene_analysis](gene_analysis.md). Skippable with `--contigs_dir`.
+1. **Assembly** — MEGAHIT, same as in [genes](genes.md). Skippable with `--contigs_dir`.
 2. **Two-pass viral detection.** geNomad and CheckV run in two passes:
    - **Pass 1** — `GENOMAD_PASS1` (`--cleanup --conservative --enable-score-calibration`) classifies viral and plasmid contigs; `CHECKV_PASS1` (`--remove_tmp`) trims host flanks and reports completeness.
    - **Pass 2** — runs again on the trimmed proviruses to recover viral signal that was masked by host sequence. Outputs are merged and filtered through ICTV taxonomy.
@@ -21,7 +21,7 @@ The two-pass geNomad + CheckV is the central novelty: it recovers viral sequence
 ## Inputs
 
 - `--input` — samplesheet of QC'd reads.
-- Databases: `--genomad_db`, `--checkv_db`, `--virsorter2_db`, `--pharokka_db`, `--dram_db`, `--iphop_db`, `--amrfinder_db` (from [download_databases](download_databases.md) with `--databases viral_analysis` or `all`).
+- Databases: `--genomad_db`, `--checkv_db`, `--virsorter2_db`, `--pharokka_db`, `--dram_db`, `--iphop_db`, `--amrfinder_db` (from [download_databases](download_databases.md) with `--databases virus` or `all`).
 
 ## Parameters
 
@@ -54,7 +54,7 @@ The two-pass geNomad + CheckV is the central novelty: it recovers viral sequence
 | `catalogs/contigs/virus.contigs.clusters.tsv`         | Viral contig cluster membership.                                       |
 | `catalogs/contigs/plasmid.contigs.representative.fa.gz` | **Non-redundant plasmid catalog.**                                   |
 | `catalogs/contigs/plasmid.contigs.clusters.tsv`       | Plasmid contig cluster membership.                                     |
-| `catalogs/genes/all.genes.representative.fa.gz`       | Cohort gene catalog (same form as `gene_analysis`).                    |
+| `catalogs/genes/all.genes.representative.fa.gz`       | Cohort gene catalog (same form as `genes`).                    |
 | `catalogs/genes/all.genes.clusters.tsv`               | Cohort gene cluster membership.                                        |
 | `catalogs/genes/virus.genes.representative.fa.gz`     | Virus-only gene catalog.                                               |
 | `catalogs/genes/virus.genes.clusters.tsv`             | Virus-only gene cluster membership.                                    |
@@ -98,7 +98,7 @@ The bolded rows are the primary deliverables for most downstream analyses.
 
 ```bash
 nextflow run schirmer-lab/metagear -profile docker \
-  --workflow viral_analysis \
+  --workflow virus \
   --input clean.csv \
   --outdir viruses/ \
   --genomad_db /data/metagear/genomad \
@@ -110,11 +110,11 @@ nextflow run schirmer-lab/metagear -profile docker \
   --amrfinder_db /data/metagear/amrfinder
 ```
 
-Sharing an assembly with a prior `gene_analysis` run:
+Sharing an assembly with a prior `genes` run:
 
 ```bash
 nextflow run schirmer-lab/metagear -profile docker \
-  --workflow viral_analysis \
+  --workflow virus \
   --input clean.csv \
   --outdir viruses/ \
   --contigs_dir prior_run/assembly/ \

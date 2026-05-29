@@ -64,7 +64,7 @@ process VIRSORTER2 {
   # ---------- Provenance (robust to set -e) ----------
   VS2_VER="\$(virsorter --version 2>/dev/null | awk '{print \$NF}' || echo unknown)"
   cat <<-END_VERSIONS > versions.yml
-  "METAGEAR:VIRAL_ANALYSIS:VIRAL_ANNOTATION:VIRSORTER2${args2}":
+  "METAGEAR:VIRUS:VIRAL_ANNOTATION:VIRSORTER2${args2}":
     VirSorter2: \${VS2_VER}
   END_VERSIONS
   """

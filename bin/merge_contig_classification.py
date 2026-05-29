@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Merge per-contig classification evidence into a single TSV per sample.
 
-Consumes evidence from the integrated_classification chain:
+Consumes evidence from the classification chain:
 
     * Assembly contigs FASTA — defines the universe of contig_ids + lengths
     * Viral IDs (one ID per line, optional ``seq_name`` header) — from MERGE_TABLES
@@ -15,7 +15,7 @@ Priority for ``primary_class`` (highest to lowest, first match wins):
     1. ``virus``     — contig in viral_ids
     2. ``plasmid``   — contig in plasmid_ids
     3. ``bacteria``  — contig is a member of a Binette bin (assume bacteria;
-                       v2 dereplication + GTDB-Tk will refine into
+                       v2 mag + GTDB-Tk will refine into
                        bacteria vs archaea)
     4. ``eukaryote`` — Tiara called it eukarya
     5. ``archaea``   — Tiara called it archaea AND no bin/virus/plasmid above
@@ -323,7 +323,7 @@ def merge(
                 classifier = "genomad"
             elif contig_id in bin_membership:
                 # v1: every Binette bin is assumed bacterial (we filter at MIMAG
-                # MQ+ which is a bacterial-MAG threshold). v2 dereplication
+                # MQ+ which is a bacterial-MAG threshold). v2 mag
                 # + GTDB-Tk will refine bacteria vs archaea at the species level.
                 primary_class = "bacteria"
                 classifier = "binette"

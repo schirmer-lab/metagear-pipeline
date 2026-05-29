@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Classify each gene-catalog representative by the contig classes of its members.
 
-Reads per-sample per-contig TSVs from integrated_classification (contig_id →
+Reads per-sample per-contig TSVs from classification (contig_id →
 primary_class), streams the gene cluster TSV (rep<TAB>member), and emits one
 row per representative with the set of primary_classes seen across members,
 per-class counts, and the representative's own contig class.
@@ -29,7 +29,7 @@ Output schema (TSV):
                   clusters where every member has a real classification.
 
 This is a clean re-derivation from per-contig signal; it does NOT merge with
-viral_analysis's `.draft` aggregated TSV. The per-contig TSV's `primary_class`
+virus's `.draft` aggregated TSV. The per-contig TSV's `primary_class`
 is treated as authoritative.
 
 Gene IDs are assumed to be `<contig>::<idx>::<start>::<stop>::<strand>` so the
@@ -172,7 +172,7 @@ def classify(contig_class: Dict[str, str], clusters_tsv: Path, out_path: Path) -
 def _parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
     p.add_argument("--per-contig-tsvs", required=True, nargs="+", type=Path,
-                   help="One or more per-sample per-contig TSVs from integrated_classification.")
+                   help="One or more per-sample per-contig TSVs from classification.")
     p.add_argument("--clusters-tsv", required=True, type=Path,
                    help="Full gene cluster TSV (rep<TAB>member).")
     p.add_argument("--output", required=True, type=Path)

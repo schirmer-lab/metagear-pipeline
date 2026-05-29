@@ -61,7 +61,7 @@ workflow DATABASES {
         ch_versions = Channel.empty()
         ch_databases_data = Channel.empty()
 
-        if ( params.databases == "all" || params.databases.contains("gene_analysis") ) {
+        if ( params.databases == "all" || params.databases.contains("genes") ) {
 
             kneaddata = KNEADDATA_DATABASE( ch_kneaddata_databases )
             ch_versions = ch_versions.mix( kneaddata.versions )
@@ -84,7 +84,7 @@ workflow DATABASES {
                                 .concat( gtdbtk.database )
         }
 
-        if ( params.databases == "all" || params.databases.contains("viral_analysis") ) {
+        if ( params.databases == "all" || params.databases.contains("virus") ) {
 
             genomad = GENOMAD_DOWNLOAD ( )
             ch_genomad_database = genomad.genomad_db.map { [ "genomad", it ] }
@@ -133,7 +133,7 @@ workflow DATABASES {
 
         }
 
-        // MMseqs2 taxonomy DB (used by INTEGRATED_CLASSIFICATION's contig fallback).
+        // MMseqs2 taxonomy DB (used by CLASSIFICATION's contig fallback).
         // Triggered both by the umbrella "contig_classification" group AND by the
         // dedicated "mmseqs_taxonomy" group, so `--databases mmseqs_taxonomy` pulls
         // only this one DB.
