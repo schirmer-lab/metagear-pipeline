@@ -6,6 +6,7 @@ include { TIARA_TIARA                              } from "$projectDir/modules/n
 include { EXTRACT_UNBINNED                         } from "$projectDir/modules/local/binette/extract_unbinned/main"
 include { MMSEQS_EASYTAXONOMY                      } from "$projectDir/modules/local/mmseqs/easytaxonomy/main"
 include { MERGE_CONTIG_CLASSIFICATION              } from "$projectDir/modules/local/metagear/mge/merge_contig_classification"
+include { CLASSIFY_GENES                           } from "$projectDir/modules/local/metagear/mge/classify_genes"
 
 include { createExistingDirChannel; createExistingFileChannel } from "$projectDir/subworkflows/local/utils/existing_data"
 
@@ -68,16 +69,20 @@ workflow INTEGRATED_CLASSIFICATION {
         def empty_file = file("$projectDir/assets/empty.txt", checkIfExists: true)
 
         // ─── 1. Assemble reads → contigs ─────────────────────────────────────
-        // --contigs_dir   skips reassembly (uses a prior MEGAHIT run on disk)
-        // --chromosome_dir skips both assembly AND VIRAL_DETECTION; in that
-        // case ch_contigs is empty and Tiara + MERGE downstream fall back to
-        // ch_chromosome_seqs as their reference contigs.
+        // Load full-assembly contigs whenever we can:
+        //   --contigs_dir set    → load from disk (skip ASSEMBLY)
+        //   --chromosome_dir set without contigs_dir → no full assembly available;
+        //                          ch_contigs stays empty and Tiara + MERGE fall
+        //                          back to ch_chromosome_seqs as their reference.
+        //   neither set         → run ASSEMBLY.
+        // Having ch_contigs populated even when --chromosome_dir bypasses
+        // VIRAL_DETECTION lets Tiara see virus + plasmid contigs (not just the
+        // chromosome partition), which is needed for conflict detection in the
+        // per-contig TSV (genomad-vs-Tiara disagreements on the viral set).
         ch_contigs = Channel.empty()
-        if ( params.chromosome_dir ) {
-            // ch_contigs stays empty; no consumer downstream of VIRAL_DETECTION needs it.
-        } else if ( params.contigs_dir ) {
+        if ( params.contigs_dir ) {
             ch_contigs = createExistingDirChannel ( params.contigs_dir, "*.contigs.fa.gz", ".contigs.fa", false )
-        } else {
+        } else if ( !params.chromosome_dir ) {
             ASSEMBLY ( reads )
             ch_versions = ch_versions.mix( ASSEMBLY.out.versions.first() )
             ch_contigs = ASSEMBLY.out.contigs
@@ -143,13 +148,16 @@ workflow INTEGRATED_CLASSIFICATION {
 
         // ─── 4. Eukaryote screen (label-only in v1) ──────────────────────────
         // Tiara assigns each contig one of {archaea, bacteria, eukarya, organelle,
-        // unknown}. Skipped when --chromosome_dir bypassed assembly+detection
-        // (no full-assembly contigs available).
-        ch_tiara_labels = Channel.empty()
-        if ( !params.chromosome_dir ) {
-            TIARA_TIARA ( ch_contigs )
-            ch_tiara_labels = TIARA_TIARA.out.classifications
-        }
+        // unknown}. Run on the full assembly when available so virus + plasmid
+        // contigs are also labelled — that's what lets the per-contig TSV
+        // surface genomad-vs-Tiara disagreements (e.g. a eukaryotic transposon
+        // false-positively flagged as viral by genomad).
+        // Falls back to ch_chromosome_seqs only when --chromosome_dir is set
+        // without --contigs_dir (no full assembly to use).
+        def has_full_contigs = ( !params.chromosome_dir || params.contigs_dir )
+        def ch_tiara_input   = has_full_contigs ? ch_contigs : ch_chromosome_seqs
+        TIARA_TIARA ( ch_tiara_input )
+        ch_tiara_labels = TIARA_TIARA.out.classifications
 
         // ─── 5. Compute the true post-Binette unbinned contigs ───────────────
         // Subtract bin-member contig IDs from the chromosome FASTA. For a
@@ -168,13 +176,20 @@ workflow INTEGRATED_CLASSIFICATION {
         EXTRACT_UNBINNED ( ch_extract_input )
         ch_versions = ch_versions.mix( EXTRACT_UNBINNED.out.versions.first() )
 
-        // ─── 6. MMseqs2 easy-taxonomy on the unbinned contigs ────────────────
+        // ─── 6. MMseqs2 easy-taxonomy on the unbinned contigs (opt-in) ───────
         // Provides contig-level taxonomy for the long-tail of chromosome
-        // contigs that didn't reach an MQ+ bin. EXTRACT_UNBINNED.out.unbinned
-        // is optional:true — samples with zero unbinned contigs silently skip
-        // this step.
-        MMSEQS_EASYTAXONOMY ( EXTRACT_UNBINNED.out.unbinned, mmseqs_taxonomy_db )
-        ch_versions = ch_versions.mix( MMSEQS_EASYTAXONOMY.out.versions.first() )
+        // contigs that didn't reach an MQ+ bin. Off by default — the LCA
+        // signal on unbinned contigs is low-confidence (single-protein hits,
+        // sub-domain precision discarded by the merge anyway) and the
+        // ~200 GiB GTDB DB makes it expensive. Bin-attributable contigs
+        // already get trustworthy lineage from GTDB-Tk in cohort_dereplication.
+        // Enable with --enable_contig_taxonomy true for exploratory analysis.
+        def ch_mmseqs_lca = Channel.empty()
+        if ( params.enable_contig_taxonomy ) {
+            MMSEQS_EASYTAXONOMY ( EXTRACT_UNBINNED.out.unbinned, mmseqs_taxonomy_db )
+            ch_versions   = ch_versions.mix( MMSEQS_EASYTAXONOMY.out.versions.first() )
+            ch_mmseqs_lca = MMSEQS_EASYTAXONOMY.out.lca
+        }
 
         // ─── 7. Per-contig classification TSV ────────────────────────────────
         // Joins all evidence channels by sample id (String key, since metas
@@ -183,9 +198,12 @@ workflow INTEGRATED_CLASSIFICATION {
         // / non-directory inputs as empty evidence sets.
         //
         // Reference contigs are the FULL assembly when available (covers
-        // viral/plasmid/chromosome all); when --chromosome_dir bypassed
-        // assembly+detection, fall back to chromosome contigs only.
-        def ch_ref_contigs = params.chromosome_dir ? ch_chromosome_seqs : ch_contigs
+        // viral/plasmid/chromosome all). Only when --chromosome_dir is set
+        // WITHOUT --contigs_dir do we lack the full assembly and fall back to
+        // the chromosome partition. Same rule as the Tiara routing above —
+        // when full contigs are loaded, virus + plasmid rows appear in the
+        // TSV and the evidence columns can flag genomad-vs-Tiara conflicts.
+        def ch_ref_contigs = has_full_contigs ? ch_contigs : ch_chromosome_seqs
 
         ch_merge_input = ch_ref_contigs
             .map { meta, fa -> [meta.id, meta, fa] }
@@ -193,9 +211,9 @@ workflow INTEGRATED_CLASSIFICATION {
             .map { i -> [i[0], i[1], i[2], i[3] ?: empty_file] }
             .join( ch_plasmid_ids.map                        { meta, f -> [meta.id, f] }, by: 0, remainder: true )
             .map { i -> [i[0], i[1], i[2], i[3], i[4] ?: empty_file] }
-            .join( BACTERIAL_BINNING.out.bins_dir.map        { meta, d -> [meta.id, d] }, by: 0, remainder: true )
+            .join( BACTERIAL_BINNING.out.bins.map            { meta, files -> [meta.id, files] }, by: 0, remainder: true )
             .map { i -> [i[0], i[1], i[2], i[3], i[4], i[5] ?: empty_file] }
-            .join( MMSEQS_EASYTAXONOMY.out.lca.map           { meta, f -> [meta.id, f] }, by: 0, remainder: true )
+            .join( ch_mmseqs_lca.map                         { meta, f -> [meta.id, f] }, by: 0, remainder: true )
             .map { i -> [i[0], i[1], i[2], i[3], i[4], i[5], i[6] ?: empty_file] }
             .join( ch_tiara_labels.map                       { meta, f -> [meta.id, f] }, by: 0, remainder: true )
             .map { i -> [i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7] ?: empty_file] }
@@ -204,16 +222,37 @@ workflow INTEGRATED_CLASSIFICATION {
         MERGE_CONTIG_CLASSIFICATION ( ch_merge_input )
         ch_versions = ch_versions.mix( MERGE_CONTIG_CLASSIFICATION.out.versions.first() )
 
+        // ─── 8. Classify gene-catalog representatives by per-contig class ────
+        // Cross-walks the per-contig primary_class onto the gene clusters TSV
+        // from gene_analysis. Opt-in: only fires when --gene_clusters_tsv is
+        // set (typically auto-injected by the wrapper when a prior gene_analysis
+        // run is detected). Produces classification/all.genes.clusters.classified.refined.tsv
+        // — a clean re-derivation from per-contig signal; does NOT merge with
+        // viral_analysis's `.draft` aggregated TSV. multi_class flags clusters
+        // whose members span ≥2 primary_classes (potentially interesting biology
+        // like HGT or auxiliary metabolic genes, not necessarily errors).
+        ch_classified_genes = Channel.empty()
+        if ( params.gene_clusters_tsv ) {
+            def gene_clusters_file = file(params.gene_clusters_tsv, checkIfExists: true)
+            ch_classify_input = MERGE_CONTIG_CLASSIFICATION.out.tsv
+                .map { meta, tsv -> tsv }
+                .collect()
+                .map { tsvs -> [ [id: 'all.genes'], tsvs, gene_clusters_file ] }
+
+            CLASSIFY_GENES ( ch_classify_input )
+            ch_versions         = ch_versions.mix( CLASSIFY_GENES.out.versions )
+            ch_classified_genes = CLASSIFY_GENES.out.classified
+        }
+
     emit:
         // Bacterial binning artefacts (per-MAG taxonomy moves to cohort_dereplication)
         bins             = BACTERIAL_BINNING.out.bins
-        bins_dir         = BACTERIAL_BINNING.out.bins_dir
         bin_qc_summary   = BACTERIAL_BINNING.out.bin_qc_summary
         unbinned_contigs = EXTRACT_UNBINNED.out.unbinned
 
         // Eukaryote labels and contig-fallback taxonomy
         tiara_labels         = ch_tiara_labels
-        contig_taxonomy_lca  = MMSEQS_EASYTAXONOMY.out.lca
+        contig_taxonomy_lca  = ch_mmseqs_lca
 
         // Pass-through for downstream / external consumers
         viral_sequences      = ch_viral_sequences
@@ -222,6 +261,9 @@ workflow INTEGRATED_CLASSIFICATION {
 
         // The integrated_classification headline deliverable: per-contig TSV
         per_contig_tsv       = MERGE_CONTIG_CLASSIFICATION.out.tsv
+
+        // Gene-catalog classification (empty channel unless --gene_clusters_tsv set)
+        classified_genes      = ch_classified_genes
 
         versions = ch_versions
 }

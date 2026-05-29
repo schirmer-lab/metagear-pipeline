@@ -135,7 +135,6 @@ workflow BACTERIAL_BINNING {
 
     emit:
         bins             = BINETTE.out.bins
-        bins_dir         = BINETTE.out.bins_dir
         bin_qc_summary   = BINETTE.out.quality
         // The TRUE post-Binette unbinned set is computed in
         // integrated_classification.nf via EXTRACT_UNBINNED (chromosome FASTA

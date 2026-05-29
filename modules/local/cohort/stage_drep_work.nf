@@ -7,17 +7,29 @@ process STAGE_DREP_WORK {
         'https://depot.galaxyproject.org/singularity/coreutils:9.5':
         'biocontainers/coreutils:9.5' }"
 
-    // Concatenates per-sample genomeInfo CSVs (from PREPARE_DREP_INPUTS) into
-    // a single cohort-level CSV and stages it inside a `drep_work_seed/`
-    // directory. The DREP_DEREPLICATE module accepts this directory through
-    // its second input slot (`tuple val(meta2), path(drep_work, stageAs:
-    // 'drep_work/')`), so the cohort CSV lands at `drep_work/genomeInfo.csv`
-    // inside dRep's work directory. ext.args on DREP_DEREPLICATE then points
-    // `--genomeInfo drep_work/genomeInfo.csv`, letting dRep skip its internal
-    // CheckM run.
+    // Builds the cohort-level genomeInfo CSV that dRep consumes via
+    // --genomeInfo. Reads per-sample Binette QC TSVs directly (eliminating
+    // the now-redundant PREPARE_DREP_INPUTS per-sample CSV slice step that
+    // previously sat between BINETTE and here) and transforms in one pass:
+    //
+    //   Binette QC TSV cols: 1=name 2=origin 3=is_original 4=original_name
+    //                       5=completeness 6=contamination 7=score ...
+    //   dRep genomeInfo CSV: genome,completeness,contamination
+    //
+    // Binette is invoked with `--prefix <sample>` upstream, so col 1 already
+    // reads `<sample>_binN` (matches the FASTA filename minus `.fa`). The
+    // awk just needs to append `.fa` and reorder.
+    //
+    // The CSV lands at `drep_work_seed/genomeInfo.csv` and gets staged inside
+    // dRep's work directory through DREP_DEREPLICATE's second input slot
+    // (`stageAs: 'drep_work/'`). ext.args on DREP_DEREPLICATE then points
+    // `--genomeInfo drep_work/genomeInfo.csv`, letting dRep skip CheckM.
 
     input:
-    path csvs   // collected list of per-sample <sample>_ginfo.csv
+    // Per-sample QC TSVs are published as `<sample>.quality_report.tsv` so
+    // filenames are globally unique and self-descriptive when shared. They
+    // stage cleanly here as a flat list.
+    path qc_tsvs
 
     output:
     // Plain path — Nextflow's parser refuses map literals inside val() at
@@ -32,11 +44,10 @@ process STAGE_DREP_WORK {
     script:
     """
     mkdir -p drep_work_seed
-    # Take the header from the first file; concat data rows from all.
-    csvs_arr=( ${csvs} )
-    head -n1 "\${csvs_arr[0]}" > drep_work_seed/genomeInfo.csv
-    for f in ${csvs}; do
-        tail -n +2 "\$f" >> drep_work_seed/genomeInfo.csv
-    done
+    awk -F'\\t' -v OFS=',' '
+        BEGIN { print "genome,completeness,contamination" }
+        FNR==1 { next }
+        { print \$1 ".fa", \$5, \$6 }
+    ' ${qc_tsvs} > drep_work_seed/genomeInfo.csv
     """
 }

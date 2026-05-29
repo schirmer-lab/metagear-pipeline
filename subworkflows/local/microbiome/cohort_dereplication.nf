@@ -1,26 +1,18 @@
 include { INPUT_CHECK                  } from "$projectDir/subworkflows/local/common/input_check"
 include { ABUNDANCE                    } from "$projectDir/subworkflows/local/common/abundance"
 
-include { PREPARE_DREP_INPUTS          } from "$projectDir/modules/local/cohort/prepare_drep_inputs"
 include { STAGE_DREP_WORK              } from "$projectDir/modules/local/cohort/stage_drep_work"
 include { DREP_DEREPLICATE             } from "$projectDir/modules/nf-core/drep/dereplicate/main"
 include { BUILD_MAG_CATALOG            } from "$projectDir/modules/local/cohort/build_mag_catalog"
 include { GATHER_GENOMES_DIR           } from "$projectDir/modules/local/cohort/gather_genomes_dir"
 include { GTDBTK_CLASSIFYWF            } from "$projectDir/modules/local/gtdbtk/classifywf/main"
-include { ENRICH_PER_CONTIG_TSV        } from "$projectDir/modules/local/cohort/enrich_per_contig"
 include { SUMMARIZE_MAG_CATALOG        } from "$projectDir/modules/local/cohort/summarize_mag_catalog"
-
-include { createExistingDirChannel } from "$projectDir/subworkflows/local/utils/existing_data"
-
 
 workflow COHORT_DEREPLICATION_INIT {
 
     main:
         if ( !params.input )    { exit 1, 'Input samplesheet not specified (--input)' }
         if ( !params.bins_dir ) { exit 1, 'Bin directory not specified (--bins_dir)' }
-        if ( !params.per_contig_tsv_dir ) {
-            exit 1, 'Per-contig TSV directory not specified (--per_contig_tsv_dir)'
-        }
         ch_input = file(params.input)
 
         gtdb_tk_db = Channel.fromPath("${params.gtdb_tk_db}", checkIfExists: true).first()
@@ -31,40 +23,33 @@ workflow COHORT_DEREPLICATION_INIT {
         ch_reads = INPUT_CHECK.out.validated_input
 
         // ─── Per-sample Binette outputs ──────────────────────────────────────
-        // bacterial_binning.config publishes the per-sample MAG deliverables to:
-        //   ${outdir}/assemblies/bins/<sample>/binette_binN.fa     (MAGs)
-        //   ${outdir}/assemblies/bins/<sample>/quality_report.tsv  (Binette QC)
-        //   ${outdir}/assemblies/bins/<sample>/contig_to_bin.tsv   (contig→bin map)
-        // params.bins_dir points at the `assemblies/bins/` parent.
-        //
-        // `bins` is the per-sample subdir itself (a directory of *.fa) rather
-        // than a separate final_bins/ subdir under it.
+        // bacterial_binning.config publishes BINETTE's per-sample deliverables
+        // (renamed and flattened) to:
+        //   ${outdir}/assemblies/bins/<sample>/
+        //     ├── <sample>_binN.fa                  (MAGs, --prefix-ed by Binette)
+        //     ├── <sample>.quality_report.tsv       (renamed at publish time;
+        //     │                                      sample-prefixed so cohort
+        //     │                                      collection doesn't collide)
+        //     └── <sample>.contig_to_bin.tsv        (renamed at publish time;
+        //                                            sample-prefixed for the
+        //                                            same reason)
+        // params.bins_dir points at the `assemblies/bins/` parent. The
+        // sample subdir holds the .fa files at top level — no final_bins/
+        // nesting — so the cohort step below globs them directly.
+        // The c2b path (sample contig_to_bin.tsv) was previously surfaced
+        // here for ENRICH_PER_CONTIG_TSV; that step was dropped (see comment
+        // in the main workflow below) so we no longer need it in the tuple.
         ch_bins_inputs = ch_reads
             .map { meta, _reads ->
-                def base = file("${params.bins_dir}/${meta.id}")
-                def qc   = file("${base}/quality_report.tsv")
-                def c2b  = file("${base}/contig_to_bin.tsv")
-                // `bins` was historically the final_bins/ subdir; with the
-                // new layout the FASTAs sit directly under <sample>/. Pass
-                // the same dir, and PREPARE_DREP_INPUTS globs `*.fa` in it.
-                return [meta, base, qc, c2b]
+                def sample_root = file("${params.bins_dir}/${meta.id}")
+                def qc          = file("${sample_root}/${meta.id}.quality_report.tsv")
+                return [meta, sample_root, qc]
             }
-            .filter { _meta, base, qc, _c2b -> base.isDirectory() && qc.exists() }
-
-        // ─── Per-sample v1 per-contig TSVs ───────────────────────────────────
-        // Flat layout from MERGE_CONTIG_CLASSIFICATION's publishDir:
-        //   ${outdir}/integrated_classification/per_contig/<sample>.contigs.tsv
-        ch_per_contig_tsv = createExistingDirChannel(
-            params.per_contig_tsv_dir,
-            "*.contigs.tsv",
-            ".contigs",
-            null
-        )
+            .filter { _meta, bins, qc -> bins.isDirectory() && qc.exists() }
 
     emit:
         reads          = ch_reads
         bins_inputs    = ch_bins_inputs
-        per_contig_tsv = ch_per_contig_tsv
         gtdb_tk_db
         versions       = INPUT_CHECK.out.versions
 }
@@ -74,36 +59,29 @@ workflow COHORT_DEREPLICATION {
 
     take:
         reads               // [meta, [r1, r2]]
-        bins_inputs         // [meta, bins_dir, qc_tsv, contig_to_bin_tsv]
-        per_contig_tsv      // [meta, contigs.tsv]   from v1
+        bins_inputs         // [meta, bins_dir, qc_tsv]
         gtdb_tk_db
 
     main:
         ch_versions = Channel.empty()
 
-        // ─── 1. Per-sample renamer + genomeInfo slice ────────────────────────
-        // PREPARE_DREP_INPUTS prefixes each bin with the sample ID and emits
-        // the matching genomeInfo CSV slice (genome,completeness,contamination)
-        // for dRep's --genomeInfo. Bins dir is staged whole; QC is staged as a
-        // file.
-        PREPARE_DREP_INPUTS (
-            bins_inputs.map { meta, bins_dir, qc, _c2b -> [meta, bins_dir, qc] }
-        )
-
-        // Collect ALL renamed bins across samples into a single flat list for
-        // dRep (which needs every genome FASTA in one directory).
-        ch_all_bins = PREPARE_DREP_INPUTS.out.bins
-                            .map { _meta, files -> files }
+        // ─── 1. Collect cohort bins + cohort genomeInfo CSV ──────────────────
+        // Bins are globally unique already (BINETTE was invoked with
+        // `--prefix <sample>`), so no per-sample rename step is needed —
+        // PREPARE_DREP_INPUTS used to handle that, plus a per-sample QC TSV →
+        // genomeInfo CSV slice. Both have been absorbed: bins are globbed
+        // directly from the published sample dirs, and STAGE_DREP_WORK now
+        // does the CSV transformation in one cohort-level pass.
+        ch_all_bins = bins_inputs
+                            .map { _meta, sample_root, _qc -> files("${sample_root}/*.fa") }
+                            .flatten()
                             .collect()
 
-        // Concatenate per-sample genomeInfo CSVs into a single cohort-level
-        // CSV staged inside drep_work_seed/ for DREP_DEREPLICATE's second
-        // input slot.
-        ch_per_sample_ginfo = PREPARE_DREP_INPUTS.out.genome_info
-                                    .map { _meta, csv -> csv }
-                                    .collect()
+        ch_all_qc = bins_inputs
+                            .map { _meta, _root, qc -> qc }
+                            .collect()
 
-        STAGE_DREP_WORK ( ch_per_sample_ginfo )
+        STAGE_DREP_WORK ( ch_all_qc )
 
         // ─── 2. Cohort dereplication ─────────────────────────────────────────
         // ext.args carries `--S_algorithm skani --genomeInfo drep_work/genomeInfo.csv
@@ -174,28 +152,14 @@ workflow COHORT_DEREPLICATION {
                                 .flatten()
                                 .collect()
 
-        // ─── 5b. Enrich the per-sample contigs.tsv with cohort taxonomy ──────
-        // Join per-sample contigs.tsv with per-sample contig_to_bin.tsv first,
-        // then layer in the cohort-global Cdb/Wdb + GTDB-Tk summaries.
-        ch_enrich_per_sample = per_contig_tsv
-                                .map { meta, tsv -> [meta.id, meta, tsv] }
-                                .join(
-                                    bins_inputs.map { meta, _b, _qc, c2b -> [meta.id, c2b] },
-                                    by: 0,
-                                    remainder: true
-                                )
-                                .filter { it[3] != null }
-                                .map { _id, meta, tsv, c2b -> [meta, tsv, c2b] }
+        // Note: a per-sample per-contig TSV enrichment step (joining cohort
+        // Cdb/Wdb + GTDB-Tk lineages back into each sample's contigs.tsv)
+        // used to live here. It was dropped — the join is a few-line pandas
+        // operation that analysts can do on demand from the published
+        // building blocks (Cdb, Wdb, GTDB summary, per-sample contig_to_bin,
+        // per_contig TSV). See docs/recipes/per-contig-taxonomy-enrichment.md.
 
-        ENRICH_PER_CONTIG_TSV (
-            ch_enrich_per_sample,
-            ch_cdb,
-            ch_wdb,
-            ch_gtdb_summaries
-        )
-        ch_versions = ch_versions.mix( ENRICH_PER_CONTIG_TSV.out.versions.first() )
-
-        // ─── 5c. Cohort MAG catalog summary ──────────────────────────────────
+        // ─── 5b. Cohort MAG catalog summary ──────────────────────────────────
         // Reuse the same genomeInfo CSV that fed dRep (concatenated by
         // STAGE_DREP_WORK).
         ch_genome_info_csv = STAGE_DREP_WORK.out.drep_work
@@ -216,7 +180,6 @@ workflow COHORT_DEREPLICATION {
         cluster_table        = ch_cdb
         cluster_winners      = ch_wdb
         gtdbtk_summary       = ch_gtdb_summaries
-        per_contig_enriched  = ENRICH_PER_CONTIG_TSV.out.enriched
 
         // Abundance matrices (MAG × sample)
         abundance_tpm   = ABUNDANCE.out.tpm

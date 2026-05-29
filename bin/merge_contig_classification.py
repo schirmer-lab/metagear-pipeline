@@ -50,6 +50,9 @@ TSV_HEADER = [
     "lineage",
     "confidence",
     "bin_id",
+    "genomad_viral",
+    "genomad_plasmid",
+    "tiara_label",
 ]
 
 
@@ -226,7 +229,11 @@ def _load_tiara(path: Path | None) -> Dict[str, str]:
             cols = line.split("\t")
             if len(cols) < 2:
                 continue
-            contig_id = cols[0]
+            # Tiara emits the full FASTA header in col 0 (e.g.
+            # "SAMPLE-0_k141_36475 flag=1 multi=60.0000 len=3874"), so we
+            # need just the first whitespace-delimited token to match the
+            # bare contig_id that FASTA-record iteration produces.
+            contig_id = cols[0].split()[0]
             label = cols[2].strip() if len(cols) >= 3 and cols[2].strip() and cols[2].strip() != "n/a" else cols[1]
             mapped = _tiara_kingdom_to_class(label)
             if mapped:
@@ -300,6 +307,14 @@ def merge(
             confidence = ""
             bin_id = ""
 
+            # Raw evidence per classifier, captured regardless of which one
+            # wins the priority below. Lets downstream consumers spot
+            # genomad-vs-Tiara conflicts (e.g. eukaryotic transposon falsely
+            # flagged as viral) without re-running anything.
+            genomad_viral   = "yes" if contig_id in viral_ids   else "no"
+            genomad_plasmid = "yes" if contig_id in plasmid_ids else "no"
+            tiara_label     = tiara_labels.get(contig_id, "")
+
             if contig_id in viral_ids:
                 primary_class = "virus"
                 classifier = "genomad"
@@ -324,7 +339,9 @@ def merge(
                 classifier = "tiara"
 
             writer.writerow(
-                [contig_id, sample, length, primary_class, classifier, lineage, confidence, bin_id]
+                [contig_id, sample, length, primary_class, classifier,
+                 lineage, confidence, bin_id,
+                 genomad_viral, genomad_plasmid, tiara_label]
             )
             written += 1
             class_counts[primary_class] += 1

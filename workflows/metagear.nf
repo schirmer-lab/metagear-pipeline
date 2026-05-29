@@ -91,14 +91,14 @@ workflow METAGEAR {
 
         // Cohort dereplication — v2: dRep (skani) on per-sample bins, GTDB-Tk
         // on cluster representatives, coverm-genome MAG×sample abundance, and
-        // back-fill of v1's per-contig TSV with the cohort lineage.
+        // a cohort MAG catalog summary. Per-contig taxonomy enrichment is left
+        // as a downstream pandas join — see docs/recipes/per-contig-taxonomy-enrichment.md.
         if ( params.workflow == "cohort_dereplication" ) {
             init = COHORT_DEREPLICATION_INIT ( )
 
             COHORT_DEREPLICATION (
                 init.reads,
                 init.bins_inputs,
-                init.per_contig_tsv,
                 init.gtdb_tk_db
             )
             ch_versions = COHORT_DEREPLICATION.out.versions

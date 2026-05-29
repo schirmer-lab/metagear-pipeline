@@ -198,9 +198,14 @@
               "description": "Chromosome partition (DIRECTORY: optional). Folder containing SAMPLE_ID.chromosome.fna.gz files produced by a prior GENOMAD_EXTRACT_CHROMOSOME step. When provided, skips the entire VIRAL_DETECTION subworkflow (geNomad + CheckV passes + chromosome extraction). WARNING: does not check geNomad parameter consistency — re-run VIRAL_DETECTION instead of reusing if FDR thresholds or score calibration have changed."
             },
             {
+              "name": "enable_contig_taxonomy",
+              "required": false,
+              "description": "Run MMseqs2 easy-taxonomy on the unbinned chromosome partition to populate per-contig lineage in the merged TSV. Default false — disabled because per-contig LCA on unbinned contigs is low-confidence and the GTDB DB makes it expensive (requires task.memory >=96 GiB, hours per sample). Bin-attributable contigs already get trustworthy lineage from GTDB-Tk in cohort_dereplication; viral/plasmid contigs from geNomad. Enable only when you want exploratory sub-domain signal on the unbinned set."
+            },
+            {
               "name": "mmseqs_taxonomy_db",
               "required": false,
-              "description": "Path to a pre-built MMseqs2 taxonomy database (e.g. GTDB built via `mmseqs databases GTDB <out> <tmp>`). Used for contig-level taxonomy fallback on the post-Binette unbinned set. Required for the per-contig classification TSV step. Typically set globally in ~/.metagear/metagear.config instead of per-invocation."
+              "description": "Path to a pre-built MMseqs2 taxonomy database (e.g. GTDB built via `mmseqs databases GTDB <out> <tmp>`). Used only when --enable_contig_taxonomy is true. Typically set globally in ~/.metagear/metagear.config instead of per-invocation."
             },
             {
               "name": "viral_ids_dir",
@@ -211,6 +216,11 @@
               "name": "plasmid_ids_dir",
               "required": false,
               "description": "Plasmid contig IDs directory (DIRECTORY: optional). Folder containing SAMPLE_ID_plasmid_ids_to_keep.txt files. Same pattern as --viral_ids_dir."
+            },
+            {
+              "name": "gene_clusters_tsv",
+              "required": false,
+              "description": "Path to all.genes.clusters.tsv (from a prior gene_analysis run). When provided, integrated_classification cross-walks per-contig primary_class onto the gene catalog and emits clusters/all.genes.clusters.aggregated.refined.tsv with a multi_class flag for clusters whose members span multiple classes (e.g. shared between bacteria and virus — potentially HGT, AMGs, or other interesting biology). Clean re-derivation from per-contig signal; does NOT merge with viral_analysis's existing aggregated TSV. Auto-discovered by --reuse-outputs."
             }
           ]
         },
@@ -225,13 +235,8 @@
             },
             {
               "name": "bins_dir",
-              "required": true,
-              "description": "Per-sample Binette outputs (DIRECTORY). Points at integrated_classification's `binning/binette/` parent directory. The subworkflow tolerates both the current nested `<sample>/<sample>/final_bins/...` layout (Binette emits a `${meta.id}/` prefix dir that the publishDir adds another sample dir on top of) and a future flattened `<sample>/final_bins/...` layout."
-            },
-            {
-              "name": "per_contig_tsv_dir",
-              "required": true,
-              "description": "Per-contig classification TSV directory (DIRECTORY). Points at integrated_classification's `per_contig/` output (flat layout: `<sample>.contigs.tsv`). Required for the per-contig TSV enrichment step."
+              "required": false,
+              "description": "Per-sample Binette deliverables (DIRECTORY). Points at integrated_classification's `assemblies/bins/` parent directory. Each sample subdir contains `<sample>_binN.fa` (MAG FASTAs, --prefix-ed by Binette at source), `quality_report.tsv` (renamed from final_bins_quality_reports.tsv at publish time), and `contig_to_bin.tsv` (renamed from final_contig_to_bin.tsv). Auto-discovered by --reuse-outputs. The pipeline-side INIT still enforces this (exits with a clear error) if neither --reuse-outputs nor an explicit value supplies it."
             },
             {
               "name": "gtdb_tk_db",

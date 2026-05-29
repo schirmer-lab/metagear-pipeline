@@ -31,19 +31,24 @@ process MMSEQS_EASYTAXONOMY {
     prefix     = task.ext.prefix ?: "${meta.id}"
     """
     # Pre-flight memory check: mmseqs2 easy-taxonomy needs to fit (a chunk of)
-    # the GTDB taxonomy DB into RAM. The DB is ~30 GiB on disk; the prefilter
-    # step needs at least ~24 GiB available memory, even with split-memory-limit
-    # capping it. /proc/meminfo's MemAvailable reflects any cgroup limit
-    # imposed by params.max_memory + process.resourceLimits.
+    # the GTDB taxonomy DB into RAM. Recent GTDB builds in mmseqs2 format are
+    # ~200 GiB on disk (was ~30 GiB historically, has grown ~6×). The
+    # prefilter has ~14 GiB fixed overhead (query DB + working buffers); the
+    # residual after that holds the k-mer index of the target-DB split chunk.
+    # With the current GTDB build the smallest workable chunk needs >50 GiB,
+    # so available memory must be at least ~96 GiB (split-memory-limit ~65 GiB
+    # − 14 GiB overhead = 51 GiB residual).
+    # /proc/meminfo's MemAvailable reflects any cgroup limit imposed by
+    # params.max_memory + process.resourceLimits.
     AVAIL_MEM_G=\$(awk '/MemAvailable/ {printf "%d", \$2/1024/1024}' /proc/meminfo)
-    if [ "\$AVAIL_MEM_G" -lt 24 ]; then
-        echo "ERROR: MMSEQS_EASYTAXONOMY needs at least ~24 GiB of available memory" >&2
+    if [ "\$AVAIL_MEM_G" -lt 96 ]; then
+        echo "ERROR: MMSEQS_EASYTAXONOMY needs at least ~96 GiB of available memory" >&2
         echo "       to query the GTDB taxonomy DB. Currently seeing \${AVAIL_MEM_G} GiB." >&2
         echo "" >&2
         echo "Most likely cause: params.max_memory in your ~/.metagear/metagear.config is" >&2
         echo "set below the per-task memory this step needs." >&2
         echo "" >&2
-        echo "Fix: raise params.max_memory to >=32.GB so this step gets its requested 32 GB." >&2
+        echo "Fix: raise params.max_memory to >=128.GB so this step gets its requested 128 GB." >&2
         echo "Nextflow's scheduler caps concurrency at (host_memory / task.memory) automatically;" >&2
         echo "no maxForks limit is needed." >&2
         exit 1

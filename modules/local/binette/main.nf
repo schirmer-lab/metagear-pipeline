@@ -16,11 +16,20 @@ process BINETTE {
     path checkm2_db
 
     output:
-    tuple val(meta), path("${prefix}/final_bins/*.fa")                       , emit: bins      , optional: true
-    tuple val(meta), path("${prefix}/final_bins")                            , emit: bins_dir  , optional: true
+    tuple val(meta), path("${prefix}/final_bins/*.fa")                       , emit: bins         , optional: true
     tuple val(meta), path("${prefix}/final_bins_quality_reports.tsv")        , emit: quality
-    tuple val(meta), path("${prefix}")                                        , emit: outdir
+    tuple val(meta), path("${prefix}/final_contig_to_bin.tsv")               , emit: contig_to_bin
     path "versions.yml"                                                       , emit: versions
+    // Note: both directory emits (`outdir` for the whole ${prefix}/ and
+    // `bins_dir` for ${prefix}/final_bins/) were dropped. They shadowed the
+    // file-glob bins emit in publishDir — Nextflow processes the directory
+    // emit's view of the same files and silently skips them when the dir's
+    // saveAs returns null. With only file-typed emits (matches the
+    // FIND_REPRESENTATIVES pattern), publishDir resolves cleanly per file.
+    //
+    // Downstream consumers that previously took bins_dir as a directory now
+    // receive the bins file list and stage it as a directory via
+    // `path(bins, stageAs: 'bins/*')` — the consumer's view is unchanged.
 
     when:
     task.ext.when == null || task.ext.when
@@ -49,6 +58,7 @@ process BINETTE {
     mkdir -p ${prefix}/final_bins
     touch ${prefix}/final_bins/bin_1.fa
     touch ${prefix}/final_bins_quality_reports.tsv
+    touch ${prefix}/final_contig_to_bin.tsv
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
