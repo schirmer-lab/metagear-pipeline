@@ -66,7 +66,7 @@ workflow MICROBIAL_PROFILES {
             MERGE_MICROBIAL_PROFILES( ch_all_microbial_profiles )
             ch_versions = ch_versions.mix( MERGE_MICROBIAL_PROFILES.out.versions.first() )
 
-            if ( params.include_viral ) {
+            if ( params.include_virus ) {
                 ch_all_viral_profiles = METAPHLAN_METAPHLAN.out.viral_profile
                                         .map { [ [id: 'viral'], it[1] ] }
                                         .groupTuple(by: 0)
