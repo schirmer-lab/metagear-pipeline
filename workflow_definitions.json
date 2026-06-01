@@ -278,6 +278,12 @@
               "name": "gtdb_tk_db",
               "required": false,
               "description": "Path to a GTDB-Tk database (R220 or compatible). Typically set globally in ~/.metagear/metagear.config; this parameter exists so a user can point at an alternate release per-invocation."
+            },
+            {
+              "name": "drep_batch_ani",
+              "required": false,
+              "default": "0.90",
+              "description": "ANI threshold (fraction in (0, 0.95)) for the connected-components partition that defines dRep batches. dRep then runs once per batch and the per-batch winners form the cohort representative set. 0.90 is the default — strictly looser than dRep's 0.95 secondary clustering threshold, so within-batch dRep yields the same cohort representatives as a single all-vs-all run. Lower the value (e.g. 0.85) to merge more bins into the same batch at the cost of larger per-batch dRep jobs; correctness is unaffected."
             }
           ]
         }

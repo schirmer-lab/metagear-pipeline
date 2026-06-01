@@ -100,7 +100,10 @@ processes:
 
   # === Cohort mag (v2) ===
   STAGE_DREP_WORK: { label: process_single, cpus: 2, memory_gb: 4, time_h: 1, note: "Concat per-sample genomeInfo CSVs into a single cohort CSV staged inside drep_work_seed/." }
-  DREP_DEREPLICATE: { label: process_high, cpus: 16, memory_gb: 64, time_h: 24, note: "All-vs-all skani similarity matrix scales O(N^2) in genome count; 64 GB tolerates ~2000 bins. --S_algorithm skani is fast vs ANImf. 24h is the cluster hard limit; if the cohort grows large enough that dRep can't finish in that window, batch the inputs (split bins into groups, dereplicate-within, then merge representatives in a final pass)." }
+  SKANI_TRIANGLE: { label: process_high, cpus: 16, memory_gb: 32, time_h: 8, note: "Bulk pairwise ANI over all cohort bins (sparse output). O(N^2) pairs but skani's per-pair cost is ~1000× cheaper than dRep's full pipeline, so it scales to tens of thousands of bins. Defines the partition for the per-batch dRep scatter." }
+  BATCH_BINS: { label: process_low, cpus: 2, memory_gb: 16, time_h: 1, note: "Pure-python connected-components on the sparse ANI TSV. Memory is dominated by the union-find dict (bin count × ~200 bytes) — 16 GB is generous." }
+  DREP_DEREPLICATE: { label: process_high, cpus: 16, memory_gb: 64, time_h: 24, note: "Runs once per batch from BATCH_BINS. With batches of <=2000 bins (controlled by params.drep_batch_ani), 64 GB / 24h is well inside the envelope. The pre-batching at 0.90 ANI strictly contains dRep's 0.95 secondary threshold, so cohort representatives match a single all-vs-all dRep run." }
+  MERGE_DREP_TABLES: { label: process_single, cpus: 2, memory_gb: 4, time_h: 1, note: "Concat per-batch Cdb.csv and Wdb.csv into cohort-level tables with a batch_id prefix column. Pure-awk." }
   BUILD_MAG_CATALOG: { label: process_low, cpus: 2, memory_gb: 8, time_h: 2, note: "seqkit-based header rename + concat of dRep winners; emits contig_to_mag.tsv for coverm genome." }
   GATHER_GENOMES_DIR: { label: process_single, cpus: 2, memory_gb: 4, time_h: 1 }
   COVERM_GENOME: { label: process_medium, cpus: 12, memory_gb: 24, time_h: 24, note: "Same coverm container as COVERM_CONTIG; per-MAG aggregation via --genome-definition." }
