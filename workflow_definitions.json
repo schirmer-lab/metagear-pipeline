@@ -28,13 +28,13 @@
       "definitions": [
         {
           "name": "download_databases",
-          "description": "Install Databases (Kneaddata, MetaPhlAn, HUMAnN, CheckM2, MMseqs2 taxonomy)",
+          "description": "Install Databases (Kneaddata, MetaPhlAn, HUMAnN, CheckM2, MMseqs2 taxonomy, PHOLD)",
           "parameters": [
             {
               "name": "databases",
               "required": false,
               "default": "all",
-              "description": "Databases to install. Accepted values: all | genes | virus | contig_classification | mmseqs_taxonomy. Multiple values comma-separated. Default: all. The `contig_classification` group bundles CheckM2 + the MMseqs2 GTDB taxonomy DB; use `mmseqs_taxonomy` to pull only the latter."
+              "description": "Databases to install. Accepted values: all | genes | virus | contig_classification | mmseqs_taxonomy | structures. Multiple values comma-separated. Default: all. The `contig_classification` group bundles CheckM2 + the MMseqs2 GTDB taxonomy DB; use `mmseqs_taxonomy` to pull only the latter. The `structures` group installs the PHOLD structural DB (~7.7 GB) used by the structures workflow."
             }
           ]
         },
@@ -278,6 +278,66 @@
               "name": "gtdb_tk_db",
               "required": false,
               "description": "Path to a GTDB-Tk database (R220 or compatible). Typically set globally in ~/.metagear/metagear.config; this parameter exists so a user can point at an alternate release per-invocation."
+            }
+          ]
+        },
+        {
+          "name": "structures",
+          "description": "Protein structural-homology annotation. v1 backend is PHOLD (ProstT5 → 3Di → Foldseek vs the PHOLD curated DB). Builds on a prior virus/genes run; reads the cohort protein catalog, Pfam table, protein clusters, and viral catalog from disk. Emits per-rep PHOLD annotations for the full catalog and the viral catalog separately. Viral coverage is guaranteed in every scope mode via a top-up step.",
+          "parameters": [
+            {
+              "name": "input",
+              "required": true,
+              "description": "Input .csv file (samplesheet). Used for provenance only — no per-sample reads are processed."
+            },
+            {
+              "name": "representative_proteins",
+              "required": false,
+              "description": "Full protein catalog (FILE). Auto-discovered by --reuse-outputs from a prior virus/genes run."
+            },
+            {
+              "name": "representative_proteins_clusters",
+              "required": false,
+              "description": "Protein cluster TSV (FILE). Auto-discovered by --reuse-outputs."
+            },
+            {
+              "name": "viral_representative_proteins",
+              "required": false,
+              "description": "Viral protein catalog (FILE). Auto-discovered by --reuse-outputs."
+            },
+            {
+              "name": "representative_proteins_annotations",
+              "required": false,
+              "description": "Pfam / InterProScan annotations TSV (FILE). Optional — when missing the scope filter degrades gracefully (every all-protein-rep is treated as unannotated). Auto-discovered by --reuse-outputs."
+            },
+            {
+              "name": "phold_db",
+              "required": false,
+              "description": "Path to the PHOLD structural DB directory. Install via `metagear download_databases --databases structures`. Typically set globally in ~/.metagear/metagear.config."
+            },
+            {
+              "name": "structures_scope",
+              "required": false,
+              "default": "unannotated_plus_duf",
+              "description": "Which proteins to annotate. Accepted values: all | unannotated | unannotated_plus_duf | viral_only. Default unannotated_plus_duf — best ROI on annotation gain per compute spent. Viral coverage is guaranteed in every mode except `viral_only` (a top-up step adds viral-gene-rep translations not already in the chosen subset). Use `viral_only` for quick end-to-end validation; use `all` for the full catalog (most expensive)."
+            },
+            {
+              "name": "structures_use_cpu",
+              "required": false,
+              "default": "true",
+              "description": "CPU vs GPU for the ProstT5 prediction step (PHOLD_PREDICT). Default `true` (CPU) so the workflow runs on any node; set to `false` on a GPU-enabled compute node for a 10-50x speedup."
+            },
+            {
+              "name": "structures_batch_size",
+              "required": false,
+              "default": "1",
+              "description": "ProstT5 batch size for PHOLD_PREDICT. Higher = faster on GPU + higher VRAM use. 1 is the PHOLD default and is fine for CPU."
+            },
+            {
+              "name": "structures_predict_shard_size",
+              "required": false,
+              "default": "500",
+              "description": "Number of proteins per shard for the parallel ProstT5 prediction. Lower = more parallel shards (more scheduling overhead but better load balance); higher = fewer larger shards."
             }
           ]
         }

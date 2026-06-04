@@ -15,6 +15,8 @@ include { PHAROKKA_INSTALLDATABASES } from "$projectDir/modules/nf-core/pharokka
 
 include { AMRFINDERPLUS_UPDATE } from "$projectDir/modules/nf-core/amrfinderplus/update/main"
 
+include { PHOLD_INSTALL } from "$projectDir/modules/local/phold/install/main"
+
 include { EXPORT_DATABASES } from "$projectDir/modules/local/metagear/export_databases"
 
 /* ---  INITIALIZATION WORKFLOW --- */
@@ -38,7 +40,8 @@ workflow DATABASES_INIT {
                                             [ 'amrfinder', file( params.amrfinder_db ) ],
                                             [ 'pharokka', file( params.pharokka_db ) ],
                                             [ 'checkm2', file( params.checkm2_db ) ],
-                                            [ 'mmseqs_taxonomy', file( params.mmseqs_taxonomy_db ) ] )
+                                            [ 'mmseqs_taxonomy', file( params.mmseqs_taxonomy_db ) ],
+                                            [ 'phold', file( params.phold_db ?: '/dev/null' ) ] )
 
         //TODO: Currently only 1 kneaddata database is supported. Ensure ch_kneaddata_databases keep consistent with ch_database_destinations.
 
@@ -130,6 +133,18 @@ workflow DATABASES {
             //       pattern (not path 'versions.yml'); wire into ch_versions once the
             //       pipeline standardises on topic channels.
             ch_databases_data = ch_databases_data.concat( ch_checkm2_database )
+
+        }
+
+        // PHOLD structural DB (consumed by the `structures` workflow).
+        // Standalone group so users can install it without re-checking the
+        // viral DB stack; included in "all" for greenfield installs. ~7.7 GB.
+        if ( params.databases == "all" || params.databases.contains("structures") ) {
+
+            phold = PHOLD_INSTALL ( )
+            ch_phold_database = phold.phold_db.map { [ "phold", it ] }
+            ch_versions = ch_versions.mix( phold.versions )
+            ch_databases_data = ch_databases_data.concat( ch_phold_database )
 
         }
 
