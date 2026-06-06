@@ -1,0 +1,193 @@
+# PHOLD offsite GPU bundle
+
+This folder contains everything needed to run the **`phold proteins-predict`** step of the metagear `structures` workflow on a GPU server, without Nextflow. After running, copy the outputs back to the source machine and re-invoke `metagear structures` to finish the workflow on CPU.
+
+The split is deliberate: only ProstT5 inference (PHOLD_PREDICT) is GPU-heavy. The downstream Foldseek search (PHOLD_COMPARE) is fast on CPU and stays in the Nextflow pipeline.
+
+---
+
+## What's in this folder
+
+| File / dir | Purpose |
+|---|---|
+| `README.md` | This document |
+| `shards/` | The protein FASTA shards to predict on (`__NUM_SHARDS__` files) |
+| `viral_join_table.tsv` | Auxiliary table consumed by the *resume* phase on the source machine. Carry-through only; not used here. |
+| `run_phold_predict.sh` | The script you run on the GPU server (see below) |
+| `manifest.json` | List of expected outputs — used by the source machine to validate completeness on resume |
+
+**Total size:** approximately `__BUNDLE_SIZE_MB__` MB.
+
+---
+
+## Step 1 — Get this bundle onto the GPU server
+
+```bash
+rsync -avzP <source>/structures/offsite_predict/  <user>@<gpu-host>:/path/on/gpu-host/
+```
+
+If the GPU server shares a filesystem with the source machine (e.g. a DSS mount visible on both), no copy is needed — just `cd` into the folder on the GPU side.
+
+---
+
+## Step 2 — Set up the runtime (one-time)
+
+The GPU server needs:
+
+- **A CUDA-capable GPU** (any Nvidia card with ≥ 8 GB VRAM works; an H100/A100 finishes in a fraction of the time)
+- **The `phold` binary on PATH**, with PyTorch + CUDA support
+- **A complete PHOLD database installed locally** (`phold install -d <path>`, ~13 GB)
+
+### Easiest path: micromamba env (user-space, no admin needed)
+
+```bash
+# One-time install of micromamba in $HOME
+curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
+./bin/micromamba shell init --shell bash --root-prefix=$HOME/micromamba
+source ~/.bashrc
+
+# Create the env (~10 min, ~10 GB)
+micromamba create -n metagear-structures \
+    -c conda-forge -c bioconda \
+    phold=__PHOLD_VERSION__ \
+    -y
+
+# Verify
+micromamba activate metagear-structures
+phold --version    # expect __PHOLD_VERSION__
+python3 -c "import torch; print('CUDA:', torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+```
+
+### Install the PHOLD DB (one-time)
+
+If you haven't already:
+
+```bash
+micromamba activate metagear-structures
+phold install -d /path/to/your/phold_db -t 8
+```
+
+This downloads the ProstT5 weights (~11 GB) and the Foldseek structural index (~2 GB). ~30 minutes on a normal link. Mark the directory path — you'll pass it to `run_phold_predict.sh`.
+
+If a DB is already in place from a previous metagear install, just point at it.
+
+### Alternative paths
+
+- **NVIDIA Pyxis / Enroot:** point the bundled script at the phold container directly; the script doesn't care how phold got on PATH, only that it's there.
+- **Singularity:** `singularity exec --nv ... run_phold_predict.sh ...` works the same.
+
+---
+
+## Step 3 — Get a GPU allocation (if you're on a SLURM cluster)
+
+Example for the LRZ-HGX H100 partition:
+
+```bash
+salloc -p lrz-hgx-h100-94x4 --gres=gpu:1 -c 6 --mem=60G --time=__SUGGESTED_WALLTIME__
+export JOBID=$SLURM_JOB_ID
+srun --jobid $JOBID --pty bash
+```
+
+On a personal workstation with a GPU, skip this step.
+
+---
+
+## Step 4 — Run
+
+```bash
+micromamba activate metagear-structures   # if you went that route
+cd /path/to/offsite_predict
+
+bash run_phold_predict.sh --phold-db /path/to/your/phold_db
+```
+
+Useful flags:
+
+```bash
+# Bigger batch on big GPUs (H100/A100 with >= 16 GB free VRAM)
+bash run_phold_predict.sh --phold-db /path/to/phold_db --batch-size 16
+
+# Drop to batch_size=1 on small consumer GPUs (e.g. RTX 3070 8 GB)
+bash run_phold_predict.sh --phold-db /path/to/phold_db --batch-size 1
+
+# Continue an interrupted run (skip shards already completed)
+bash run_phold_predict.sh --phold-db /path/to/phold_db --resume
+
+# Preview without executing
+bash run_phold_predict.sh --phold-db /path/to/phold_db --dry-run
+```
+
+### Expected runtime
+
+`__NUM_SHARDS__` shards × `__SHARD_SIZE__` proteins each:
+
+| Hardware | Approx. per-shard | Total |
+|---|---|---|
+| H100 80GB (batch=16) | 1–3 min | `__ETA_H100__` |
+| A100 40GB (batch=8) | 3–6 min | `__ETA_A100__` |
+| V100 16GB (batch=8) | 4–8 min | `__ETA_V100__` |
+| T4 16GB / RTX 3070 8GB (batch=1) | 8–20 min | `__ETA_T4__` |
+| CPU fallback (8 threads, batch=1) | 60–120 min | `__ETA_CPU__` |
+
+---
+
+## Step 5 — Verify
+
+```bash
+# Should equal __NUM_SHARDS__
+ls outputs/predict_*/phold_aa.fasta | wc -l
+```
+
+Spot-check one output dir for sanity:
+
+```bash
+ls outputs/predict_input_subset.part_001/
+# Expect:
+#   phold_aa.fasta
+#   phold_3di.fasta
+#   phold_prostT5_3di_mean_probabilities.csv
+#   phold_prostT5_3di_all_probabilities.json
+```
+
+---
+
+## Step 6 — Ship results back
+
+```bash
+rsync -avzP outputs/  <user>@<source-host>:<outdir>/structures/phold_predict/
+```
+
+`<outdir>` is the same `--outdir` you used in the original `metagear structures` call.
+
+---
+
+## Step 7 — Resume on the source machine
+
+Re-invoke metagear with **the same arguments minus `--structures_prepare_for_gpu`**:
+
+```bash
+metagear structures \
+    --input  inputs/samplesheet.csv \
+    --outdir <same-outdir> \
+    --reuse-outputs \
+    --structures_scope <same-scope-as-before>
+```
+
+`--reuse-outputs` auto-discovers the rsync'd predict outputs at `<outdir>/structures/phold_predict/` and injects them via `--phold_predict_dir`. The pipeline resumes from `MERGE_PHOLD_PREDICTIONS` and runs `PHOLD_COMPARE` + the viral join on CPU. Final annotations land at `<outdir>/annotations/phold/`.
+
+If any shards are missing, the pipeline exits with a clear "shards X, Y, Z missing — re-run them" message before doing any CPU work.
+
+---
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `phold: command not found` | Env not activated | `micromamba activate <env_name>` first |
+| `CUDA not available` inside python | Missing `--nv` (Singularity) or wrong container | For Singularity add `--nv`; for Pyxis check `--container-image=` |
+| `RuntimeError: CUDA out of memory` | `batch_size` too high for VRAM | Drop to `--batch-size 1` or `--batch-size 4` |
+| `No CA certificates were loaded from the system` (from hf-xet) | Container without CA roots | Already handled — script exports `HF_HUB_DISABLE_XET=1` |
+| Shard hangs at 0% for >5 min | First-run ProstT5 warm-up (downloads tokenizer cache) | Wait — usually unstuck after ~3 min on first shard, then fast |
+| Some shards finished, some failed | Mixed exit codes | Use `--resume` to retry only the failed ones |
+
+If you hit something not on this list, save `outputs/predict_<shard>/phold_proteins-predict_*.log` from the failing shard and report back — the log captures everything PHOLD did.

@@ -338,6 +338,17 @@
               "required": false,
               "default": "500",
               "description": "Number of proteins per shard for the parallel ProstT5 prediction. Lower = more parallel shards (more scheduling overhead but better load balance); higher = fewer larger shards."
+            },
+            {
+              "name": "structures_prepare_for_gpu",
+              "required": false,
+              "default": "false",
+              "description": "Offsite-GPU mode. When `true`, the workflow runs FILTER + SEQKIT_SPLIT2 + PACKAGE_PHOLD_OFFSITE and stops — producing a self-contained rsync-friendly bundle under ${outdir}/structures/offsite_predict/. The user runs the bundled script on a GPU server (no Nextflow / no containers needed), rsyncs the results back into ${outdir}/structures/phold_predict/, then re-invokes `metagear structures` with the same args minus this flag and passing `--phold_predict_dir <outdir>/structures/phold_predict` to resume from MERGE_PHOLD_PREDICTIONS onward."
+            },
+            {
+              "name": "phold_predict_dir",
+              "required": false,
+              "description": "Path to pre-existing per-shard PHOLD_PREDICT outputs (predict_*/ subdirectories). When set, skips the PHOLD_PREDICT step entirely and consumes the on-disk dirs. Typically set after rsyncing offsite-GPU predict results back into ${outdir}/structures/phold_predict/."
             }
           ]
         }
