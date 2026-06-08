@@ -96,10 +96,10 @@ with open('merged_predict_dir/phold_prostT5_3di_all_probabilities.json', 'w') as
 print(f"merged {len(merged)} protein-level probability entries", file=sys.stderr)
 PY
 
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        python: \$(python3 --version 2>&1 | sed 's/Python //')
-    END_VERSIONS
+cat <<-END_VERSIONS > versions.yml
+"${task.process}":
+    python: \$(python3 --version 2>&1 | sed 's/Python //')
+END_VERSIONS
     """
 
     stub:
