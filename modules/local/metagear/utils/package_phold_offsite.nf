@@ -22,6 +22,7 @@ process PACKAGE_PHOLD_OFFSITE {
     tuple val(meta), path(shards, stageAs: 'shards_in/*'), path(viral_join_table)
     path readme_template
     path script_template
+    path sbatch_template
 
     output:
     tuple val(meta), path("offsite_predict/"), emit: bundle
@@ -39,6 +40,7 @@ process PACKAGE_PHOLD_OFFSITE {
         --viral-join-table ${viral_join_table} \\
         --readme-template ${readme_template} \\
         --script-template ${script_template} \\
+        --sbatch-template ${sbatch_template} \\
         --out-dir offsite_predict \\
         --structures-scope '${scope}' \\
         ${args}
@@ -54,6 +56,7 @@ process PACKAGE_PHOLD_OFFSITE {
     mkdir -p offsite_predict/shards
     touch offsite_predict/README.md
     touch offsite_predict/run_phold_predict.sh
+    touch offsite_predict/submit_phold_predict.sbatch
     touch offsite_predict/viral_join_table.tsv
     echo '{"n_shards": 0}' > offsite_predict/manifest.json
 

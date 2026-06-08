@@ -130,13 +130,14 @@ workflow STRUCTURES {
                                 .map { shards -> tuple( [id: "cohort"], shards ) }
                                 .join( FILTER_STRUCTURES_INPUTS.out.viral_join_table )
 
-            // Templates live in assets/structures/offsite/. README + script
-            // are rendered with cohort-specific values (shard count, ETA
-            // estimates per GPU class, suggested walltime).
+            // Templates live in assets/structures/offsite/. README + runner +
+            // sbatch wrapper are rendered with cohort-specific values (shard
+            // count, ETA estimates per GPU class, suggested walltime).
             readme_template = file("$projectDir/assets/structures/offsite/README.md.in")
             script_template = file("$projectDir/assets/structures/offsite/run_phold_predict.sh.in")
+            sbatch_template = file("$projectDir/assets/structures/offsite/submit_phold_predict.sbatch.in")
 
-            PACKAGE_PHOLD_OFFSITE ( ch_package_in, readme_template, script_template )
+            PACKAGE_PHOLD_OFFSITE ( ch_package_in, readme_template, script_template, sbatch_template )
             ch_versions       = ch_versions.mix( PACKAGE_PHOLD_OFFSITE.out.versions )
             ch_offsite_bundle = PACKAGE_PHOLD_OFFSITE.out.bundle
 

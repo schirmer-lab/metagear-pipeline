@@ -14,6 +14,7 @@ Inputs:
                           source machine's resume phase. Copied verbatim.
     --readme-template     Path to README.md.in (templated).
     --script-template     Path to run_phold_predict.sh.in (templated).
+    --sbatch-template     Path to submit_phold_predict.sbatch.in (templated).
     --out-dir             Output bundle directory to assemble.
 
 Template placeholders supported:
@@ -25,8 +26,8 @@ Template placeholders supported:
                           --phold-version)
     __PIPELINE_COMMIT__   pipeline git commit (passed by caller, optional)
     __STRUCTURES_SCOPE__  the scope param used to build the bundle
-    __SUGGESTED_WALLTIME__ e.g. "08:00:00"
-    __ETA_H100__, __ETA_A100__, __ETA_V100__, __ETA_T4__, __ETA_CPU__
+    __SUGGESTED_WALLTIME__ e.g. "24:00:00" (capped at 48h — LRZ-HGX allocation max)
+    __ETA_H100__, __ETA_H100_B16__, __ETA_A100__, __ETA_V100__, __ETA_T4__, __ETA_CPU__
                           estimated total runtimes per platform
     __CREATED_AT__        ISO 8601 timestamp
 """
@@ -88,6 +89,7 @@ def main(argv: Iterable[str] | None = None) -> int:
     p.add_argument("--viral-join-table", required=True, type=Path)
     p.add_argument("--readme-template", required=True, type=Path)
     p.add_argument("--script-template", required=True, type=Path)
+    p.add_argument("--sbatch-template", required=True, type=Path)
     p.add_argument("--out-dir", required=True, type=Path)
     p.add_argument("--structures-scope", default="unknown")
     p.add_argument("--phold-version", default="1.2.5")
@@ -136,15 +138,27 @@ def main(argv: Iterable[str] | None = None) -> int:
     n_shards = len(shards)
     bundle_size_mb = round(total_bytes / 1024 / 1024, 1)
 
-    # ETA estimates per platform (per-shard minutes from prior PHOLD benchmarks)
-    eta_h100 = _eta_hint(n_shards, 2.0)
-    eta_a100 = _eta_hint(n_shards, 4.5)
-    eta_v100 = _eta_hint(n_shards, 6.0)
-    eta_t4   = _eta_hint(n_shards, 14.0)
-    eta_cpu  = _eta_hint(n_shards, 90.0)
+    # ETA estimates per platform. Per-shard minutes scale roughly with
+    # max_seq_count once the model load (~30-60 s per `phold proteins-predict`
+    # invocation) is amortised. The figures below are calibrated for the
+    # default shard size of 5000 proteins/shard and rescaled here so smaller
+    # or larger shards get realistic projections without a model rewrite.
+    scale = max(0.2, max_seq_count / 5000.0)
+    eta_h100      = _eta_hint(n_shards, 5.0  * scale)   # H100 batch=32 (~4-6 min/shard at 5k)
+    eta_h100_b16  = _eta_hint(n_shards, 6.5  * scale)   # H100 batch=16 (~5-8 min/shard at 5k)
+    eta_a100      = _eta_hint(n_shards, 10.0 * scale)   # A100 batch=16 (~8-12 min/shard at 5k)
+    eta_v100      = _eta_hint(n_shards, 16.0 * scale)   # V100 batch=8  (~12-20 min/shard at 5k)
+    eta_t4        = _eta_hint(n_shards, 35.0 * scale)   # T4 / 3070 batch=2 (~25-45 min/shard at 5k)
+    eta_cpu       = _eta_hint(n_shards, 300.0 * scale)  # CPU batch=1 (~4-6 h/shard at 5k)
 
-    # Walltime suggestion: 1.5× the slowest plausible GPU estimate, rounded up
-    walltime_h = max(2, int(n_shards * 14.0 * 1.5 / 60) + 1)
+    # Walltime suggestion: 2× the H100-batch=16 estimate (safety margin for
+    # cold caches, contention, occasional retries), rounded up to the next
+    # whole hour. Capped at 48h — the LRZ-HGX per-allocation maximum and a
+    # reasonable ceiling on most GPU schedulers. Users can edit the sbatch
+    # header if their site allows longer (or shorter) windows.
+    LRZ_MAX_HOURS = 48
+    raw_hours = max(2.0, n_shards * 6.5 * scale * 2.0 / 60.0)
+    walltime_h = min(LRZ_MAX_HOURS, int(raw_hours + 0.999))   # ceil
     suggested_walltime = f"{walltime_h:02d}:00:00"
 
     subs = {
@@ -156,6 +170,7 @@ def main(argv: Iterable[str] | None = None) -> int:
         "__STRUCTURES_SCOPE__":   args.structures_scope,
         "__SUGGESTED_WALLTIME__": suggested_walltime,
         "__ETA_H100__":           eta_h100,
+        "__ETA_H100_B16__":       eta_h100_b16,
         "__ETA_A100__":           eta_a100,
         "__ETA_V100__":           eta_v100,
         "__ETA_T4__":             eta_t4,
@@ -168,6 +183,9 @@ def main(argv: Iterable[str] | None = None) -> int:
     runner = out_root / "run_phold_predict.sh"
     runner.write_text(_fill(args.script_template.read_text(), subs))
     runner.chmod(0o755)
+    sbatch = out_root / "submit_phold_predict.sbatch"
+    sbatch.write_text(_fill(args.sbatch_template.read_text(), subs))
+    sbatch.chmod(0o755)
 
     # Manifest — used by the source machine on resume to validate
     # completeness before resuming the workflow
@@ -191,6 +209,8 @@ def main(argv: Iterable[str] | None = None) -> int:
     print(f"[package_phold_offsite] wrote {n_shards}-shard bundle to {out_root}")
     print(f"[package_phold_offsite]   total shard bytes: {bundle_size_mb} MB")
     print(f"[package_phold_offsite]   max sequences per shard: {max_seq_count}")
+    print(f"[package_phold_offsite]   suggested SLURM walltime: {suggested_walltime}")
+    print(f"[package_phold_offsite]   estimated H100 batch=32 runtime: {eta_h100}")
     return 0
 
 

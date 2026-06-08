@@ -34,8 +34,9 @@
 #
 # After running, rsync outputs/ back to the source machine's
 # <metagear-outdir>/structures/phold_predict/ and re-invoke `metagear
-# structures` with the same arguments minus --structures_prepare_for_gpu;
-# auto-reuse will pick up the predict outputs and resume the workflow.
+# structures` with --phold_predict_dir <outdir>/structures/phold_predict/
+# to skip PHOLD_PREDICT and resume from MERGE_PHOLD_PREDICTIONS onward
+# (PHOLD_COMPARE runs on CPU). See README.md Step 6 for the exact command.
 
 set -euo pipefail
 
@@ -139,8 +140,13 @@ echo
 echo "Next steps:"
 echo "  1. Verify every shard produced an output:"
 echo "       ls outputs/predict_*/phold_aa.fasta | wc -l   # expect $total"
+echo "     If the count is lower, rerun with --resume to pick up missing shards."
 echo "  2. Rsync outputs/ back to the source machine, into"
 echo "     <metagear-outdir>/structures/phold_predict/:"
 echo "       rsync -avzP outputs/ <user>@<source-host>:/<outdir>/structures/phold_predict/"
-echo "  3. Re-invoke metagear with the same args minus --structures_prepare_for_gpu;"
-echo "     auto-reuse will pick up the predict outputs and resume the workflow."
+echo "  3. Re-invoke metagear (no --structures_prepare_for_gpu) and pass"
+echo "     --phold_predict_dir explicitly:"
+echo "       metagear structures --reuse-outputs \\"
+echo "         --structures_scope <same-scope> \\"
+echo "         --phold_predict_dir <outdir>/structures/phold_predict \\"
+echo "         --input ... --outdir <same-outdir>"
