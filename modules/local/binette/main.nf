@@ -38,9 +38,40 @@ process BINETTE {
     def args   = task.ext.args ?: ''
     prefix     = task.ext.prefix ?: "${meta.id}"
     """
+    # Build --bin_dirs from whichever staged directories actually contain bin
+    # FASTAs. When SemiBin or MetaBAT2 produced 0 bins for this sample,
+    # bacterial_binning.nf passes an empty list (via remainder:true + ?:[]);
+    # the staged directory is either absent or empty, and nullglob makes the
+    # *.fa* expansion safely empty. Same pattern as EXTRACT_UNBINNED's
+    # bin_fastas/ handling.
+    shopt -s nullglob
+    semibin_files=( semibin_bins/*.fa semibin_bins/*.fa.gz semibin_bins/*.fasta semibin_bins/*.fasta.gz )
+    metabat_files=( metabat_bins/*.fa metabat_bins/*.fa.gz metabat_bins/*.fasta metabat_bins/*.fasta.gz )
+
+    bin_dirs_arg=""
+    [ \${#semibin_files[@]} -gt 0 ] && bin_dirs_arg="\$bin_dirs_arg semibin_bins"
+    [ \${#metabat_files[@]} -gt 0 ] && bin_dirs_arg="\$bin_dirs_arg metabat_bins"
+
+    # Edge case: both binners produced 0 bins for this sample (very low
+    # complexity input). Emit empty deliverables and skip Binette — its
+    # `bins` output is already declared optional, and classification.nf:174
+    # handles "no bins" downstream via remainder:true (EXTRACT_UNBINNED
+    # treats every chromosome contig as unbinned in that case).
+    if [ -z "\${bin_dirs_arg// /}" ]; then
+        echo "[BINETTE] Both binners produced 0 bins for ${meta.id} — emitting empty reports" >&2
+        mkdir -p ${prefix}/final_bins
+        : > ${prefix}/final_bins_quality_reports.tsv
+        : > ${prefix}/final_contig_to_bin.tsv
+        cat <<-END_VERSIONS > versions.yml
+        "${task.process}":
+            binette: skipped_no_input_bins
+        END_VERSIONS
+        exit 0
+    fi
+
     binette \\
         --contigs ${contigs} \\
-        --bin_dirs semibin_bins metabat_bins \\
+        --bin_dirs \$bin_dirs_arg \\
         --checkm2_db ${checkm2_db} \\
         --outdir ${prefix} \\
         --threads ${task.cpus} \\

@@ -116,11 +116,24 @@ workflow BACTERIAL_BINNING {
         //   [id, single_end] meta. Re-key all three by meta.id (String) so the
         //   join is meta-shape-agnostic; ch_chromosome's clean meta becomes
         //   the canonical meta for BINETTE.
+        //
+        //   remainder:true on both binner joins gives effective LEFT-join
+        //   semantics: every chromosome sample reaches Binette even if one
+        //   binner produced 0 bins. SemiBin's nf-core module's non-optional
+        //   output_fasta declaration combines with errorStrategy='ignore' on
+        //   exit-0 missing output (see conf/metagear/bacterial_binning.config)
+        //   to suppress the failed emit. MetaBAT2's nf-core module already
+        //   declares all outputs as `optional: true`, so the same handling
+        //   covers MetaBAT2's 0-bin case for free. ?:[] substitutes an empty
+        //   list for the missing side; Binette's script uses `shopt -s
+        //   nullglob` over the staged dirs (same pattern as EXTRACT_UNBINNED
+        //   → classification.nf:174) so the missing binner is omitted from
+        //   --bin_dirs cleanly.
         ch_binette_input = ch_chromosome
             .map { meta, fa -> [ meta.id, meta, fa ] }
-            .join( SEMIBIN_SINGLEEASYBIN.out.output_fasta.map { meta, bins -> [ meta.id, bins ] }, by: 0 )
-            .join( METABAT2_METABAT2.out.fasta.map            { meta, bins -> [ meta.id, bins ] }, by: 0 )
-            .map { _id, meta, fa, semibin_bins, metabat_bins -> [ meta, fa, semibin_bins, metabat_bins ] }  // [meta, contigs, semibin_bins, metabat_bins]
+            .join( SEMIBIN_SINGLEEASYBIN.out.output_fasta.map { meta, bins -> [ meta.id, bins ] }, by: 0, remainder: true )
+            .join( METABAT2_METABAT2.out.fasta.map            { meta, bins -> [ meta.id, bins ] }, by: 0, remainder: true )
+            .map { items -> [ items[1], items[2], items[3] ?: [], items[4] ?: [] ] }  // [meta, contigs, semibin_bins_or_empty, metabat_bins_or_empty]
 
         BINETTE ( ch_binette_input, checkm2_db )
         ch_versions = ch_versions.mix( BINETTE.out.versions.first() )
