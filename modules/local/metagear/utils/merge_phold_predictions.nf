@@ -25,8 +25,9 @@ process MERGE_PHOLD_PREDICTIONS {
     tuple val(meta), path(predict_dirs, stageAs: 'predict_dirs/*')
 
     output:
-    tuple val(meta), path("merged_predict_dir/"), emit: merged_predict_dir
-    path "versions.yml"                         , emit: versions
+    tuple val(meta), path("merged_predict_dir/")              , emit: merged_predict_dir
+    tuple val(meta), path("merged_predict_dir/phold_3di.fasta"), emit: di_fasta
+    path "versions.yml"                                       , emit: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -57,16 +58,11 @@ process MERGE_PHOLD_PREDICTIONS {
         [[ -f "\$f" ]] && cat "\$f" >> merged_predict_dir/phold_3di.fasta
     done
 
-    # CSV — keep header from first shard, skip on subsequent
-    first=1
+    # CSV — every line is a data row (PHOLD writes `<protein_id>,<confidence>`
+    # with NO header), so plain concat preserves all rows. The previous
+    # tail -n +2 logic silently dropped one row per non-first shard.
     for f in predict_dirs/*/phold_prostT5_3di_mean_probabilities.csv; do
-        [[ -f "\$f" ]] || continue
-        if [[ \$first -eq 1 ]]; then
-            cat "\$f" > merged_predict_dir/phold_prostT5_3di_mean_probabilities.csv
-            first=0
-        else
-            tail -n +2 "\$f" >> merged_predict_dir/phold_prostT5_3di_mean_probabilities.csv
-        fi
+        [[ -f "\$f" ]] && cat "\$f" >> merged_predict_dir/phold_prostT5_3di_mean_probabilities.csv
     done
 
     # JSON — each shard's file is a dict keyed by protein_id; merge via python

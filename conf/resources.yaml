@@ -118,7 +118,9 @@ processes:
   FILTER_STRUCTURES_INPUTS: { label: process_low, cpus: 2, memory_gb: 16, time_h: 2, note: "Pure-python scope filter + viral join table. Memory dominated by the protein-cluster member→rep dict (~12 GB at 14M proteins)." }
   PHOLD_PREDICT: { label: process_high, cpus: 8, memory_gb: 24, time_h: 12, note: "ProstT5 inference (3B-param T5). CPU-friendly with sharding via SEQKIT_SPLIT2; bump to a GPU node for 10-50x speedup. Each shard is independent." }
   MERGE_PHOLD_PREDICTIONS: { label: process_single, cpus: 2, memory_gb: 4, time_h: 1, note: "Pure-shell cat of per-shard 3Di + AA FASTAs into one prediction dir for PHOLD_COMPARE." }
-  PHOLD_COMPARE: { label: process_high, cpus: 24, memory_gb: 48, time_h: 6, note: "Foldseek search against the PHOLD structural DB (~7.7 GB index). CPU-only; memory dominated by Foldseek's index in RAM." }
+  SPLIT_3DI_BY_AA: { label: process_low, cpus: 2, memory_gb: 8, time_h: 2, note: "Per-chunk filter of the cohort merged_predict_dir to a chunk's protein IDs. Single-pass scan; memory dominated by the ID set." }
+  PHOLD_COMPARE: { label: process_high, cpus: 8, memory_gb: 16, time_h: 6, note: "Foldseek search against the PHOLD structural DB (~7.7 GB index). CPU-only; per-chunk after the structures workflow's COMPARE scatter (structures_compare_shard_size controls chunk size). Was 24 cpus / 48 GB pre-scatter." }
+  MERGE_PHOLD_COMPARE: { label: process_single, cpus: 2, memory_gb: 4, time_h: 1, note: "Concat per-chunk phold_per_cds_predictions.tsv with header dedup → cohort all.proteins.phold.tsv." }
   MERGE_VIRAL_PHOLD: { label: process_single, cpus: 2, memory_gb: 4, time_h: 1, note: "Pure-python join of PHOLD output with the viral join table → virus.proteins.phold.tsv." }
   PHOLD_INSTALL: { label: process_high, cpus: 8, memory_gb: 16, time_h: 8, note: "One-time DB install via `metagear download_databases --databases structures`. ~7.7 GB download + Foldseek index build." }
 

@@ -340,6 +340,12 @@
               "description": "Number of proteins per shard for the parallel ProstT5 prediction. ProstT5 model load (~30-60 s per shard) dominates the wall time at small shard sizes, so larger shards amortize that cost. Default 5000 is the sweet spot for cohorts up to ~1M proteins; bump to 10000 for 500-sample-scale production cohorts. Tune down only if a specific GPU can't fit the working set."
             },
             {
+              "name": "structures_compare_shard_size",
+              "required": false,
+              "default": "100000",
+              "description": "Number of proteins per chunk for the parallel PHOLD_COMPARE (Foldseek search) scatter. Each `phold proteins-compare` invocation pays a fixed ~30-60 s DB-load cost, so chunks should be big enough that the per-chunk runtime amortises that overhead (target ~30-60 min per chunk). Default 100000 fits mouse-scale (~10 chunks) through 500-sample-scale (~500 chunks) on a fat compute node. Bump to 1000000 for 8.4K-scale cohorts to keep the chunk count reasonable; lower if you want finer-grained per-chunk resume on failure."
+            },
+            {
               "name": "structures_prepare_for_gpu",
               "required": false,
               "default": "false",

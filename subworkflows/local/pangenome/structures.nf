@@ -2,12 +2,15 @@ include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
 include { createExistingFileChannel } from "$projectDir/subworkflows/local/utils/existing_data"
 
 include { SEQKIT_SPLIT2 as SEQKIT_SPLIT2_STRUCTURES } from "$projectDir/modules/nf-core/seqkit/split2"
+include { SEQKIT_SPLIT2 as SEQKIT_SPLIT2_COMPARE    } from "$projectDir/modules/nf-core/seqkit/split2"
 
 include { FILTER_STRUCTURES_INPUTS } from "$projectDir/modules/local/metagear/utils/filter_structures_inputs"
 include { PACKAGE_PHOLD_OFFSITE    } from "$projectDir/modules/local/metagear/utils/package_phold_offsite"
 include { PHOLD_PREDICT            } from "$projectDir/modules/local/phold/predict/main"
 include { MERGE_PHOLD_PREDICTIONS  } from "$projectDir/modules/local/metagear/utils/merge_phold_predictions"
+include { SPLIT_3DI_BY_AA          } from "$projectDir/modules/local/metagear/utils/split_3di_by_aa"
 include { PHOLD_COMPARE            } from "$projectDir/modules/local/phold/compare/main"
+include { MERGE_PHOLD_COMPARE      } from "$projectDir/modules/local/metagear/utils/merge_phold_compare"
 include { MERGE_VIRAL_PHOLD        } from "$projectDir/modules/local/metagear/utils/merge_viral_phold"
 
 
@@ -194,19 +197,73 @@ workflow STRUCTURES {
             MERGE_PHOLD_PREDICTIONS ( ch_merge_predict_in )
             ch_versions = ch_versions.mix( MERGE_PHOLD_PREDICTIONS.out.versions )
 
-            // ─── PHOLD_COMPARE (Foldseek vs PHOLD DB) — single cohort job ────
-            // Joins the merged 3Di predictions with the original AA FASTA
-            // from FILTER_STRUCTURES_INPUTS so PHOLD can compute coverage /
-            // identity metrics against the original sequences.
-            ch_compare_in = FILTER_STRUCTURES_INPUTS.out.subset_fasta
-                                .join( MERGE_PHOLD_PREDICTIONS.out.merged_predict_dir )
+            // ─── PHOLD_COMPARE scatter-gather ────────────────────────────────
+            // Foldseek search at sensitivity 9.5 scales linearly with input
+            // protein count, but each `phold proteins-compare` invocation
+            // pays a fixed ~30-60 s DB-load overhead. Sweet spot is
+            // 50-200 k proteins per chunk; default 100 k via
+            // `structures_compare_shard_size`.
+            //
+            // For the 911 k-protein mouse cohort this is ~10 chunks; for a
+            // 500-sample, ~50 M-protein cohort it's ~500 chunks running
+            // 30-60 min each, parallelised across a fat node.
+
+            //  Step a: split cohort AA FASTA into M chunks (chunk size set via
+            //          ext.args in conf/metagear/structures.config). The
+            //          nf-core SEQKIT_SPLIT2 module branches on
+            //          `meta.single_end`; tag it true so we hit the
+            //          single-file path instead of the paired-end path that
+            //          tries to pass `--read2 null`. Matches the trick the
+            //          PREDICT scatter (SEQKIT_SPLIT2_STRUCTURES) already uses.
+            ch_split_compare_in = FILTER_STRUCTURES_INPUTS.out.subset_fasta
+                                    .map { meta, fa -> tuple( meta + [single_end: true], fa ) }
+            SEQKIT_SPLIT2_COMPARE ( ch_split_compare_in )
+            ch_versions = ch_versions.mix( SEQKIT_SPLIT2_COMPARE.out.versions )
+
+            //  Step b: per chunk, build a chunk-scoped predict_dir from the
+            //          cohort merged_predict_dir by filtering to the chunk's
+            //          protein IDs.
+            ch_aa_chunks = SEQKIT_SPLIT2_COMPARE.out.reads
+                                .flatMap { meta, chunks ->
+                                    def cs = (chunks instanceof java.nio.file.Path) ? [chunks] : (chunks as List)
+                                    cs.collect { c ->
+                                        def fn = c.getFileName().toString()
+                                        def chunkId = fn.replaceFirst(/\.faa\.gz$/, '')
+                                                       .replaceFirst(/\.fa\.gz$/, '')
+                                                       .replaceFirst(/\.fasta\.gz$/, '')
+                                                       .replaceFirst(/\.faa$/, '')
+                                                       .replaceFirst(/\.fa$/, '')
+                                        tuple( [id: chunkId, src: meta.id], c )
+                                    }
+                                }
+            ch_split_3di_in = ch_aa_chunks
+                                .combine( MERGE_PHOLD_PREDICTIONS.out.merged_predict_dir
+                                            .map { _meta, d -> d } )
+            SPLIT_3DI_BY_AA ( ch_split_3di_in )
+            ch_versions = ch_versions.mix( SPLIT_3DI_BY_AA.out.versions.first() )
+
+            //  Step c: PHOLD_COMPARE per chunk (Foldseek search).
+            ch_compare_in = ch_aa_chunks
+                                .join( SPLIT_3DI_BY_AA.out.chunk_predict_dir )
             PHOLD_COMPARE ( ch_compare_in, phold_db )
-            ch_versions  = ch_versions.mix( PHOLD_COMPARE.out.versions )
-            ch_all_phold = PHOLD_COMPARE.out.per_cds_tsv
-            ch_di_fasta  = PHOLD_COMPARE.out.di_fasta
+            ch_versions = ch_versions.mix( PHOLD_COMPARE.out.versions.first() )
+
+            //  Step d: gather per-chunk per_cds_tsv into the cohort TSV.
+            ch_merge_compare_in = PHOLD_COMPARE.out.per_cds_tsv
+                                    .map { _meta, tsv -> tsv }
+                                    .collect()
+                                    .map { tsvs -> tuple( [id: "cohort"], tsvs ) }
+            MERGE_PHOLD_COMPARE ( ch_merge_compare_in )
+            ch_versions  = ch_versions.mix( MERGE_PHOLD_COMPARE.out.versions )
+            ch_all_phold = MERGE_PHOLD_COMPARE.out.per_cds_tsv
+
+            //  di_fasta: take from MERGE_PHOLD_PREDICTIONS — its phold_3di.fasta
+            //  already covers all cohort proteins (no need to gather per-chunk
+            //  copies, which would be duplicates of the merged file's contents).
+            ch_di_fasta = MERGE_PHOLD_PREDICTIONS.out.di_fasta
 
             // ─── Build virus.proteins.phold.tsv via the viral join table ─────
-            ch_merge_viral_in = PHOLD_COMPARE.out.per_cds_tsv
+            ch_merge_viral_in = ch_all_phold
                                 .join( FILTER_STRUCTURES_INPUTS.out.viral_join_table )
             MERGE_VIRAL_PHOLD ( ch_merge_viral_in )
             ch_versions    = ch_versions.mix( MERGE_VIRAL_PHOLD.out.versions )
