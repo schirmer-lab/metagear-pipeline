@@ -62,9 +62,9 @@ process BINETTE {
         mkdir -p ${prefix}/final_bins
         : > ${prefix}/final_bins_quality_reports.tsv
         : > ${prefix}/final_contig_to_bin.tsv
-        # Avoid heredoc here — Nextflow's """ block leaves the inner
-        # terminator with leading SPACES, but `<<-` only strips TABS.
-        # bash would swallow `fi` into an unterminated heredoc → exit 2.
+        # Avoid heredoc here: Nextflow leaves the inner terminator with
+        # leading SPACES, but bash <<- only strips TABS, so the heredoc
+        # would never close and fi would be swallowed.
         printf '"%s":\n    binette: skipped_no_input_bins\n' "${task.process}" > versions.yml
         exit 0
     fi
