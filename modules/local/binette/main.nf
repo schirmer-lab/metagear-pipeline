@@ -77,10 +77,12 @@ process BINETTE {
         --threads ${task.cpus} \\
         ${args}
 
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        binette: \$(binette --version 2>&1 | sed 's/.*[Bb]inette //; s/[,\\s].*//')
-    END_VERSIONS
+    # Avoid heredoc for versions.yml emission. See comment in the 0-bin
+    # branch above for the rationale; the short version is that heredoc
+    # terminators with leading whitespace inside a Nextflow script block
+    # have historically corrupted versions.yml. printf has no such failure.
+    binette_ver=\$(binette --version 2>&1 | sed 's/.*[Bb]inette //; s/[,\\s].*//')
+    printf '"%s":\n    binette: %s\n' "${task.process}" "\$binette_ver" > versions.yml
     """
 
     stub:
@@ -91,9 +93,6 @@ process BINETTE {
     touch ${prefix}/final_bins_quality_reports.tsv
     touch ${prefix}/final_contig_to_bin.tsv
 
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        binette: 1.2.1
-    END_VERSIONS
+    printf '"%s":\n    binette: 1.2.1\n' "${task.process}" > versions.yml
     """
 }
