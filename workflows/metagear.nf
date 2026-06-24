@@ -71,7 +71,9 @@ workflow METAGEAR {
             init = MSP_INIT ( )
 
             ch_metaphlan_profiles = Channel.empty()
-            if ( init.metaphlan_profiles ) {
+            if ( params.metaphlan_profiles ) {
+                ch_metaphlan_profiles = init.metaphlan_profiles
+            } else {
                 METAPHLAN_PROFILES( init.validated_input, init.metaphlan_db )
                 ch_metaphlan_profiles = METAPHLAN_PROFILES.out.merged_profiles.map{ it[1] }
             }
