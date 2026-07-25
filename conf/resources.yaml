@@ -59,20 +59,13 @@ processes:
   # === Protein call / annotation ===
   TRANSLATE_DNA2PROT: { label: process_medium, cpus: 8, memory_gb: 16, time_h: 4 }
   SEQKIT_SPLIT2: { label: process_medium, cpus: 8, memory_gb: 16, time_h: 4 }
-  INTERPROSCAN:
-    {
-      label: process_long,
-      cpus: 12,
-      memory_gb: 24,
-      time_h: 24,
-      note: "process_long sets only time — needs explicit cpu/mem",
-    }
+  INTERPROSCAN: { label: process_long, cpus: 12, memory_gb: 24, time_h: 24, note: "process_long sets only time — needs explicit cpu/mem" }
   FUNCTIONALGROUP_ANNOTATION: { label: process_medium, cpus: 12, memory_gb: 24, time_h: 24 }
   AMRFINDERPLUS_RUN: { label: process_medium, cpus: 12, memory_gb: 24, time_h: 24 }
 
   # === Viral annotation ===
   PHAROKKA_PROTEINS: { label: process_high, cpus: 24, memory_gb: 68, time_h: 24 }
-  IPHOP_PREDICT: { label: process_high, cpus: 24, memory_gb: 68, time_h: 24, note: "iPHoP DB ~110 GB on disk" }
+  IPHOP_PREDICT: { label: process_high, cpus: 24, memory_gb: 120, time_h: 24, note: "Heavy I/O + mmap workload — observed peak_rss ~197 GB (mostly shared host-DB mmap), 3 TB read per batch, 40% CPU utilization (I/O bound). The 120 GB request acts as elastic concurrency control: on a 500 GB node it caps at ~4 concurrent (avoids GPFS bandwidth contention that stretches per-batch wall clock past the SLURM 24h limit); on a 1 TB node it scales to 8 concurrent automatically. Don't use maxForks here — the goal is for concurrency to grow with hardware." }
   VIRSORTER2_4DRAMV: { label: "(none)", cpus: 12, memory_gb: 24, time_h: 24, note: "module has no label" }
   DRAMV: { label: "(none)", cpus: 12, memory_gb: 24, time_h: 24, note: "module has no label" }
 
@@ -82,10 +75,47 @@ processes:
   COVERM_CONTIG: { label: process_medium, cpus: 12, memory_gb: 24, time_h: 24 }
   COVERM_CONTIG_MERGE: { label: process_medium, cpus: 12, memory_gb: 24, time_h: 24 }
 
+  # === Bacterial binning ===
+  SAMTOOLS_INDEX: { label: process_low, cpus: 4, memory_gb: 8, time_h: 2 }
+  METABAT2_JGISUMMARIZEBAMCONTIGDEPTHS: { label: process_low, cpus: 4, memory_gb: 8, time_h: 4 }
+  METABAT2_METABAT2: { label: process_medium, cpus: 8, memory_gb: 16, time_h: 8 }
+  SEMIBIN_SINGLEEASYBIN: { label: process_high, cpus: 12, memory_gb: 32, time_h: 16, note: "SemiBin2 single_easy_bin: model inference + binning; --environment from meta.biome" }
+  BINETTE: { label: process_high, cpus: 12, memory_gb: 32, time_h: 16, note: "Runs CheckM2 internally (DIAMOND); refines SemiBin2+MetaBAT2 bins" }
+  GTDBTK_CLASSIFYWF: { label: process_high_memory, cpus: 16, memory_gb: 64, time_h: 24, note: "Module labeled process_high_memory (memory-only tier sets 200 GB, no cpus/time). Per-process override: 16 cpu / 64 GB / 24 h. pplacer is the memory hog and largely single-threaded; cpus mostly help the HMMER + ANI screen steps." }
+
+  # === Integrated classification (per-contig TSV) ===
+  TIARA_TIARA: { label: process_medium, cpus: 4, memory_gb: 8, time_h: 4, note: "K-mer + small DL model; CPU-bound (no DB). Per-sample contigs are small enough that 8 GB / 4 cpu finishes in <1 h." }
+  EXTRACT_UNBINNED: { label: process_single, cpus: 2, memory_gb: 4, time_h: 2, note: "Subtraction-only: collect bin contig IDs and run seqkit grep -v on chromosome FASTA." }
+  MMSEQS_EASYTAXONOMY: { label: process_high, cpus: 8, memory_gb: 128, time_h: 16, note: "REQUIRES params.max_memory >= 128.GB in metagear.config. The prefilter step builds a k-mer index of each target-DB split chunk in RAM and reports 'Cannot fit databases into <X>G' if the chunk doesn't fit. mmseqs2 has ~14 GB of fixed overhead (query DB + working buffers + metadata), and the residual must hold the chunk's k-mer index. Empirically with the current ~200 GB GTDB mmseqs2 build, residual must be >50 GB → split-memory-limit >65 GB → task.memory >=96 GB. We pad to 128 GB so retries (factor *task.attempt) don't blow through process.resourceLimits. 32 GB used to suffice with older 30 GB GTDB releases; the DB has grown roughly 6× since then. Concurrency is left to Nextflow's normal scheduler so the host runs as many parallel tasks as (host_memory / task.memory) permits." }
+  MERGE_CONTIG_CLASSIFICATION: { label: process_single, cpus: 2, memory_gb: 8, time_h: 1, note: "Pure-python join of evidence channels; scales with per-sample contig count (a few hundred k contigs at most)." }
+  CLASSIFY_GENES: { label: process_low, cpus: 2, memory_gb: 8, time_h: 1, note: "Pure-python single-pass over the cohort gene clusters TSV (~1.2M rows / 90 MB on HMP2). Memory footprint dominated by the contig→class dict (millions of contigs × ~50 bytes ≈ few hundred MB)." }
+  MMSEQS_DATABASES: { label: process_medium, cpus: 8, memory_gb: 32, time_h: 24, note: "One-time setup: downloads + indexes GTDB taxonomy DB via `mmseqs databases GTDB`. The 24h ceiling allows for ~30-50 GB download on a slow link plus index build." }
+
+  # === Cohort mag (v2) ===
+  STAGE_DREP_WORK: { label: process_single, cpus: 2, memory_gb: 4, time_h: 1, note: "Concat per-sample genomeInfo CSVs into a single cohort CSV staged inside drep_work_seed/." }
+  SKANI_TRIANGLE: { label: process_high, cpus: 16, memory_gb: 32, time_h: 8, note: "Bulk pairwise ANI over all cohort bins (sparse output). O(N^2) pairs but skani's per-pair cost is ~1000× cheaper than dRep's full pipeline, so it scales to tens of thousands of bins. Defines the partition for the per-batch dRep scatter." }
+  BATCH_BINS: { label: process_low, cpus: 2, memory_gb: 16, time_h: 1, note: "Pure-python connected-components on the sparse ANI TSV. Memory is dominated by the union-find dict (bin count × ~200 bytes) — 16 GB is generous." }
+  DREP_DEREPLICATE: { label: process_high, cpus: 16, memory_gb: 64, time_h: 24, note: "Runs once per batch from BATCH_BINS. With batches of <=2000 bins (controlled by params.drep_batch_ani), 64 GB / 24h is well inside the envelope. The pre-batching at 0.90 ANI strictly contains dRep's 0.95 secondary threshold, so cohort representatives match a single all-vs-all dRep run." }
+  MERGE_DREP_TABLES: { label: process_single, cpus: 2, memory_gb: 4, time_h: 1, note: "Concat per-batch Cdb.csv and Wdb.csv into cohort-level tables with a batch_id prefix column. Pure-awk." }
+  BUILD_MAG_CATALOG: { label: process_low, cpus: 2, memory_gb: 8, time_h: 2, note: "seqkit-based header rename + concat of dRep winners; emits contig_to_mag.tsv for coverm genome." }
+  GATHER_GENOMES_DIR: { label: process_single, cpus: 2, memory_gb: 4, time_h: 1 }
+  COVERM_GENOME: { label: process_medium, cpus: 12, memory_gb: 24, time_h: 24, note: "Same coverm container as COVERM_CONTIG; per-MAG aggregation via --genome-definition." }
+  SUMMARIZE_MAG_CATALOG: { label: process_single, cpus: 2, memory_gb: 8, time_h: 1, note: "Cohort-level mag_catalog.csv. Pure-python." }
+
   # === AMG post-process ===
   EXTRACT_AMGS: { label: process_low }
   MMSEQS_EASYSEARCH: { label: process_high, cpus: 12, memory_gb: 32, time_h: 16 }
   MAP_AMG_CATALOG: { label: process_low }
+
+  # === Structural annotation (structures workflow, PHOLD backend) ===
+  FILTER_STRUCTURES_INPUTS: { label: process_low, cpus: 2, memory_gb: 16, time_h: 2, note: "Pure-python scope filter + viral join table. Memory dominated by the protein-cluster member→rep dict (~12 GB at 14M proteins)." }
+  PHOLD_PREDICT: { label: process_high, cpus: 8, memory_gb: 24, time_h: 12, note: "ProstT5 inference (3B-param T5). CPU-friendly with sharding via SEQKIT_SPLIT2; bump to a GPU node for 10-50x speedup. Each shard is independent." }
+  MERGE_PHOLD_PREDICTIONS: { label: process_single, cpus: 2, memory_gb: 4, time_h: 1, note: "Pure-shell cat of per-shard 3Di + AA FASTAs into one prediction dir for PHOLD_COMPARE." }
+  SPLIT_3DI_BY_AA: { label: process_low, cpus: 2, memory_gb: 8, time_h: 2, note: "Per-chunk filter of the cohort merged_predict_dir to a chunk's protein IDs. Single-pass scan; memory dominated by the ID set." }
+  PHOLD_COMPARE: { label: process_high, cpus: 8, memory_gb: 16, time_h: 6, note: "Foldseek search against the PHOLD structural DB (~7.7 GB index). CPU-only; per-chunk after the structures workflow's COMPARE scatter (structures_compare_shard_size controls chunk size). Was 24 cpus / 48 GB pre-scatter." }
+  MERGE_PHOLD_COMPARE: { label: process_single, cpus: 2, memory_gb: 4, time_h: 1, note: "Concat per-chunk phold_per_cds_predictions.tsv with header dedup → cohort all.proteins.phold.tsv." }
+  MERGE_VIRAL_PHOLD: { label: process_single, cpus: 2, memory_gb: 4, time_h: 1, note: "Pure-python join of PHOLD output with the viral join table → virus.proteins.phold.tsv." }
+  PHOLD_INSTALL: { label: process_high, cpus: 8, memory_gb: 16, time_h: 8, note: "One-time DB install via `metagear download_databases --databases structures`. ~7.7 GB download + Foldseek index build." }
 
   # === Summary ===
   FIND_REPRESENTATIVES: { label: process_low }

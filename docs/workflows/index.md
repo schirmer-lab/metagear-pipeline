@@ -8,12 +8,12 @@ The `schirmer-lab/metagear` pipeline groups its work into six entry-point workfl
 | [qc_dna](qc_dna.md)                         | Adapter/quality trimming and host decontamination of DNA reads                      | Raw DNA FASTQ | Clean paired reads + QC report                                    | Medium         |
 | [qc_rna](qc_rna.md)                         | Same flow as `qc_dna`; intended for metatranscriptomic input                        | Raw RNA FASTQ | Clean paired reads + QC report                                    | Medium         |
 | [microbial_profiles](microbial_profiles.md) | Reference-based taxonomic and functional profiling                                  | Clean reads   | MetaPhlAn4 species table + HUMAnN3 gene-family and pathway tables | Medium–High    |
-| [gene_analysis](gene_analysis.md)           | De novo assembly, gene calling, gene catalog, MSP analysis                          | Clean reads   | Gene/protein representative catalogs, abundance matrices, MSPs    | High           |
-| [viral_analysis](viral_analysis.md)         | Viral and plasmid detection, clustering, annotation, host prediction, AMG discovery | Clean reads   | Viral and plasmid catalogs, AMGs, iPHoP host predictions          | Very high      |
+| [genes](genes.md)                           | De novo assembly, gene calling, gene catalog, MSP analysis                          | Clean reads   | Gene/protein representative catalogs, abundance matrices, MSPs    | High           |
+| [virus](virus.md)                           | Viral and plasmid detection, clustering, annotation, host prediction, AMG discovery | Clean reads   | Viral and plasmid catalogs, AMGs, iPHoP host predictions          | Very high      |
 
 ## Recommended order
 
-Run `download_databases` once per machine, then quality-control the raw reads, then choose whichever downstream workflows match your scientific question. The three analysis workflows (`microbial_profiles`, `gene_analysis`, `viral_analysis`) are complementary and can run on the same QC'd reads.
+Run `download_databases` once per machine, then quality-control the raw reads, then choose whichever downstream workflows match your scientific question. The three analysis workflows (`microbial_profiles`, `genes`, `virus`) are complementary and can run on the same QC'd reads.
 
 ```bash
 # 1. One-time database setup
@@ -29,17 +29,17 @@ nextflow run schirmer-lab/metagear -profile docker \
   --workflow microbial_profiles --input clean.csv --outdir profiles/
 
 nextflow run schirmer-lab/metagear -profile docker \
-  --workflow gene_analysis --input clean.csv --outdir genes/
+  --workflow genes --input clean.csv --outdir genes/
 
 nextflow run schirmer-lab/metagear -profile docker \
-  --workflow viral_analysis --input clean.csv --outdir viruses/
+  --workflow virus --input clean.csv --outdir viruses/
 ```
 
 ## Picking a workflow
 
 - **Which organisms are present, and what functions can they perform?** → `microbial_profiles` (reference-based, no assembly, fast).
-- **What genes are in this sample, including novel ones?** → `gene_analysis` (assembly-based, captures genes absent from reference databases, builds metagenomic species pangenomes).
-- **What viruses, phages, plasmids, or auxiliary metabolic genes are present?** → `viral_analysis` (assembly-based, two-pass viral detection with geNomad + CheckV).
+- **What genes are in this sample, including novel ones?** → `genes` (assembly-based, captures genes absent from reference databases, builds metagenomic species pangenomes).
+- **What viruses, phages, plasmids, or auxiliary metabolic genes are present?** → `virus` (assembly-based, two-pass viral detection with geNomad + CheckV).
 
 ## Input samplesheet
 

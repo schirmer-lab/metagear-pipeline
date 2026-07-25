@@ -57,8 +57,8 @@ The pipeline bundles six entry-point workflows; the active one is chosen at run 
 - `download_databases` — one-time reference database install
 - `qc_dna`, `qc_rna` — adapter/quality trimming and host (and rRNA, for RNA) decontamination
 - `microbial_profiles` — taxonomic and functional profiling (MetaPhlAn 4 + HUMAnN 3)
-- `gene_analysis` — de novo assembly, gene catalog, MSP analysis
-- `viral_analysis` — viral/plasmid detection, annotation, host prediction, AMGs
+- `genes` — de novo assembly, gene catalog, MSP analysis
+- `virus` — viral/plasmid detection, annotation, host prediction, AMGs
 
 See the [workflows guide](workflows/index.md) for per-workflow descriptions, inputs, outputs, and parameters.
 

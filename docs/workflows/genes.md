@@ -1,4 +1,4 @@
-# gene_analysis
+# genes
 
 De novo gene-centric analysis: assemble reads, call genes, build a non-redundant gene catalog, quantify it back across all samples, and group genes into metagenomic species pangenomes (MSPs). Use this when you need a sample-specific gene catalog or want to characterize organisms that are not in the MetaPhlAn reference.
 
@@ -39,23 +39,28 @@ Each intermediate step can be skipped by supplying its output directly (see the 
 
 ## Output
 
-| Path (relative to `--outdir`)                                  | Content                                                                              |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `assembly/<sample>.contigs.fa.gz`                              | Per-sample assembled contigs (MEGAHIT).                                              |
-| `prodigal/raw/`, `prodigal/`                                   | Raw and filtered Prodigal gene calls per sample (`*.all.genes.filtered.fasta`).      |
-| `catalogs/raw/`                                                | Pre-clustering concatenated gene set (VAMB concatenation).                           |
-| `catalogs/all.genes.representatives.fa`                        | **Representative gene catalog** (MMseqs2 cluster representatives).                   |
-| `catalogs/all.genes.proteins.fa`                               | Representative proteins (translation of catalog genes).                              |
-| `annotations/amrfinder/all.genes.proteins.annotations.tsv`     | AMRFinderPlus annotations on representative proteins.                                |
-| `coverm/<sample>/`                                             | BWA indices used for per-sample alignment.                                           |
-| `coverm/tables_raw/`                                           | Raw CoverM per-sample tables.                                                        |
-| `coverm/all.genes.count.tsv`                                   | **Gene-by-sample raw read count matrix.**                                            |
-| `coverm/all.genes.rpkm.tsv`                                    | **Gene-by-sample RPKM matrix.**                                                      |
-| `coverm/all.genes.tpm.tsv`                                     | **Gene-by-sample TPM matrix.**                                                       |
-| `metaphlan/individual_profiles/<sample>_microbial_profile.txt` | Per-sample MetaPhlAn profiles (only when MetaPhlAn runs).                            |
-| `metaphlan/merged_microbial_profiles.txt`                      | Merged MetaPhlAn matrix (only when MetaPhlAn runs).                                  |
-| `msp/`                                                         | MSPminer output: MSP definitions, pangenome sequences, abundance, MetaPhlAn linkage. |
-| `pipeline_info/gene_analysis_multiqc_report.html`              | Consolidated MultiQC.                                                                |
+| Path (relative to `--outdir`)                                  | Content                                                                                  |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `assemblies/contigs/<sample>.contigs.fa.gz`                    | Per-sample assembled contigs (MEGAHIT).                                                  |
+| `assemblies/assembly_graphs/<sample>.k119.fastg.gz`            | Per-sample assembly de Bruijn graph (MEGAHIT).                                           |
+| `prodigal/raw/`, `prodigal/`                                   | Raw and filtered Prodigal gene calls per sample (`*.all.genes.filtered.fasta`).          |
+| `catalogs/raw/`                                                | Pre-clustering concatenated gene/protein sets (VAMB concatenation, translated proteins). |
+| `catalogs/genes/all.genes.representative.fa.gz`                | **Representative gene catalog** (MMseqs2 cluster representatives).                       |
+| `catalogs/genes/all.genes.clusters.tsv`                        | Gene cluster membership.                                                                 |
+| `catalogs/proteins/all.proteins.representative.fa.gz`          | **Representative protein catalog** (translation + MMseqs2 clustering).                   |
+| `catalogs/proteins/all.proteins.clusters.tsv`                  | Protein cluster membership.                                                              |
+| `annotations/amrfinder/`                                       | AMRFinderPlus annotations on representative proteins.                                    |
+| `annotations/interproscan/`                                    | InterProScan annotations + FunctionalGroup parse.                                        |
+| `abundance/all.genes/bwa_index/`                               | BWA-MEM index for the gene catalog.                                                      |
+| `abundance/all.genes/bams/<sample>.bam`                        | Per-sample BAMs (reads mapped against the gene catalog).                                 |
+| `abundance/all.genes/per_batch/`                               | Per-batch CoverM contig tables (provenance for the merged matrices).                     |
+| `abundance/all.genes/all.genes.count.tsv`                      | **Gene-by-sample raw read count matrix.**                                                |
+| `abundance/all.genes/all.genes.rpkm.tsv`                       | **Gene-by-sample RPKM matrix.**                                                          |
+| `abundance/all.genes/all.genes.tpm.tsv`                        | **Gene-by-sample TPM matrix.**                                                           |
+| `metaphlan/individual_profiles/<sample>_microbial_profile.txt` | Per-sample MetaPhlAn profiles (only when MetaPhlAn runs).                                |
+| `metaphlan/merged_microbial_profiles.txt`                      | Merged MetaPhlAn matrix (only when MetaPhlAn runs).                                      |
+| `msp/`                                                         | MSPminer output: MSP definitions, pangenome sequences, abundance, MetaPhlAn linkage.     |
+| `pipeline_info/gene_analysis_multiqc_report.html`              | Consolidated MultiQC.                                                                    |
 
 The bolded rows are the typical analytical deliverables: the representative gene catalog, its annotations, the three abundance matrices, and the MSP set.
 
@@ -65,7 +70,7 @@ End-to-end run:
 
 ```bash
 nextflow run schirmer-lab/metagear -profile docker \
-  --workflow gene_analysis \
+  --workflow genes \
   --input clean.csv \
   --outdir genes/ \
   --metaphlan_db /data/metagear/metaphlan \
@@ -77,16 +82,16 @@ Re-running only the MSP stage after upstream steps have completed:
 
 ```bash
 nextflow run schirmer-lab/metagear -profile docker \
-  --workflow gene_analysis \
+  --workflow genes \
   --input clean.csv \
   --outdir genes/ \
   --metaphlan_profiles previous_run/metaphlan/individual_profiles/ \
-  --representative_genes previous_run/catalogs/all.genes.representatives.fa \
-  --representative_proteins previous_run/catalogs/all.genes.proteins.fa \
-  --representative_proteins_annotations previous_run/annotations/amrfinder/all.genes.proteins.annotations.tsv \
-  --representative_genes_tpm previous_run/coverm/all.genes.tpm.tsv \
-  --representative_genes_rpkm previous_run/coverm/all.genes.rpkm.tsv \
-  --representative_genes_count previous_run/coverm/all.genes.count.tsv \
+  --representative_genes previous_run/catalogs/genes/all.genes.representative.fa.gz \
+  --representative_proteins previous_run/catalogs/proteins/all.proteins.representative.fa.gz \
+  --representative_proteins_annotations previous_run/annotations/interproscan/all.proteins.FG_IPS_Pfam.tsv \
+  --representative_genes_tpm previous_run/abundance/all.genes/all.genes.tpm.tsv \
+  --representative_genes_rpkm previous_run/abundance/all.genes/all.genes.rpkm.tsv \
+  --representative_genes_count previous_run/abundance/all.genes/all.genes.count.tsv \
   --metaphlan_db /data/metagear/metaphlan \
   --gtdb_tk_db /data/metagear/gtdb_tk \
   --amrfinder_db /data/metagear/amrfinder

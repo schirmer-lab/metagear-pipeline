@@ -62,4 +62,4 @@ nextflow run schirmer-lab/metagear -profile docker \
 
 - **Expect heavy attrition.** A typical RNA library can be 70–90% rRNA; the cleaned output may be only a fraction of the raw input. This is by design.
 - **No mRNA enrichment is performed** beyond rRNA depletion. If you have residual host mRNA you don't want, add the host transcriptome to `--kneaddata_refdb`.
-- **Downstream compatibility.** The output FASTQs are interchangeable with `qc_dna` output — you can feed them into `microbial_profiles` or `gene_analysis`. Just remember that abundance from RNA reflects activity, not presence.
+- **Downstream compatibility.** The output FASTQs are interchangeable with `qc_dna` output — you can feed them into `microbial_profiles` or `genes`. Just remember that abundance from RNA reflects activity, not presence.

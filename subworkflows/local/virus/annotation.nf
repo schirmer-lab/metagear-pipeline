@@ -1,7 +1,7 @@
 include { VIRSORTER2 as VIRSORTER2_4DRAMV } from "$projectDir/modules/local/virsorter2/main"
 include { DRAMV } from "$projectDir/modules/local/dram/main"
 include { IPHOP_PREDICT } from "$projectDir/modules/local/iphop/predict/main"
-include { SEQKIT_SPLIT2 } from "$projectDir/modules/nf-core/seqkit/split2"
+include { SEQKIT_SPLIT2; SEQKIT_SPLIT2 as SEQKIT_SPLIT2_IPHOP } from "$projectDir/modules/nf-core/seqkit/split2"
 
 include { PHAROKKA_PROTEINS } from "$projectDir/modules/local/pharokka/pharokka_proteins/main"
 
@@ -47,7 +47,8 @@ workflow VIRAL_ANNOTATION {
             return tuple(newMeta, contig)
         }
 
-        // split protein sequences into 1000 fasta files
+        // Split the viral catalog into chunks. Sized by
+        // params.viral_sequences_batch_size — feeds VIRSORTER2 + DRAMV.
         SEQKIT_SPLIT2 ( ch_split )
 
         SEQKIT_SPLIT2.out.reads
@@ -61,13 +62,32 @@ workflow VIRAL_ANNOTATION {
             }
             .set { ch_virsorter2_chunks }
 
+        // IPHOP gets its own (smaller) split — see params.iphop_batch_size in
+        // common.config. Past experience: a 5000-seq batch takes ~13 h per
+        // IPHOP run, so even 7-way concurrency can't finish many batches per
+        // 24 h SLURM window. Smaller IPHOP chunks → more cached completions
+        // per relaunch. Decoupling from SEQKIT_SPLIT2 means tuning IPHOP
+        // throughput doesn't invalidate VIRSORTER2 / DRAMV caches.
+        SEQKIT_SPLIT2_IPHOP ( ch_split )
+
+        SEQKIT_SPLIT2_IPHOP.out.reads
+            .flatMap { meta, gz ->
+                def files = (gz instanceof java.nio.file.Path) ? [gz] : (gz as List)
+                files.collect { f ->
+                    def fn = f.getFileName().toString()
+                    def chunkId = fn.replaceFirst(/\.faa\.gz$/, '')
+                    tuple([ id: "${chunkId}" ], f)
+                }
+            }
+            .set { ch_iphop_chunks }
+
         pharokka_input = viral_contigs_proteins.map { meta, contig, protein ->
             tuple(meta, protein, contig)
         }
 
         PHAROKKA_PROTEINS ( pharokka_input, pharokka_db )
 
-        IPHOP_PREDICT ( ch_virsorter2_chunks, iphop_db )
+        IPHOP_PREDICT ( ch_iphop_chunks, iphop_db )
 
         VIRSORTER2_4DRAMV( ch_virsorter2_chunks, virsorter2_db )
         ch_versions = ch_versions.mix(VIRSORTER2_4DRAMV.out.versions)

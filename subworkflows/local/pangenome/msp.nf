@@ -1,8 +1,49 @@
+include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
+include { createExistingFileChannel } from "$projectDir/subworkflows/local/utils/existing_data"
+
 include { MSPMINER_MSPMINER } from "$projectDir/modules/local/mspminer"
 include { MSP_SEQUENCES; MSP_ABUNDANCE } from "$projectDir/modules/local/metagear/utils/post_mspminer"
 
 include { GTDBTK_CLASSIFYWF } from "$projectDir/modules/local/gtdbtk/classifywf"
 include { MSP_METAPHLAN_ANNOTATION } from "$projectDir/modules/local/metagear/utils/msp_metaphlan_annotation"
+
+
+workflow MSP_INIT {
+
+    main:
+        if ( !params.input )                      { exit 1, 'Input samplesheet not specified (--input)' }
+        if ( !params.representative_genes )       { exit 1, 'Representative-genes catalog not specified (--representative_genes)' }
+        if ( !params.representative_genes_count ) { exit 1, 'Representative-genes counts not specified (--representative_genes_count)' }
+        if ( !params.representative_genes_rpkm )  { exit 1, 'Representative-genes RPKM not specified (--representative_genes_rpkm)' }
+
+        ch_input = file(params.input)
+
+        gtdb_tk_db = Channel.fromPath("${params.gtdb_tk_db}", checkIfExists: true)
+
+        representative_genes       = createExistingFileChannel ( params.representative_genes,       { [ [id: "all.genes"],       it ] } )
+        representative_genes_count = createExistingFileChannel ( params.representative_genes_count, { [ [id: "all.genes_count"], it ] } )
+        representative_genes_rpkm  = createExistingFileChannel ( params.representative_genes_rpkm,  { [ [id: "all.genes_rpkm"],  it ] } )
+
+        metaphlan_db = Channel.empty()
+        if ( params.metaphlan_profiles ) {
+            metaphlan_profiles = Channel.fromPath("${params.metaphlan_profiles}", checkIfExists: true)
+        } else {
+            metaphlan_db = Channel.fromPath("${params.metaphlan_db}", checkIfExists: true).first()
+            metaphlan_profiles = false
+        }
+
+        INPUT_CHECK ( ch_input, "reads" )
+
+    emit:
+        validated_input            = INPUT_CHECK.out.validated_input
+        representative_genes
+        representative_genes_count
+        representative_genes_rpkm
+        metaphlan_profiles
+        metaphlan_db
+        gtdb_tk_db
+        versions                   = INPUT_CHECK.out.versions
+}
 
 
 workflow MSP {

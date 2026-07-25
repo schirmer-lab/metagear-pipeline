@@ -1,0 +1,128 @@
+#!/bin/bash
+#
+# SLURM sbatch script — submits the PHOLD offsite-predict run as a batch job
+# that survives disconnect. Customise the #SBATCH directives and the two
+# env-var lines below, then submit with:
+#
+#     sbatch submit_phold_predict.sbatch
+#
+# Monitor with:
+#     squeue -u $USER
+#     tail -f phold-predict-<JOBID>.log
+#
+# Cancel with:
+#     scancel <JOBID>
+#
+# Generated for:
+#   metagear-pipeline-dev commit __PIPELINE_COMMIT__
+#   structures_scope       __STRUCTURES_SCOPE__
+#   N shards               __NUM_SHARDS__
+#   created                __CREATED_AT__
+#
+#SBATCH --job-name=phold-predict
+#SBATCH --partition=lrz-hgx-h100-94x4
+#SBATCH --gres=gpu:1
+#SBATCH --cpus-per-task=6
+#SBATCH --mem=60G
+#SBATCH --time=__SUGGESTED_WALLTIME__
+#SBATCH --output=phold-predict-%j.log
+#SBATCH --error=phold-predict-%j.err
+
+set -euo pipefail
+
+# ── CUSTOMISE THESE TWO LINES ──────────────────────────────────────────────
+# Where you installed the PHOLD database (run `phold install -d <path>` once
+# on the login node before submitting this).
+PHOLD_DB="${PHOLD_DB:-/PATH/TO/YOUR/phold_db}"
+
+# Name of the micromamba env you created from the README's install recipe.
+MAMBA_ENV="${MAMBA_ENV:-metagear-structures}"
+
+# ── Tunables (sensible defaults; override at submit time via env vars) ─────
+# H100 (94 GB VRAM) can comfortably handle batch_size=32. Drop on smaller cards.
+BATCH_SIZE="${BATCH_SIZE:-16}"
+# Threads for data loading + Foldseek internals (matches --cpus-per-task).
+THREADS="${THREADS:-6}"
+
+# ───────────────────────────────────────────────────────────────────────────
+
+echo "=== Job $SLURM_JOB_ID started at $(date -Iseconds) on $(hostname) ==="
+echo "  partition:  $SLURM_JOB_PARTITION"
+echo "  GPU:        $(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null || echo 'no GPU visible (check --gres)')"
+echo "  PHOLD_DB:   $PHOLD_DB"
+echo "  batch_size: $BATCH_SIZE"
+echo "  threads:    $THREADS"
+echo
+
+# Initialise micromamba in this non-interactive shell. sbatch doesn't source
+# ~/.bashrc by default, so we try a few ways to locate the binary:
+#   1. $MAMBA_EXE env var (set by `micromamba shell init`; survives if user
+#      `export`s it in their submission env, or passes it inline:
+#         MAMBA_EXE=/path/to/micromamba sbatch submit_phold_predict.sbatch)
+#   2. Common install locations under $HOME
+#   3. `command -v micromamba` (works if PATH is inherited from submit shell)
+#   4. Sourcing ~/.bashrc as a last resort (works if user's init is not
+#      guarded by `[[ $- != *i* ]] && return`)
+_MAMBA_CANDIDATES=(
+    "${MAMBA_EXE:-}"
+    "$HOME/bin/micromamba"
+    "$HOME/.local/bin/micromamba"
+    "$HOME/micromamba/bin/micromamba"
+)
+_MAMBA_BIN=""
+for _c in "${_MAMBA_CANDIDATES[@]}"; do
+    if [ -n "$_c" ] && [ -x "$_c" ]; then
+        _MAMBA_BIN="$_c"
+        break
+    fi
+done
+if [ -z "$_MAMBA_BIN" ] && command -v micromamba >/dev/null 2>&1; then
+    _MAMBA_BIN="$(command -v micromamba)"
+fi
+if [ -z "$_MAMBA_BIN" ] && [ -f "$HOME/.bashrc" ]; then
+    # Last resort: source bashrc and re-check (some users put micromamba init
+    # outside the interactive-only guard)
+    set +u
+    source "$HOME/.bashrc" 2>/dev/null || true
+    set -u
+    command -v micromamba >/dev/null 2>&1 && _MAMBA_BIN="$(command -v micromamba)"
+fi
+if [ -z "$_MAMBA_BIN" ]; then
+    echo "ERROR: micromamba not found." >&2
+    echo "       Looked at: \$MAMBA_EXE, \$HOME/bin/, \$HOME/.local/bin/, \$HOME/micromamba/bin/, \$PATH, ~/.bashrc" >&2
+    echo "       Fix one of:" >&2
+    echo "         A) Submit with explicit path:  MAMBA_EXE=/path/to/micromamba sbatch $0" >&2
+    echo "         B) Edit this script — hardcode the binary path in _MAMBA_CANDIDATES above" >&2
+    exit 1
+fi
+echo "[env] micromamba: $_MAMBA_BIN"
+eval "$("$_MAMBA_BIN" shell hook --shell bash)"
+
+# `micromamba activate` sources the env's etc/conda/activate.d/*.sh scripts,
+# some of which (e.g. libblas_mkl_activate.sh from MKL-flavoured numpy) reference
+# unset env vars and trip our `set -u`. The standard workaround is to disable
+# nounset just around the activate call.
+set +u
+micromamba activate "$MAMBA_ENV"
+set -u
+echo "[env] $(phold --version 2>&1)"
+echo "[env] $(python3 -c 'import torch; print("torch:", torch.__version__, "| cuda build:", torch.version.cuda)')"
+echo
+
+# Run from the directory this script was submitted from. sbatch sets
+# $SLURM_SUBMIT_DIR to the original cwd at submission time.
+cd "$SLURM_SUBMIT_DIR"
+
+# Always pass --resume so re-submissions after walltime / crash pick up cleanly.
+bash run_phold_predict.sh \
+    --phold-db "$PHOLD_DB" \
+    --batch-size "$BATCH_SIZE" \
+    --threads "$THREADS" \
+    --resume
+
+echo
+echo "=== Job $SLURM_JOB_ID finished at $(date -Iseconds) ==="
+
+# When the job hits the walltime limit, SLURM kills it. The script's
+# --resume flag means a follow-up `sbatch submit_phold_predict.sbatch`
+# picks up exactly where this left off — no manual bookkeeping needed.

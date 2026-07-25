@@ -1,6 +1,24 @@
 /*--- Check input samplesheet and get read channels ---*/
 
+import groovy.transform.Field
+
 include { SAMPLESHEET_CHECK; RENAME_FILES; } from "$projectDir/modules/local/metagear/samplesheet_check"
+
+// Allowed biome values (SemiBin2 pretrained environments + 'global' fallback).
+// Keep in sync with assets/schema_input.json. Validated in Groovy (not in
+// bin/input_validator.py) so adding/removing biomes doesn't invalidate the
+// per-task bin/ hash that Nextflow uses for caching.
+//
+// @Field is required: without it, `def BIOMES` only binds in the script's
+// main flow, and the script-scoped `create_input_channel` function below
+// cannot see it (Nextflow + Groovy script-scope quirk — surfaces at runtime
+// as "No such property: BIOMES" when the .map closure invokes the function).
+@Field
+final List BIOMES = [
+    'human_gut', 'human_oral', 'mouse_gut', 'dog_gut', 'cat_gut',
+    'ocean', 'soil', 'built_environment', 'wastewater', 'chicken_caecum',
+    'global'
+]
 
 workflow INPUT_CHECK {
     take:
@@ -66,6 +84,18 @@ def create_input_channel(LinkedHashMap row, String input_type) {
     if (input_type == "grouped_reads") {
         meta.group = row.group
         meta.tag = row.tag
+    }
+
+    // The samplesheet's optional `biome` column is validated here (against the
+    // SemiBin2 environment list) but intentionally NOT copied into meta.
+    // Adding a key to meta would change every downstream task's cache hash for
+    // existing workflows that don't need biome (genes, virus,
+    // microbial_profiles). The future bacterial_binning subworkflow will read
+    // biome from the CSV directly in its _INIT and join it onto its reads
+    // channel locally, scoping the meta change to just its own processes.
+    def biome_value = row.biome?.trim()
+    if (biome_value && !BIOMES.contains(biome_value)) {
+        exit 1, "Invalid biome '${biome_value}' for sample '${meta.id}'. Allowed values: ${BIOMES.join(', ')} (or leave blank to default to 'global')."
     }
 
     def fastq_meta = []

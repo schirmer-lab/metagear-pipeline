@@ -6,12 +6,16 @@ include { GTDBTK_DOWNLOAD_DB } from "$projectDir/modules/local/gtdbtk/download/m
 
 include { GENOMAD_DOWNLOAD } from "$projectDir/modules/nf-core/genomad/download/main"
 include { CHECKV_DOWNLOADDATABASE } from "$projectDir/modules/nf-core/checkv/downloaddatabase/main"
+include { CHECKM2_DATABASEDOWNLOAD } from "$projectDir/modules/nf-core/checkm2/databasedownload/main"
+include { MMSEQS_DATABASES } from "$projectDir/modules/local/mmseqs/databases/main"
 // include { VIRSORTER2_SETUP } from "$projectDir/modules/local/virsorter2/setup"
 include { DRAM_SETUP } from "$projectDir/modules/local/dram/setup"
 include { IPHOP_DOWNLOAD } from "$projectDir/modules/local/iphop/download/main"
 include { PHAROKKA_INSTALLDATABASES } from "$projectDir/modules/nf-core/pharokka/installdatabases/main"
 
 include { AMRFINDERPLUS_UPDATE } from "$projectDir/modules/nf-core/amrfinderplus/update/main"
+
+include { PHOLD_INSTALL } from "$projectDir/modules/local/phold/install/main"
 
 include { EXPORT_DATABASES } from "$projectDir/modules/local/metagear/export_databases"
 
@@ -34,7 +38,10 @@ workflow DATABASES_INIT {
                                             [ 'dram', file( params.dram_db ) ],
                                             [ 'iphop', file( params.iphop_db ) ],
                                             [ 'amrfinder', file( params.amrfinder_db ) ],
-                                            [ 'pharokka', file( params.pharokka_db ) ] )
+                                            [ 'pharokka', file( params.pharokka_db ) ],
+                                            [ 'checkm2', file( params.checkm2_db ) ],
+                                            [ 'mmseqs_taxonomy', file( params.mmseqs_taxonomy_db ) ],
+                                            [ 'phold', file( params.phold_db ?: '/dev/null' ) ] )
 
         //TODO: Currently only 1 kneaddata database is supported. Ensure ch_kneaddata_databases keep consistent with ch_database_destinations.
 
@@ -57,7 +64,7 @@ workflow DATABASES {
         ch_versions = Channel.empty()
         ch_databases_data = Channel.empty()
 
-        if ( params.databases == "all" || params.databases.contains("gene_analysis") ) {
+        if ( params.databases == "all" || params.databases.contains("genes") ) {
 
             kneaddata = KNEADDATA_DATABASE( ch_kneaddata_databases )
             ch_versions = ch_versions.mix( kneaddata.versions )
@@ -80,7 +87,7 @@ workflow DATABASES {
                                 .concat( gtdbtk.database )
         }
 
-        if ( params.databases == "all" || params.databases.contains("viral_analysis") ) {
+        if ( params.databases == "all" || params.databases.contains("virus") ) {
 
             genomad = GENOMAD_DOWNLOAD ( )
             ch_genomad_database = genomad.genomad_db.map { [ "genomad", it ] }
@@ -115,6 +122,47 @@ workflow DATABASES {
             pharokka_database = pharokka.pharokka_db.map { [ "pharokka", it ] }
             ch_versions = ch_versions.mix( pharokka.versions )
             ch_databases_data = ch_databases_data.concat( pharokka_database )
+
+        }
+
+        if ( params.databases == "all" || params.databases.contains("contig_classification") ) {
+
+            checkm2 = CHECKM2_DATABASEDOWNLOAD ( Channel.value([]) )
+            ch_checkm2_database = checkm2.database.map { meta, file -> [ "checkm2", file ] }
+            // TODO: CHECKM2_DATABASEDOWNLOAD reports versions via the new topic channel
+            //       pattern (not path 'versions.yml'); wire into ch_versions once the
+            //       pipeline standardises on topic channels.
+            ch_databases_data = ch_databases_data.concat( ch_checkm2_database )
+
+        }
+
+        // PHOLD structural DB (consumed by the `structures` workflow).
+        // Standalone group so users can install it without re-checking the
+        // viral DB stack; included in "all" for greenfield installs. ~7.7 GB.
+        if ( params.databases == "all" || params.databases.contains("structures") ) {
+
+            phold = PHOLD_INSTALL ( )
+            ch_phold_database = phold.phold_db.map { [ "phold", it ] }
+            ch_versions = ch_versions.mix( phold.versions )
+            ch_databases_data = ch_databases_data.concat( ch_phold_database )
+
+        }
+
+        // MMseqs2 taxonomy DB (used by CLASSIFICATION's contig fallback).
+        // Triggered both by the umbrella "contig_classification" group AND by the
+        // dedicated "mmseqs_taxonomy" group, so `--databases mmseqs_taxonomy` pulls
+        // only this one DB.
+        if ( params.databases == "all"
+                || params.databases.contains("contig_classification")
+                || params.databases.contains("mmseqs_taxonomy") ) {
+
+            // Default to GTDB; override with `process.withName:'.*MMSEQS_DATABASES'.ext.db_name`
+            // or by setting params.mmseqs_taxonomy_source.
+            def mmseqs_source = params.mmseqs_taxonomy_source ?: 'GTDB'
+            mmseqs_tax = MMSEQS_DATABASES ( Channel.value(mmseqs_source) )
+            ch_mmseqs_taxonomy_database = mmseqs_tax.database.map { dir -> [ "mmseqs_taxonomy", dir ] }
+            ch_versions = ch_versions.mix( mmseqs_tax.versions )
+            ch_databases_data = ch_databases_data.concat( ch_mmseqs_taxonomy_database )
 
         }
 

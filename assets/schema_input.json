@@ -13,6 +13,25 @@
                 "errorMessage": "Sample name must be provided and cannot contain spaces",
                 "meta": ["id"]
             },
+            "biome": {
+                "type": "string",
+                "enum": [
+                    "",
+                    "human_gut",
+                    "human_oral",
+                    "mouse_gut",
+                    "dog_gut",
+                    "cat_gut",
+                    "ocean",
+                    "soil",
+                    "built_environment",
+                    "wastewater",
+                    "chicken_caecum",
+                    "global"
+                ],
+                "errorMessage": "Biome must be one of SemiBin2's pretrained environments (human_gut, human_oral, mouse_gut, dog_gut, cat_gut, ocean, soil, built_environment, wastewater, chicken_caecum) or 'global'. Leave empty to default to 'global'.",
+                "meta": ["biome"]
+            },
             "fastq_1": {
                 "type": "string",
                 "format": "file-path",
