@@ -1,0 +1,299 @@
+# PHOLD offsite GPU bundle
+
+This folder contains everything needed to run the **`phold proteins-predict`** step of the metagear `structures` workflow on a GPU server, without Nextflow. After running, copy the outputs back to the source machine and re-invoke `metagear structures` to finish the workflow on CPU.
+
+The split is deliberate: only ProstT5 inference (PHOLD_PREDICT) is GPU-heavy. The downstream Foldseek search (PHOLD_COMPARE) is fast on CPU and stays in the Nextflow pipeline.
+
+---
+
+## What's in this folder
+
+| File / dir | Purpose |
+|---|---|
+| `README.md` | This document |
+| `shards/` | The protein FASTA shards to predict on (`__NUM_SHARDS__` files, ~`__SHARD_SIZE__` proteins each) |
+| `viral_join_table.tsv` | Auxiliary table consumed by the *resume* phase on the source machine. Carry-through only; not used here. |
+| `submit_phold_predict.sbatch` | **SLURM batch script** — the recommended way to run on a cluster. Edit the paths at the top, then `sbatch submit_phold_predict.sbatch` |
+| `run_phold_predict.sh` | The underlying runner that loops over shards. Invoked by the sbatch script; can also be run directly inside an interactive allocation or on a personal workstation |
+| `manifest.json` | List of expected outputs — used by the source machine to validate completeness on resume |
+
+**Total size:** approximately `__BUNDLE_SIZE_MB__` MB.
+
+---
+
+## Quick start (if you know what you're doing)
+
+```bash
+# 1. Install the env (one-time)
+micromamba create -n metagear-structures -c bioconda -c conda-forge python=3.11 phold=__PHOLD_VERSION__ -y
+micromamba activate metagear-structures
+pip uninstall -y torch
+pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cu121
+pip install --upgrade "transformers<4.50" "numpy<2"
+phold --version    # should print __PHOLD_VERSION__, no traceback
+
+# 2. Install the PHOLD DB (one-time, ~30 min, ~13 GB; doesn't need GPU)
+export HF_HUB_DISABLE_XET=1
+phold install -d /persistent/path/to/phold_db -t 8
+
+# 3. Edit submit_phold_predict.sbatch — set PHOLD_DB and verify the
+#    #SBATCH partition/QoS lines match your cluster — then queue it:
+sbatch submit_phold_predict.sbatch
+# Job runs in the background, survives ssh disconnect, logs to phold-predict-<JOBID>.log.
+# Hits walltime before finishing? Just `sbatch submit_phold_predict.sbatch` again —
+# the script's --resume flag picks up where it left off, idempotently.
+```
+
+The detailed walkthrough is below. The version pins above are not optional — they sidestep three real failure modes documented in *Troubleshooting* at the end.
+
+---
+
+## Step 1 — Get this bundle onto the GPU server
+
+```bash
+rsync -avzP <source>/structures/offsite_predict/  <user>@<gpu-host>:/path/on/gpu-host/
+```
+
+If the GPU server shares a filesystem with the source machine (e.g. a DSS mount visible on both), no copy is needed — just `cd` into the folder on the GPU side.
+
+---
+
+## Step 2 — Set up the runtime (one-time)
+
+The GPU server needs:
+
+- **A CUDA-capable Nvidia GPU** (any card with ≥ 8 GB VRAM works; an H100/A100 finishes in a fraction of the time)
+- **The `phold` binary on PATH**, with PyTorch + CUDA support
+- **A complete PHOLD database installed locally** (`phold install -d <path>`, ~13 GB)
+
+### The env install — version pins MATTER
+
+A naïve `micromamba create … phold=__PHOLD_VERSION__` installs a CPU-only PyTorch with a transformers version that doesn't import. The recipe below is the **tested working combination**:
+
+| Package | Version | Why pinned |
+|---|---|---|
+| `phold` | `__PHOLD_VERSION__` | The pipeline-matched version. |
+| `torch` | `2.5.1+cu121` | CUDA-enabled build. Conda's default channel installs CPU-only. |
+| `transformers` | `<4.50` | Newer transformers uses `torch.float8_e8m0fnu` (only in torch ≥ 2.7). |
+| `numpy` | `<2` | phold declares `numpy<2`; numpy 2.x has ABI changes that break many ML packages. |
+
+#### Step-by-step install (micromamba, user-space, no admin needed)
+
+```bash
+# One-time install of micromamba in $HOME
+curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
+./bin/micromamba shell init --shell bash --root-prefix=$HOME/micromamba
+source ~/.bashrc
+
+# 1) Create the env with phold (conda gives us the CLI deps: foldseek, mmseqs2, etc.)
+#    This pulls a CPU torch as a placeholder; we replace it next.
+micromamba create -n metagear-structures \
+    -c bioconda -c conda-forge \
+    python=3.11 \
+    phold=__PHOLD_VERSION__ \
+    -y
+
+micromamba activate metagear-structures
+
+# 2) Replace the CPU torch with a CUDA-enabled torch (PyTorch's official wheels
+#    are tested per CUDA version — most reliable for GPU work)
+pip uninstall -y torch torchvision torchaudio
+pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cu121
+
+# 3) Pin transformers + numpy to compatible versions
+pip install --upgrade "transformers<4.50" "numpy<2"
+
+# 4) Verify the import chain works
+phold --version
+# Expect: "phold, version __PHOLD_VERSION__"  with no traceback.
+
+# 5) Verify torch sees CUDA support (this works on the login node;
+#    actual GPU availability requires being on a compute node)
+python3 -c "import torch; print('torch:', torch.__version__, '| CUDA build:', torch.version.cuda)"
+# Expect: torch: 2.5.1+cu121 | CUDA build: 12.1
+```
+
+### Install the PHOLD DB (one-time, ~30 min, no GPU needed)
+
+```bash
+micromamba activate metagear-structures
+export HF_HUB_DISABLE_XET=1   # see troubleshooting — needed for some environments
+phold install -d /persistent/path/to/phold_db -t 8
+```
+
+This downloads:
+- The ProstT5 weights (~11 GB) — large but worth caching to a persistent path
+- The Foldseek structural index (~2 GB)
+- PHROG annotation tables (~50 MB)
+
+Total ~13 GB. **Put the DB on a persistent filesystem** (e.g. on LRZ-HGX, a DSS path under `/dss/dssfs02/.../databases/phold_db`) so multiple allocations / multiple users can share it.
+
+If a DB is already in place from a previous install, just point at it.
+
+### Alternative paths
+
+- **NVIDIA Pyxis / Enroot:** point the bundled script at the phold container directly; the script doesn't care how phold got on PATH.
+- **Singularity:** `singularity exec --nv phold-__PHOLD_VERSION__.img ./run_phold_predict.sh …` works the same.
+
+---
+
+## Step 3 — Submit the job (recommended path: `sbatch`)
+
+**Why sbatch and not `salloc` + `srun`:** an `salloc`+`srun --pty bash` allocation dies the moment your ssh session disconnects. A multi-hour PHOLD run that needs to survive a laptop sleep, a flaky VPN, or a wifi handover **must** be a batch job. `sbatch` queues the work, runs it on the compute node detached from your shell, writes logs to disk, and lets you check in with `squeue` whenever you like.
+
+### 3a. Edit `submit_phold_predict.sbatch`
+
+Open the bundled script and adjust two things:
+
+1. **The `#SBATCH` header** — partition, QoS, account, time — to match your cluster's conventions. The default is set up for LRZ-HGX (`-p lrz-hgx-h100-94x4 --gres=gpu:1 --time=__SUGGESTED_WALLTIME__`).
+2. **The `PHOLD_DB` line** in the body — point it at the absolute path where you installed the PHOLD database in Step 2.
+
+The script's other knobs (`BATCH_SIZE`, `THREADS`, `MAMBA_ENV`) have sensible defaults; override at submit time via env vars if you need to.
+
+### 3b. Submit
+
+```bash
+cd /path/to/offsite_predict
+sbatch submit_phold_predict.sbatch
+# → Submitted batch job 1234567
+```
+
+Now disconnect, go to bed — the job is running. Logs stream to `phold-predict-1234567.log` and `phold-predict-1234567.err` in the submit directory.
+
+### 3c. Monitor
+
+```bash
+squeue -u $USER                  # see your queued/running jobs
+tail -f phold-predict-*.log      # follow live progress
+scancel <JOBID>                  # if you need to stop it
+```
+
+### 3d. Re-submit after walltime / failure
+
+LRZ-HGX caps individual allocations at **48 hours**. The `--resume` flag inside the sbatch script means a second `sbatch submit_phold_predict.sbatch` picks up exactly where the first one left off — no manual bookkeeping needed.
+
+| Hardware | Per-shard ETA | Total walltime | Re-submissions on LRZ (48h cap) |
+|---|---|---|---|
+| H100 94 GB (batch=32) | 4–6 min | `__ETA_H100__` | 1 (comfortable) |
+| H100 94 GB (batch=16) | 5–8 min | `__ETA_H100_B16__` | 1 |
+| A100 40 GB (batch=16) | 8–12 min | `__ETA_A100__` | 1 |
+| V100 16 GB (batch=8) | 12–20 min | `__ETA_V100__` | 1–2 |
+| T4 16 GB / RTX 3070 8 GB (batch=2) | 25–45 min | `__ETA_T4__` | not realistic at this scale |
+| CPU fallback (8 threads, batch=1) | 4–6 h | `__ETA_CPU__` | use a different cluster |
+
+### 3e. Override knobs at submit time
+
+```bash
+# Smaller batch size for a less-powerful GPU
+BATCH_SIZE=8 sbatch submit_phold_predict.sbatch
+
+# Different DB path
+PHOLD_DB=/some/other/path sbatch submit_phold_predict.sbatch
+
+# Different env name
+MAMBA_ENV=my-phold-env sbatch submit_phold_predict.sbatch
+```
+
+### Alternative: interactive / non-SLURM
+
+If you really need an interactive shell (debugging, single-shard testing) or you're on a personal workstation without SLURM, skip the sbatch wrapper and call the underlying script directly:
+
+```bash
+# Personal workstation: just activate the env and run
+micromamba activate metagear-structures
+bash run_phold_predict.sh \
+    --phold-db /persistent/path/to/phold_db \
+    --batch-size 16 \
+    --resume
+
+# Interactive SLURM allocation (NOT recommended for long runs)
+salloc -p lrz-hgx-h100-94x4 --gres=gpu:1 -c 6 --mem=60G --time=4:00:00
+srun --jobid $SLURM_JOB_ID --pty bash
+# ... activate env and run as above
+```
+
+`run_phold_predict.sh` itself takes `--phold-db`, `--batch-size`, `--threads`, `--resume`, `--dry-run`. See `bash run_phold_predict.sh --help` for the full list.
+
+---
+
+## Step 4 — Verify
+
+After each run / final run, confirm shard coverage:
+
+```bash
+ls outputs/predict_*/phold_aa.fasta | wc -l
+# Should equal __NUM_SHARDS__ when fully done
+```
+
+Spot-check one output dir for sanity:
+
+```bash
+ls outputs/predict_*/  | head -1   # pick one
+# Expect each predict_<shard>/ to contain:
+#   phold_aa.fasta
+#   phold_3di.fasta
+#   phold_prostT5_3di_mean_probabilities.csv
+#   phold_prostT5_3di_all_probabilities.json
+```
+
+If some shards are missing or partial after the final allocation, re-run with `--resume` — only the missing/incomplete ones rerun.
+
+---
+
+## Step 5 — Ship results back
+
+```bash
+rsync -avzP outputs/  <user>@<source-host>:<outdir>/structures/phold_predict/
+```
+
+`<outdir>` is the same `--outdir` you used in the original `metagear structures` call.
+
+---
+
+## Step 6 — Resume on the source machine
+
+Re-invoke metagear, dropping `--structures_prepare_for_gpu` and **explicitly passing `--phold_predict_dir`**:
+
+```bash
+metagear structures \
+    --input  inputs/samplesheet.csv \
+    --outdir <same-outdir-as-before> \
+    --reuse-outputs \
+    --structures_scope <same-scope-as-before> \
+    --phold_predict_dir <outdir>/structures/phold_predict
+```
+
+The pipeline detects the on-disk predict dirs, skips PHOLD_PREDICT, and resumes from `MERGE_PHOLD_PREDICTIONS`. PHOLD_COMPARE runs on CPU (~10 min on viral_only scale, scales linearly). Final annotations land at `<outdir>/annotations/phold/`.
+
+If any shards are missing, MERGE_PHOLD_PREDICTIONS warns about them but proceeds — PHOLD_COMPARE will fail loudly downstream if too many are missing.
+
+---
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `AssertionError: Torch not compiled with CUDA enabled` | CPU-only PyTorch was installed | Run the `pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cu121` step from the install recipe |
+| `AttributeError: module 'torch' has no attribute 'float8_e8m0fnu'` | transformers ≥ 4.50 expects torch ≥ 2.7 | `pip install "transformers<4.50"` |
+| `phold __PHOLD_VERSION__ requires numpy<2, but you have numpy 2.x` (pip warning) | numpy 2.x ABI break | `pip install "numpy<2"` |
+| `phold: command not found` | Env not activated | `micromamba activate metagear-structures` first |
+| `CUDA not available` inside python on a compute node | Container without `--nv` flag (Singularity); allocation didn't include `--gres=gpu:1` | Verify `nvidia-smi` shows a GPU first |
+| `RuntimeError: CUDA out of memory` | `batch_size` too high for VRAM | Drop to `--batch-size 8`, then `--batch-size 4`, etc. |
+| `No CA certificates were loaded from the system` (from hf-xet) | Container without CA roots OR network restrictions | Script already exports `HF_HUB_DISABLE_XET=1`; if still failing, the install was incomplete — re-run `phold install` |
+| Shard hangs at 0% for >5 min on first run | ProstT5 model loading + tokenizer cache | Wait — usually unstuck after ~3 min, then fast |
+| Some shards finished, some failed | Mixed exit codes (OOM, walltime, network) | Use `--resume` to retry only the missing/incomplete ones |
+
+If you hit something not on this list, save `outputs/predict_<shard>/phold_proteins-predict_*.log` from the failing shard and report back — the log captures everything PHOLD did.
+
+---
+
+## Notes for the future / pipeline maintainers
+
+This README documents the **tested working combination** as of bundle creation:
+
+- `torch==2.5.1+cu121`
+- `transformers<4.50` (4.49.0 verified)
+- `numpy<2` (1.x verified)
+- `phold==__PHOLD_VERSION__`
+
+If you regenerate this bundle from a newer pipeline version (or use a different phold version), revisit these pins. The `transformers` and `torch` ecosystem moves fast and version mismatches surface as cryptic import errors.

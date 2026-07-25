@@ -17,6 +17,8 @@ include { MAG_INIT; MAG } from "$projectDir/subworkflows/local/microbiome/mag"
 
 include { MSP_INIT; MSP } from "$projectDir/subworkflows/local/pangenome/msp"
 
+include { STRUCTURES_INIT; STRUCTURES } from "$projectDir/subworkflows/local/pangenome/structures"
+
 /* --- RUN MAIN WORKFLOW --- */
 workflow METAGEAR {
 
@@ -69,7 +71,9 @@ workflow METAGEAR {
             init = MSP_INIT ( )
 
             ch_metaphlan_profiles = Channel.empty()
-            if ( init.metaphlan_profiles ) {
+            if ( params.metaphlan_profiles ) {
+                ch_metaphlan_profiles = init.metaphlan_profiles
+            } else {
                 METAPHLAN_PROFILES( init.validated_input, init.metaphlan_db )
                 ch_metaphlan_profiles = METAPHLAN_PROFILES.out.merged_profiles.map{ it[1] }
             }
@@ -122,6 +126,24 @@ workflow METAGEAR {
                 init.gtdb_tk_db
             )
             ch_versions = MAG.out.versions
+        }
+
+        // Structures — protein structural-homology annotation via PHOLD
+        // (ProstT5 → Foldseek). Builds on a prior virus/genes run; reads
+        // the cohort protein catalog + Pfam table + protein clusters +
+        // viral catalog from disk. Emits per-rep PHOLD annotations for
+        // the full catalog and the viral catalog separately.
+        if ( params.workflow == "structures" ) {
+            init = STRUCTURES_INIT ( )
+
+            STRUCTURES (
+                init.all_proteins,
+                init.clusters_tsv,
+                init.viral_proteins,
+                init.pfam_tsv,
+                init.phold_db
+            )
+            ch_versions = STRUCTURES.out.versions
         }
 
 
