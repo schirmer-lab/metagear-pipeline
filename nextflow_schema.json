@@ -45,10 +45,6 @@
                     "type": "string",
                     "description": "Entry point (workflow)."
                 },
-                "dereplication": {
-                    "type": "boolean",
-                    "description": "Perform dereplication or asseblies"
-                },
                 "kneaddata_refdb": {
                     "type": "array",
                     "description": "Database(s) to use for KneadData."

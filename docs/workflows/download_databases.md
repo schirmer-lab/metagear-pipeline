@@ -29,22 +29,22 @@ This workflow does not read a samplesheet — there is no `--input` argument. In
 
 ## Parameters
 
-| Parameter            | Type   | Default      | Controls                                                                     |
-| -------------------- | ------ | ------------ | ---------------------------------------------------------------------------- |
-| `--databases`        | string | `all`        | Which database set to download: `all`, `genes`, or `virus`. |
-| `--outdir`           | path   | _(required)_ | Output directory; database files land in `<outdir>/<tool>/...`               |
-| `--kneaddata_refdb`  | array  | `[""]`       | Destination(s) for KneadData host reference(s).                              |
-| `--metaphlan_db`     | path   | —            | Destination for MetaPhlAn 4 database.                                        |
-| `--humann3_nucleo`   | path   | —            | Destination for HUMAnN 3 ChocoPhlAn nucleotide database.                     |
-| `--humann3_uniref90` | path   | —            | Destination for HUMAnN 3 UniRef90 protein database.                          |
-| `--gtdb_tk_db`       | path   | —            | Destination for GTDB-Tk reference.                                           |
-| `--genomad_db`       | path   | —            | Destination for geNomad database.                                            |
-| `--checkv_db`        | path   | —            | Destination for CheckV database.                                             |
-| `--virsorter2_db`    | path   | —            | Destination for VirSorter2 database.                                         |
-| `--pharokka_db`      | path   | —            | Destination for Pharokka database.                                           |
-| `--dram_db`          | path   | —            | Destination for DRAM-v database.                                             |
-| `--iphop_db`         | path   | —            | Destination for iPHoP database.                                              |
-| `--amrfinder_db`     | path   | —            | Destination for AMRFinderPlus database.                                      |
+| Parameter            | Type   | Default      | Controls                                                       |
+| -------------------- | ------ | ------------ | -------------------------------------------------------------- |
+| `--databases`        | string | `all`        | Which database set to download: `all`, `genes`, or `virus`.    |
+| `--outdir`           | path   | _(required)_ | Output directory; database files land in `<outdir>/<tool>/...` |
+| `--kneaddata_refdb`  | array  | `[""]`       | Destination(s) for KneadData host reference(s).                |
+| `--metaphlan_db`     | path   | —            | Destination for MetaPhlAn 4 database.                          |
+| `--humann3_nucleo`   | path   | —            | Destination for HUMAnN 3 ChocoPhlAn nucleotide database.       |
+| `--humann3_uniref90` | path   | —            | Destination for HUMAnN 3 UniRef90 protein database.            |
+| `--gtdb_tk_db`       | path   | —            | Destination for GTDB-Tk reference.                             |
+| `--genomad_db`       | path   | —            | Destination for geNomad database.                              |
+| `--checkv_db`        | path   | —            | Destination for CheckV database.                               |
+| `--virsorter2_db`    | path   | —            | Destination for VirSorter2 database.                           |
+| `--pharokka_db`      | path   | —            | Destination for Pharokka database.                             |
+| `--dram_db`          | path   | —            | Destination for DRAM-v database.                               |
+| `--iphop_db`         | path   | —            | Destination for iPHoP database.                                |
+| `--amrfinder_db`     | path   | —            | Destination for AMRFinderPlus database.                        |
 
 ## Output
 

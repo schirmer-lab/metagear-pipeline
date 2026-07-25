@@ -41,56 +41,56 @@ The two-pass geNomad + CheckV is the central novelty: it recovers viral sequence
 
 ## Output
 
-| Path (relative to `--outdir`)                         | Content                                                                |
-| ----------------------------------------------------- | ---------------------------------------------------------------------- |
-| `assemblies/contigs/<sample>.contigs.fa.gz`           | Per-sample contigs (MEGAHIT).                                          |
-| `assemblies/assembly_graphs/<sample>.k119.fastg.gz`   | Per-sample assembly de Bruijn graph (MEGAHIT).                         |
-| `virus/genomad/virus/<sample>/`                       | geNomad pass-1 output (viral classification).                          |
-| `virus/checkv/virus/<sample>/virus.*`                 | CheckV pass-1 output (completeness/contamination).                     |
-| `virus/genomad/provirus/<sample>/`                    | geNomad pass-2 (on trimmed proviruses).                                |
-| `virus/checkv/provirus/<sample>/provirus.*`           | CheckV pass-2.                                                         |
-| `virus/per_sample/<sample>/`                          | Per-sample viral detection intermediates: `virus.summary[.filtered].tsv`, `virus.ids.txt`, `virus.filtered.fna.gz`, plus the plasmid counterparts. |
-| `catalogs/contigs/virus.contigs.representative.fa.gz` | **Non-redundant viral catalog (vOTUs).**                               |
-| `catalogs/contigs/virus.contigs.clusters.tsv`         | Viral contig cluster membership.                                       |
-| `catalogs/contigs/plasmid.contigs.representative.fa.gz` | **Non-redundant plasmid catalog.**                                   |
-| `catalogs/contigs/plasmid.contigs.clusters.tsv`       | Plasmid contig cluster membership.                                     |
-| `catalogs/genes/all.genes.representative.fa.gz`       | Cohort gene catalog (same form as `genes`).                    |
-| `catalogs/genes/all.genes.clusters.tsv`               | Cohort gene cluster membership.                                        |
-| `catalogs/genes/virus.genes.representative.fa.gz`     | Virus-only gene catalog.                                               |
-| `catalogs/genes/virus.genes.clusters.tsv`             | Virus-only gene cluster membership.                                    |
-| `catalogs/genes/plasmid.genes.representative.fa.gz`   | Plasmid-only gene catalog.                                             |
-| `catalogs/genes/plasmid.genes.clusters.tsv`           | Plasmid-only gene cluster membership.                                  |
-| `catalogs/proteins/all.proteins.representative.fa.gz` | Cohort protein catalog.                                                |
-| `catalogs/proteins/all.proteins.clusters.tsv`         | Cohort protein cluster membership.                                     |
-| `catalogs/proteins/virus.proteins.representative.fa.gz`   | Virus-only protein catalog.                                        |
-| `catalogs/proteins/plasmid.proteins.representative.fa.gz` | Plasmid-only protein catalog.                                      |
-| `catalogs/raw/`                                       | Pre-clustering concatenated FASTAs (intermediates).                    |
-| `clusters/all.genes.clusters.annotated.tsv`           | Cohort gene-cluster annotations with per-member class labels.          |
-| `clusters/all.genes.clusters.aggregated.tsv`          | Per-representative rollup of cluster annotations.                      |
-| `virus/clusters/<scope>.genes.clusters.annotated.tsv` | Virus/plasmid-scoped gene cluster annotations.                         |
-| `virus/clusters/<scope>.genes.representative_ids.txt` | Reps for clusters touching `<scope>` (virus or plasmid).               |
-| `virus/clusters/<scope>-exclusive.genes.representative_ids.txt` | Reps for clusters whose members are entirely `<scope>`.            |
-| `virus/pharokka/`                                     | Pharokka annotations (`*.gff`, `*.fna`, `*.faa`).                      |
-| `virus/virsorter2/`                                   | VirSorter2 output prepared for DRAM-v.                                 |
-| `virus/dramv/parts/`, `virus/dramv/`                  | DRAM-v annotations and AMG calls.                                      |
-| `virus/iphop/parts/`                                  | iPHoP host predictions (genus and genome).                             |
-| `abundance/virus/virus.{count,rpkm,tpm}.tsv`          | **Viral abundance matrices** (vOTU × sample).                          |
-| `abundance/virus/virus.amg.{count,rpkm,tpm}.tsv`      | **AMG abundance matrices** (per-sample × AMG counts).                  |
-| `abundance/plasmid/plasmid.{count,rpkm,tpm}.tsv`      | **Plasmid abundance matrices.**                                        |
-| `abundance/all.genes/all.genes.{count,rpkm,tpm}.tsv`  | Gene-level abundance matrices.                                         |
-| `abundance/<class>/bams/SAMPLE-N.bam`                 | Per-sample BAMs (reads mapped against the catalog).                    |
-| `abundance/<class>/bwa_index/`                        | BWA-MEM index for the catalog.                                         |
-| `abundance/<class>/per_batch/batch_NNN.<metric>.tsv`  | Per-batch coverm-contig matrices — provenance for the merged tables.   |
-| `virus/detection/virus.calls.tsv`                     | **All per-sample viral calls** (geNomad + CheckV, cohort-concatenated). |
-| `virus/detection/virus.calls.filtered.tsv`            | **FDR-passing per-sample viral calls.**                                |
-| `virus/detection/plasmid.calls.tsv`                   | All per-sample plasmid calls.                                          |
-| `virus/detection/plasmid.calls.filtered.tsv`          | **FDR-passing per-sample plasmid calls.**                              |
-| `virus/lifestyle/virus.amgs.tsv`                      | **AMG identifications on the vOTU catalog** (DRAM-V).                  |
-| `virus/lifestyle/virus.amg_to_catalog.tsv`            | **AMG → gene catalog cross-reference** (primary deliverable).          |
-| `virus/lifestyle/virus.host.genome.tsv`               | iPHoP host predictions, genome-level (per vOTU).                       |
-| `virus/lifestyle/virus.host.genus.tsv`                | iPHoP host predictions, genus-level (per vOTU).                        |
-| `virus/dramv/`                                        | Supporting DRAM-V artefacts (`amg_filtered.{fna,faa}`, search results, ID lists, per-batch parts). |
-| `pipeline_info/viral_analysis_multiqc_report.html`    | Consolidated MultiQC.                                                  |
+| Path (relative to `--outdir`)                                   | Content                                                                                                                                            |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `assemblies/contigs/<sample>.contigs.fa.gz`                     | Per-sample contigs (MEGAHIT).                                                                                                                      |
+| `assemblies/assembly_graphs/<sample>.k119.fastg.gz`             | Per-sample assembly de Bruijn graph (MEGAHIT).                                                                                                     |
+| `virus/genomad/virus/<sample>/`                                 | geNomad pass-1 output (viral classification).                                                                                                      |
+| `virus/checkv/virus/<sample>/virus.*`                           | CheckV pass-1 output (completeness/contamination).                                                                                                 |
+| `virus/genomad/provirus/<sample>/`                              | geNomad pass-2 (on trimmed proviruses).                                                                                                            |
+| `virus/checkv/provirus/<sample>/provirus.*`                     | CheckV pass-2.                                                                                                                                     |
+| `virus/per_sample/<sample>/`                                    | Per-sample viral detection intermediates: `virus.summary[.filtered].tsv`, `virus.ids.txt`, `virus.filtered.fna.gz`, plus the plasmid counterparts. |
+| `catalogs/contigs/virus.contigs.representative.fa.gz`           | **Non-redundant viral catalog (vOTUs).**                                                                                                           |
+| `catalogs/contigs/virus.contigs.clusters.tsv`                   | Viral contig cluster membership.                                                                                                                   |
+| `catalogs/contigs/plasmid.contigs.representative.fa.gz`         | **Non-redundant plasmid catalog.**                                                                                                                 |
+| `catalogs/contigs/plasmid.contigs.clusters.tsv`                 | Plasmid contig cluster membership.                                                                                                                 |
+| `catalogs/genes/all.genes.representative.fa.gz`                 | Cohort gene catalog (same form as `genes`).                                                                                                        |
+| `catalogs/genes/all.genes.clusters.tsv`                         | Cohort gene cluster membership.                                                                                                                    |
+| `catalogs/genes/virus.genes.representative.fa.gz`               | Virus-only gene catalog.                                                                                                                           |
+| `catalogs/genes/virus.genes.clusters.tsv`                       | Virus-only gene cluster membership.                                                                                                                |
+| `catalogs/genes/plasmid.genes.representative.fa.gz`             | Plasmid-only gene catalog.                                                                                                                         |
+| `catalogs/genes/plasmid.genes.clusters.tsv`                     | Plasmid-only gene cluster membership.                                                                                                              |
+| `catalogs/proteins/all.proteins.representative.fa.gz`           | Cohort protein catalog.                                                                                                                            |
+| `catalogs/proteins/all.proteins.clusters.tsv`                   | Cohort protein cluster membership.                                                                                                                 |
+| `catalogs/proteins/virus.proteins.representative.fa.gz`         | Virus-only protein catalog.                                                                                                                        |
+| `catalogs/proteins/plasmid.proteins.representative.fa.gz`       | Plasmid-only protein catalog.                                                                                                                      |
+| `catalogs/raw/`                                                 | Pre-clustering concatenated FASTAs (intermediates).                                                                                                |
+| `clusters/all.genes.clusters.annotated.tsv`                     | Cohort gene-cluster annotations with per-member class labels.                                                                                      |
+| `clusters/all.genes.clusters.aggregated.tsv`                    | Per-representative rollup of cluster annotations.                                                                                                  |
+| `virus/clusters/<scope>.genes.clusters.annotated.tsv`           | Virus/plasmid-scoped gene cluster annotations.                                                                                                     |
+| `virus/clusters/<scope>.genes.representative_ids.txt`           | Reps for clusters touching `<scope>` (virus or plasmid).                                                                                           |
+| `virus/clusters/<scope>-exclusive.genes.representative_ids.txt` | Reps for clusters whose members are entirely `<scope>`.                                                                                            |
+| `virus/pharokka/`                                               | Pharokka annotations (`*.gff`, `*.fna`, `*.faa`).                                                                                                  |
+| `virus/virsorter2/`                                             | VirSorter2 output prepared for DRAM-v.                                                                                                             |
+| `virus/dramv/parts/`, `virus/dramv/`                            | DRAM-v annotations and AMG calls.                                                                                                                  |
+| `virus/iphop/parts/`                                            | iPHoP host predictions (genus and genome).                                                                                                         |
+| `abundance/virus/virus.{count,rpkm,tpm}.tsv`                    | **Viral abundance matrices** (vOTU × sample).                                                                                                      |
+| `abundance/virus/virus.amg.{count,rpkm,tpm}.tsv`                | **AMG abundance matrices** (per-sample × AMG counts).                                                                                              |
+| `abundance/plasmid/plasmid.{count,rpkm,tpm}.tsv`                | **Plasmid abundance matrices.**                                                                                                                    |
+| `abundance/all.genes/all.genes.{count,rpkm,tpm}.tsv`            | Gene-level abundance matrices.                                                                                                                     |
+| `abundance/<class>/bams/SAMPLE-N.bam`                           | Per-sample BAMs (reads mapped against the catalog).                                                                                                |
+| `abundance/<class>/bwa_index/`                                  | BWA-MEM index for the catalog.                                                                                                                     |
+| `abundance/<class>/per_batch/batch_NNN.<metric>.tsv`            | Per-batch coverm-contig matrices — provenance for the merged tables.                                                                               |
+| `virus/detection/virus.calls.tsv`                               | **All per-sample viral calls** (geNomad + CheckV, cohort-concatenated).                                                                            |
+| `virus/detection/virus.calls.filtered.tsv`                      | **FDR-passing per-sample viral calls.**                                                                                                            |
+| `virus/detection/plasmid.calls.tsv`                             | All per-sample plasmid calls.                                                                                                                      |
+| `virus/detection/plasmid.calls.filtered.tsv`                    | **FDR-passing per-sample plasmid calls.**                                                                                                          |
+| `virus/lifestyle/virus.amgs.tsv`                                | **AMG identifications on the vOTU catalog** (DRAM-V).                                                                                              |
+| `virus/lifestyle/virus.amg_to_catalog.tsv`                      | **AMG → gene catalog cross-reference** (primary deliverable).                                                                                      |
+| `virus/lifestyle/virus.host.genome.tsv`                         | iPHoP host predictions, genome-level (per vOTU).                                                                                                   |
+| `virus/lifestyle/virus.host.genus.tsv`                          | iPHoP host predictions, genus-level (per vOTU).                                                                                                    |
+| `virus/dramv/`                                                  | Supporting DRAM-V artefacts (`amg_filtered.{fna,faa}`, search results, ID lists, per-batch parts).                                                 |
+| `pipeline_info/viral_analysis_multiqc_report.html`              | Consolidated MultiQC.                                                                                                                              |
 
 The bolded rows are the primary deliverables for most downstream analyses.
 

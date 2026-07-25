@@ -8,8 +8,8 @@ The `schirmer-lab/metagear` pipeline groups its work into six entry-point workfl
 | [qc_dna](qc_dna.md)                         | Adapter/quality trimming and host decontamination of DNA reads                      | Raw DNA FASTQ | Clean paired reads + QC report                                    | Medium         |
 | [qc_rna](qc_rna.md)                         | Same flow as `qc_dna`; intended for metatranscriptomic input                        | Raw RNA FASTQ | Clean paired reads + QC report                                    | Medium         |
 | [microbial_profiles](microbial_profiles.md) | Reference-based taxonomic and functional profiling                                  | Clean reads   | MetaPhlAn4 species table + HUMAnN3 gene-family and pathway tables | Medium–High    |
-| [genes](genes.md)           | De novo assembly, gene calling, gene catalog, MSP analysis                          | Clean reads   | Gene/protein representative catalogs, abundance matrices, MSPs    | High           |
-| [virus](virus.md)         | Viral and plasmid detection, clustering, annotation, host prediction, AMG discovery | Clean reads   | Viral and plasmid catalogs, AMGs, iPHoP host predictions          | Very high      |
+| [genes](genes.md)                           | De novo assembly, gene calling, gene catalog, MSP analysis                          | Clean reads   | Gene/protein representative catalogs, abundance matrices, MSPs    | High           |
+| [virus](virus.md)                           | Viral and plasmid detection, clustering, annotation, host prediction, AMG discovery | Clean reads   | Viral and plasmid catalogs, AMGs, iPHoP host predictions          | Very high      |
 
 ## Recommended order
 

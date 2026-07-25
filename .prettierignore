@@ -12,3 +12,8 @@ bin/
 ro-crate-metadata.json
 modules/nf-core/
 subworkflows/nf-core/
+# metagear-tools' build_resources_config.sh parses this file line-by-line and
+# only matches entries whose flow mapping opens and closes on ONE physical line.
+# Prettier expands them across lines, which makes the generator skip the entry
+# silently (exit 0, no warning) and drop its withName block from resources.config.
+conf/resources.yaml

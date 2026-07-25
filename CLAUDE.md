@@ -6,16 +6,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `schirmer-lab/metagear` is an nf-core-templated Nextflow DSL2 pipeline for shotgun metagenomics. It is a **multi-workflow pipeline** — `main.nf` always enters `workflows/metagear.nf`, which dispatches to one of several entry-point workflows based on `params.workflow`:
 
-| `params.workflow` value | Entry subworkflow |
-|---|---|
-| `download_databases` | `workflows/setup.nf` (`SETUP`) — fetches Kneaddata, MetaPhlAn, HUMAnN, etc. |
-| `qc_dna`, `qc_rna` (or anything starting `qc_`) | `subworkflows/local/common/quality_control.nf` |
-| `microbial_profiles` | `subworkflows/local/microbiome/microbial_profiles.nf` (MetaPhlAn + HUMAnN) |
-| `genes` | `subworkflows/local/microbiome/genes.nf` (gene catalog: assembly → gene call → clustering → abundance → protein annotation) |
-| `virus` | `subworkflows/local/microbiome/virus.nf` |
-| `classification` | `subworkflows/local/microbiome/classification.nf` (assembly + viral/plasmid partition + bacterial binning + per-contig TSV) |
-| `mag` | `subworkflows/local/microbiome/mag.nf` (cohort MAG catalog: dRep + GTDB-Tk + coverm-genome; builds on a prior `classification` run) |
-| `msp` | `subworkflows/local/pangenome/msp.nf` (MetaSpecies Pangenomes: MSPminer + GTDB-Tk + MetaPhlAn; builds on a prior `genes` run) |
+| `params.workflow` value                         | Entry subworkflow                                                                                                                   |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `download_databases`                            | `workflows/setup.nf` (`SETUP`) — fetches Kneaddata, MetaPhlAn, HUMAnN, etc.                                                         |
+| `qc_dna`, `qc_rna` (or anything starting `qc_`) | `subworkflows/local/common/quality_control.nf`                                                                                      |
+| `microbial_profiles`                            | `subworkflows/local/microbiome/microbial_profiles.nf` (MetaPhlAn + HUMAnN)                                                          |
+| `genes`                                         | `subworkflows/local/microbiome/genes.nf` (gene catalog: assembly → gene call → clustering → abundance → protein annotation)         |
+| `virus`                                         | `subworkflows/local/microbiome/virus.nf`                                                                                            |
+| `classification`                                | `subworkflows/local/microbiome/classification.nf` (assembly + viral/plasmid partition + bacterial binning + per-contig TSV)         |
+| `mag`                                           | `subworkflows/local/microbiome/mag.nf` (cohort MAG catalog: dRep + GTDB-Tk + coverm-genome; builds on a prior `classification` run) |
+| `msp`                                           | `subworkflows/local/pangenome/msp.nf` (MetaSpecies Pangenomes: MSPminer + GTDB-Tk + MetaPhlAn; builds on a prior `genes` run)       |
 
 Every entry subworkflow follows a `*_INIT` + `*` pair: the `_INIT` validates inputs and constructs DB channels; the main workflow takes those channels and runs the analysis. `SUMMARY` then collects `versions` and `summary_data` channels for MultiQC + version reporting.
 

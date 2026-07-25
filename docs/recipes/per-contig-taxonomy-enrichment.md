@@ -143,12 +143,12 @@ COPY (
 
 Per row of `<sample>.contigs.tsv`, the enrichment adds:
 
-| Column | Source | Filled when |
-|---|---|---|
-| `bin_file` | `<sample>.contig_to_bin.tsv` (Binette) | contig is in a MAG |
-| `secondary_cluster` | `Cdb.csv` (dRep) | bin is in a species cluster |
-| `winner_id` (optional) | `Wdb.csv` (dRep) | cluster has a representative |
-| `gtdb_lineage` | GTDB-Tk summary | cluster winner was successfully placed |
+| Column                 | Source                                 | Filled when                            |
+| ---------------------- | -------------------------------------- | -------------------------------------- |
+| `bin_file`             | `<sample>.contig_to_bin.tsv` (Binette) | contig is in a MAG                     |
+| `secondary_cluster`    | `Cdb.csv` (dRep)                       | bin is in a species cluster            |
+| `winner_id` (optional) | `Wdb.csv` (dRep)                       | cluster has a representative           |
+| `gtdb_lineage`         | GTDB-Tk summary                        | cluster winner was successfully placed |
 
 For unbinned chromosome contigs, all four columns stay null — those contigs already
 have whatever signal MERGE_CONTIG_CLASSIFICATION provided (Tiara label, etc.).

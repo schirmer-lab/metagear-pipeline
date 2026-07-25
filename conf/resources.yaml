@@ -59,14 +59,7 @@ processes:
   # === Protein call / annotation ===
   TRANSLATE_DNA2PROT: { label: process_medium, cpus: 8, memory_gb: 16, time_h: 4 }
   SEQKIT_SPLIT2: { label: process_medium, cpus: 8, memory_gb: 16, time_h: 4 }
-  INTERPROSCAN:
-    {
-      label: process_long,
-      cpus: 12,
-      memory_gb: 24,
-      time_h: 24,
-      note: "process_long sets only time — needs explicit cpu/mem",
-    }
+  INTERPROSCAN: { label: process_long, cpus: 12, memory_gb: 24, time_h: 24, note: "process_long sets only time — needs explicit cpu/mem" }
   FUNCTIONALGROUP_ANNOTATION: { label: process_medium, cpus: 12, memory_gb: 24, time_h: 24 }
   AMRFINDERPLUS_RUN: { label: process_medium, cpus: 12, memory_gb: 24, time_h: 24 }
 
