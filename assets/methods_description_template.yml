@@ -1,13 +1,16 @@
 id: "schirmer-lab-metagear-methods-description"
 description: "Suggested text and references to use when describing pipeline usage within the methods section of a publication."
-section_name: "schirmer-lab/metagear Methods Description"
-section_href: "https://github.com/schirmer-lab/metagear"
+section_name: "schirmer-lab/metagear-pipeline Methods Description"
+section_href: "https://github.com/schirmer-lab/metagear-pipeline"
 plot_type: "html"
-## TODO nf-core: Update the HTML below to your preferred methods description, e.g. add publication citation for this pipeline
+## Tool citations and the bibliography are generated per run: the pipeline
+## dispatches to one entry-point workflow, so ${tool_citations} and
+## ${tool_bibliography} list only the tools that workflow actually executes.
+## See toolCitationText() in subworkflows/local/utils_nfcore_metagear_pipeline/main.nf.
 ## You inject any metadata in the Nextflow '${workflow}' object
 data: |
   <h4>Methods</h4>
-  <p>Data was processed using schirmer-lab/metagear v${workflow.manifest.version} ${doi_text} of the nf-core collection of workflows (<a href="https://doi.org/10.1038/s41587-020-0439-x">Ewels <em>et al.</em>, 2020</a>), utilising reproducible software environments from the Bioconda (<a href="https://doi.org/10.1038/s41592-018-0046-7">Grüning <em>et al.</em>, 2018</a>) and Biocontainers (<a href="https://doi.org/10.1093/bioinformatics/btx192">da Veiga Leprevost <em>et al.</em>, 2017</a>) projects.</p>
+  <p>Data was processed using the ${workflow.manifest.name} pipeline v${workflow.manifest.version} ${doi_text}, built with the nf-core template (<a href="https://doi.org/10.1038/s41587-020-0439-x">Ewels <em>et al.</em>, 2020</a>) and utilising reproducible software environments from the Bioconda (<a href="https://doi.org/10.1038/s41592-018-0046-7">Grüning <em>et al.</em>, 2018</a>) and Biocontainers (<a href="https://doi.org/10.1093/bioinformatics/btx192">da Veiga Leprevost <em>et al.</em>, 2017</a>) projects.</p>
   <p>The pipeline was executed with Nextflow v${workflow.nextflow.version} (<a href="https://doi.org/10.1038/nbt.3820">Di Tommaso <em>et al.</em>, 2017</a>) with the following command:</p>
   <pre><code>${workflow.commandLine}</code></pre>
   <p>${tool_citations}</p>

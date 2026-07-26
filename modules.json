@@ -1,6 +1,6 @@
 {
-    "name": "schirmer-lab/metagear",
-    "homePage": "https://github.com/schirmer-lab/metagear",
+    "name": "schirmer-lab/metagear-pipeline",
+    "homePage": "https://github.com/schirmer-lab/metagear-pipeline",
     "repos": {
         "https://github.com/nf-core/modules.git": {
             "modules": {

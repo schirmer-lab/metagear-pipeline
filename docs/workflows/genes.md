@@ -69,7 +69,7 @@ The bolded rows are the typical analytical deliverables: the representative gene
 End-to-end run:
 
 ```bash
-nextflow run schirmer-lab/metagear -profile docker \
+nextflow run schirmer-lab/metagear-pipeline -profile docker \
   --workflow genes \
   --input clean.csv \
   --outdir genes/ \
@@ -81,7 +81,7 @@ nextflow run schirmer-lab/metagear -profile docker \
 Re-running only the MSP stage after upstream steps have completed:
 
 ```bash
-nextflow run schirmer-lab/metagear -profile docker \
+nextflow run schirmer-lab/metagear-pipeline -profile docker \
   --workflow genes \
   --input clean.csv \
   --outdir genes/ \

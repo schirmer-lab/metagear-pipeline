@@ -4,4 +4,4 @@ contact_links:
     about: Please join the nf-core community here
   - name: "Slack #metagear channel"
     url: https://nfcore.slack.com/channels/metagear
-    about: Discussion about the schirmer-lab/metagear pipeline
+    about: Discussion about the schirmer-lab/metagear-pipeline pipeline

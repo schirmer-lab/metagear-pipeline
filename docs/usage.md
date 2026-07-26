@@ -1,10 +1,21 @@
-# schirmer-lab/metagear: Usage
+# schirmer-lab/metagear-pipeline: Usage
 
 > _Documentation of pipeline parameters is generated automatically from the pipeline schema and can no longer be found in markdown files._
 
 ## Introduction
 
-<!-- TODO nf-core: Add documentation about anything specific to running your pipeline. For general topics, please point to (and add to) the main nf-core website. -->
+MetaGEAR is a **multi-workflow** pipeline for shotgun metagenomics. Unlike a single-purpose pipeline, one invocation does not run everything: `main.nf` always enters the same dispatcher, which selects one entry-point workflow based on `--workflow`. Choosing that value is therefore the first decision of any run, and the [workflows guide](workflows/index.md) exists to help you make it.
+
+Three practical consequences follow from that design, and they are the things most likely to surprise a new user.
+
+**Outputs accumulate rather than collide.** Every workflow publishes into a shared, additive results tree, so pointing several runs at the same `--outdir` builds up a combined result set instead of overwriting. See [output.md](output.md) for the layout.
+
+**Some workflows build on others.** `mag` consumes the per-sample bins produced by `classification`; `msp` consumes the gene catalog and abundance matrices produced by `genes`; `structures` consumes the protein catalog produced by `genes` or `virus`. These workflows read their inputs from disk, which is why they take directory parameters such as `--bins_dir` and `--contigs_dir`. Supplying a `--contigs_dir` from an earlier run also lets a workflow skip reassembly entirely.
+
+**Reference databases are installed once, separately.** Run `--workflow download_databases` before any analysis workflow. Database locations are then normally set once in a user config rather than passed on every invocation.
+
+> [!TIP]
+> Most users should drive the pipeline through the [`metagear-tools`](https://github.com/schirmer-lab/metagear-tools) wrapper, which turns the invocations below into `metagear genes --input samples.csv` and auto-discovers reuse inputs from previous runs via `--reuse-outputs`. The pipeline behaves identically with or without it; the Nextflow commands in this document are the canonical form. Note that the per-workflow config files under `conf/metagear/` are merged in by the wrapper at invocation time and are **not** active when you run `nextflow run` directly.
 
 ## Samplesheet input
 
@@ -45,20 +56,42 @@ TREATMENT_REP3,AEG588A6_S6_L004_R1_001.fastq.gz,
 | Column    | Description                                                                                                                                                                            |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `sample`  | Custom sample name. This entry will be identical for multiple sequencing libraries/runs from the same sample. Spaces in sample names are automatically converted to underscores (`_`). |
+| `biome`   | _Optional._ Sits between `sample` and `fastq_1`. Selects the SemiBin2 pretrained model used by `classification`. Ignored by every other workflow. See below.                           |
 | `fastq_1` | Full path to FastQ file for Illumina short reads 1. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                                             |
 | `fastq_2` | Full path to FastQ file for Illumina short reads 2. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                                             |
+
+Only `sample` and `fastq_1` are required.
+
+### The `biome` column
+
+The `classification` workflow bins contigs with SemiBin2, which ships pretrained models per environment. Adding an optional `biome` column lets you pick the right one per sample, which matters most in mixed-cohort studies where a single global model is a poor fit for some samples.
+
+The column is fully backward compatible: omit it entirely, or leave it empty for individual samples, and those samples fall back to `global`. Validation happens up front, so a typo fails the run immediately rather than silently degrading binning quality. Accepted values are `human_gut`, `human_oral`, `mouse_gut`, `dog_gut`, `cat_gut`, `ocean`, `soil`, `built_environment`, `wastewater`, `chicken_caecum`, and `global`.
+
+```csv title="samplesheet.csv"
+sample,biome,fastq_1,fastq_2
+SUBJECT_01,human_gut,SUBJECT_01_R1.fastq.gz,SUBJECT_01_R2.fastq.gz
+SUBJECT_02,human_oral,SUBJECT_02_R1.fastq.gz,SUBJECT_02_R2.fastq.gz
+SUBJECT_03,,SUBJECT_03_R1.fastq.gz,SUBJECT_03_R2.fastq.gz
+```
 
 An [example samplesheet](../assets/samplesheet.csv) has been provided with the pipeline.
 
 ## Workflow selection
 
-The pipeline bundles six entry-point workflows; the active one is chosen at run time with the `--workflow` parameter:
+The pipeline bundles ten entry-point workflows; the active one is chosen at run time with the `--workflow` parameter:
 
-- `download_databases` — one-time reference database install
-- `qc_dna`, `qc_rna` — adapter/quality trimming and host (and rRNA, for RNA) decontamination
-- `microbial_profiles` — taxonomic and functional profiling (MetaPhlAn 4 + HUMAnN 3)
-- `genes` — de novo assembly, gene catalog, MSP analysis
-- `virus` — viral/plasmid detection, annotation, host prediction, AMGs
+| `--workflow`         | Purpose                                                                   | Builds on        |
+| -------------------- | ------------------------------------------------------------------------- | ---------------- |
+| `download_databases` | One-time reference database install                                       | —                |
+| `qc_dna`, `qc_rna`   | Adapter/quality trimming and host (and rRNA, for RNA) decontamination     | —                |
+| `microbial_profiles` | Taxonomic and functional profiling (MetaPhlAn 4 + HUMAnN 3)               | QC'd reads       |
+| `genes`              | De novo assembly, gene calling, cohort gene and protein catalogs          | QC'd reads       |
+| `virus`              | Viral/plasmid detection, clustering, annotation, host prediction, AMGs    | QC'd reads       |
+| `classification`     | Viral/plasmid partition, bacterial binning, per-contig classification TSV | QC'd reads       |
+| `mag`                | Cohort MAG catalog: dRep, GTDB-Tk taxonomy, MAG×sample abundance          | `classification` |
+| `msp`                | MetaSpecies Pangenomes: MSPminer co-abundance clustering, GTDB-Tk         | `genes`          |
+| `structures`         | Protein structural-homology annotation via PHOLD                          | `genes`/`virus`  |
 
 See the [workflows guide](workflows/index.md) for per-workflow descriptions, inputs, outputs, and parameters.
 
@@ -67,7 +100,7 @@ See the [workflows guide](workflows/index.md) for per-workflow descriptions, inp
 The typical command for running the pipeline is as follows:
 
 ```bash
-nextflow run schirmer-lab/metagear --workflow qc_dna --input ./samplesheet.csv --outdir ./results -profile docker
+nextflow run schirmer-lab/metagear-pipeline --workflow qc_dna --input ./samplesheet.csv --outdir ./results -profile docker
 ```
 
 This will launch the pipeline with the `docker` configuration profile. See below for more information about profiles.
@@ -91,7 +124,7 @@ Pipeline settings can be provided in a `yaml` or `json` file via `-params-file <
 The above pipeline run specified with a params file in yaml format:
 
 ```bash
-nextflow run schirmer-lab/metagear -profile docker -params-file params.yaml
+nextflow run schirmer-lab/metagear-pipeline -profile docker -params-file params.yaml
 ```
 
 with:
@@ -109,14 +142,14 @@ You can also generate such `YAML`/`JSON` files via [nf-core/launch](https://nf-c
 When you run the above command, Nextflow automatically pulls the pipeline code from GitHub and stores it as a cached version. When running the pipeline after this, it will always use the cached version if available - even if the pipeline has been updated since. To make sure that you're running the latest version of the pipeline, make sure that you regularly update the cached version of the pipeline:
 
 ```bash
-nextflow pull schirmer-lab/metagear
+nextflow pull schirmer-lab/metagear-pipeline
 ```
 
 ### Reproducibility
 
 It is a good idea to specify the pipeline version when running the pipeline on your data. This ensures that a specific version of the pipeline code and software are used when you run your pipeline. If you keep using the same tag, you'll be running the same version of the pipeline, even if there have been changes to the code since.
 
-First, go to the [schirmer-lab/metagear releases page](https://github.com/schirmer-lab/metagear/releases) and find the latest pipeline version - numeric only (eg. `1.3.1`). Then specify this when running the pipeline with `-r` (one hyphen) - eg. `-r 1.3.1`. Of course, you can switch to another version by changing the number after the `-r` flag.
+First, go to the [schirmer-lab/metagear-pipeline releases page](https://github.com/schirmer-lab/metagear-pipeline/releases) and find the latest pipeline version - numeric only (eg. `1.3.1`). Then specify this when running the pipeline with `-r` (one hyphen) - eg. `-r 1.3.1`. Of course, you can switch to another version by changing the number after the `-r` flag.
 
 This version number will be logged in reports when you run the pipeline, so that you'll know what you used when you look back in the future. For example, at the bottom of the MultiQC reports.
 

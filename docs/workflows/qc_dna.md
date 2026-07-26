@@ -46,7 +46,7 @@ The "final clean reads" row is the only output you need to keep long-term; the r
 ## Example
 
 ```bash
-nextflow run schirmer-lab/metagear -profile docker \
+nextflow run schirmer-lab/metagear-pipeline -profile docker \
   --workflow qc_dna \
   --input raw_samples.csv \
   --outdir qc/ \

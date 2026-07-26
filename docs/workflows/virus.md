@@ -97,7 +97,7 @@ The bolded rows are the primary deliverables for most downstream analyses.
 ## Example
 
 ```bash
-nextflow run schirmer-lab/metagear -profile docker \
+nextflow run schirmer-lab/metagear-pipeline -profile docker \
   --workflow virus \
   --input clean.csv \
   --outdir viruses/ \
@@ -113,7 +113,7 @@ nextflow run schirmer-lab/metagear -profile docker \
 Sharing an assembly with a prior `genes` run:
 
 ```bash
-nextflow run schirmer-lab/metagear -profile docker \
+nextflow run schirmer-lab/metagear-pipeline -profile docker \
   --workflow virus \
   --input clean.csv \
   --outdir viruses/ \

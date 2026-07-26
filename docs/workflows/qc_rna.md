@@ -51,7 +51,7 @@ Expect the final read count to drop substantially compared with DNA — that's t
 ## Example
 
 ```bash
-nextflow run schirmer-lab/metagear -profile docker \
+nextflow run schirmer-lab/metagear-pipeline -profile docker \
   --workflow qc_rna \
   --input raw_rna_samples.csv \
   --outdir qc_rna/ \

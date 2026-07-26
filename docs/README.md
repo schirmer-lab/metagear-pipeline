@@ -1,6 +1,6 @@
-# schirmer-lab/metagear: Documentation
+# schirmer-lab/metagear-pipeline: Documentation
 
-The schirmer-lab/metagear documentation is split into the following pages:
+The schirmer-lab/metagear-pipeline documentation is split into the following pages:
 
 - [Usage](usage.md)
   - An overview of how the pipeline works, how to run it and a description of all of the different command-line flags.

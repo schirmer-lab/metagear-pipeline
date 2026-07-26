@@ -592,8 +592,3 @@ def get_msp_pangenome(
 
 if __name__ == "__main__":
     main()
-    # all_msps_fp = "/nfs/arxiv/shen/CLD_KCH_2025/analysis/gene_profile/results/mspminer/raw/all_msps.tsv"
-    # rpkm_fp = "/nfs/arxiv/shen/CLD_KCH_2025/analysis/gene_profile/results/merge/gene_profile_rpkm_merged.tsv"
-    # msp_abd_sfp = "/nfs/arxiv/shen/CLD_KCH_2025/analysis/gene_profile/results/mspminer/msp_abundance.median.RPKM.txt"
-    # gc_seq_fp = "/nfs/arxiv/shen/CLD_KCH_2025/analysis/gene_call/results/cdhit/merged_genes.nr_95_90.fa"
-    # msp_pangenome_dir = "/nfs/arxiv/shen/CLD_KCH_2025/analysis/gene_profile/results/mspminer/pangenome"

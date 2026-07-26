@@ -49,7 +49,7 @@ The two `merged_*` tables in `humann/` and the `merged_microbial_profiles.txt` i
 ## Example
 
 ```bash
-nextflow run schirmer-lab/metagear -profile docker \
+nextflow run schirmer-lab/metagear-pipeline -profile docker \
   --workflow microbial_profiles \
   --input clean.csv \
   --outdir profiles/ \
@@ -61,7 +61,7 @@ nextflow run schirmer-lab/metagear -profile docker \
 Reusing existing MetaPhlAn profiles (e.g. from a prior `genes` run that emitted them):
 
 ```bash
-nextflow run schirmer-lab/metagear -profile docker \
+nextflow run schirmer-lab/metagear-pipeline -profile docker \
   --workflow microbial_profiles \
   --input clean.csv \
   --outdir profiles/ \

@@ -1,5 +1,5 @@
 name: Feature request
-description: Suggest an idea for the schirmer-lab/metagear pipeline
+description: Suggest an idea for the schirmer-lab/metagear-pipeline pipeline
 labels: enhancement
 body:
   - type: textarea

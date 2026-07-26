@@ -72,7 +72,7 @@ Typical layout (paths are whatever you passed):
 
 ```bash
 # Download everything (recommended on first install)
-nextflow run schirmer-lab/metagear -profile docker \
+nextflow run schirmer-lab/metagear-pipeline -profile docker \
   --workflow download_databases \
   --databases all \
   --outdir databases/ \

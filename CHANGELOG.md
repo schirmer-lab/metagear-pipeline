@@ -1,11 +1,11 @@
-# schirmer-lab/metagear: Changelog
+# schirmer-lab/metagear-pipeline: Changelog
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## v0.9.0dev - [date]
 
-Initial release of schirmer-lab/metagear, created with the [nf-core](https://nf-co.re/) template.
+Initial release of schirmer-lab/metagear-pipeline, created with the [nf-core](https://nf-co.re/) template.
 
 ### `Added`
 
