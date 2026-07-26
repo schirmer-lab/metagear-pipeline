@@ -5,18 +5,23 @@ lint:
     - conf/igenomes.config
     - conf/igenomes_ignored.config
     - CODE_OF_CONDUCT.md
-    - assets/nf-core-metagear_logo_light.png
-    - docs/images/nf-core-metagear_logo_light.png
-    - docs/images/nf-core-metagear_logo_dark.png
+    - assets/nf-core-metagear-pipeline_logo_light.png
+    - docs/images/nf-core-metagear-pipeline_logo_light.png
+    - docs/images/nf-core-metagear-pipeline_logo_dark.png
     - .github/ISSUE_TEMPLATE/config.yml
     - .github/workflows/awstest.yml
     - .github/workflows/awsfulltest.yml
   files_unchanged:
     - CODE_OF_CONDUCT.md
-    - assets/nf-core-metagear_logo_light.png
-    - docs/images/nf-core-metagear_logo_light.png
-    - docs/images/nf-core-metagear_logo_dark.png
+    - assets/nf-core-metagear-pipeline_logo_light.png
+    - docs/images/nf-core-metagear-pipeline_logo_light.png
+    - docs/images/nf-core-metagear-pipeline_logo_dark.png
     - .github/ISSUE_TEMPLATE/bug_report.yml
+    # The rendered template points support links at an nf-core Slack channel
+    # named after the pipeline. This pipeline is not an nf-core pipeline
+    # (is_nfcore: false), so no such channel exists and the file intentionally
+    # diverges from the template.
+    - .github/ISSUE_TEMPLATE/config.yml
     - .gitignore
   included_configs: false
   multiqc_config:
@@ -40,7 +45,7 @@ lint:
 nf_core_version: 4.0.2
 repository_type: pipeline
 template:
-  author: Shen Jin, Emilio Rios, Svenja Schorlemmer
+  author: Emilio Rios, Shen Jin, Svenja Weißenberger
   description: "MetaGEAR Pipeline: Gene centric approach"
   force: false
   is_nfcore: false

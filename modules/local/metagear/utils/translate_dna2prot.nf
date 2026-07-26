@@ -34,7 +34,6 @@ process TRANSLATE_DNA2PROT {
     fi
 
     echo running translate_fasta \$INPUT "${prefix}.faa"
-    # python /nfs/data/work/shen/github/metagear-pipeline-internal/bin/
     translate_fasta.py \$INPUT "${prefix}.faa"
 
     gzip "${prefix}.faa"

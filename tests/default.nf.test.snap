@@ -3,7 +3,7 @@
         "content": [
             {
                 "Workflow": {
-                    "schirmer-lab/metagear": "v0.9.0dev"
+                    "schirmer-lab/metagear-pipeline": "v0.9.0dev"
                 }
             }
         ],

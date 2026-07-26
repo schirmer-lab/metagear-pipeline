@@ -264,13 +264,6 @@ def _msp_taxaANN_metaphlanLM(
     return  # done
 
 
-# Example usage:
-# output_dir = "/nfs/arxiv/shen/CLD_KCH_2025/analysis/gene_profile/results/mspminer"
-# msp_profile_fp = "/nfs/arxiv/shen/CLD_KCH_2025/analysis/gene_profile/results/mspminer/msp_abundance.median.RPKM.txt"
-# metaphlan_profile_fp = "/path/to/metaphlan_combined_output.txt"  # Tab-separated MetaPhlAn combined output
-# _msp_taxaANN_metaphlanLM(output_dir,msp_profile_fp,metaphlan_profile_fp,metaphlan_version = "v3")
-
-
 @click.command()
 @click.option(
     "--msp-profile",

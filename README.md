@@ -1,4 +1,4 @@
-# schirmer-lab/metagear
+# schirmer-lab/metagear-pipeline
 
 [![Open in GitHub Codespaces](https://img.shields.io/badge/Open_In_GitHub_Codespaces-black?labelColor=grey&logo=github)](https://github.com/codespaces/new/schirmer-lab/metagear-pipeline)
 [![GitHub Actions CI Status](https://github.com/schirmer-lab/metagear-pipeline/actions/workflows/nf-test.yml/badge.svg)](https://github.com/schirmer-lab/metagear-pipeline/actions/workflows/nf-test.yml)
@@ -13,10 +13,10 @@
 
 ## Introduction
 
-**schirmer-lab/metagear** is a bioinformatics pipeline for comprehensive metagenomic analysis. The pipeline processes shotgun metagenomic sequencing data through quality control, taxonomic profiling, functional annotation, and gene-centric analysis workflows.
+**schirmer-lab/metagear-pipeline** is a bioinformatics pipeline for comprehensive metagenomic analysis. The pipeline processes shotgun metagenomic sequencing data through quality control, taxonomic profiling, functional annotation, and gene-centric analysis workflows.
 
 > [!TIP]
-> For easy installation, configuration, and usage, please refer to the **streamlined documentation and wrapper** at: **[schirmer-lab/metagear](https://schirmer-lab.github.io/metagear)**
+> For easy installation, configuration, and usage, please refer to the **streamlined documentation** at **[MetaGEAR](https://metagear-platform.schirmerlab.de/)** and the **wrapper** at **[schirmer-lab/metagear-tools](https://github.com/schirmer-lab/metagear-tools)**.
 
 The pipeline includes the following main workflows:
 
@@ -30,7 +30,7 @@ The pipeline includes the following main workflows:
 > [!NOTE]
 > If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/get_started/environment_setup/overview) on how to set-up Nextflow. Make sure to [test your setup](https://nf-co.re/docs/get_started/run-your-first-pipeline) with `-profile test` before running the workflow on actual data.
 
-> [!IMPORTANT] > **For simplified usage and configuration**, please use the wrapper and documentation at: **[schirmer-lab/metagear](https://github.com/schirmer-lab/metagear)**
+> [!IMPORTANT] > **For simplified usage and configuration**, please use the wrapper at **[schirmer-lab/metagear-tools](https://github.com/schirmer-lab/metagear-tools)**, documented at **[MetaGEAR](https://metagear-platform.schirmerlab.de/)**.
 
 ### Quick Start
 
@@ -48,10 +48,8 @@ Each row represents a fastq file (single-end) or a pair of fastq files (paired e
 
 Now, you can run the pipeline using:
 
-<!-- TODO nf-core: update the following command to include all required parameters for a minimal example -->
-
 ```bash
-nextflow run schirmer-lab/metagear \
+nextflow run schirmer-lab/metagear-pipeline \
    -profile <docker/singularity/.../institute> \
    --input samplesheet.csv \
    --outdir <OUTDIR>
@@ -62,11 +60,7 @@ nextflow run schirmer-lab/metagear \
 
 ## Credits
 
-schirmer-lab/metagear was originally written by Shen Jin, Emilio Rios, Svenja Schorlemmer.
-
-We thank the following people for their extensive assistance in the development of this pipeline:
-
-<!-- TODO nf-core: If applicable, make list of people who have also contributed -->
+schirmer-lab/metagear-pipeline was written by Emilio Rios and Shen Jin, with additional contributions from Svenja Weißenberger.
 
 ## Contributions and Support
 
@@ -75,11 +69,9 @@ If you would like to contribute to this pipeline, please see the [contributing g
 ## Citations
 
 <!-- TODO nf-core: Add citation for pipeline after first release. Uncomment lines below and update Zenodo doi and badge at the top of this file. -->
-<!-- If you use schirmer-lab/metagear for your analysis, please cite it using the following doi: [10.5281/zenodo.XXXXXX](https://doi.org/10.5281/zenodo.XXXXXX) -->
+<!-- If you use schirmer-lab/metagear-pipeline for your analysis, please cite it using the following doi: [10.5281/zenodo.XXXXXX](https://doi.org/10.5281/zenodo.XXXXXX) -->
 
-<!-- TODO nf-core: Add bibliography of tools and data used in your pipeline -->
-
-An extensive list of references for the tools used by the pipeline can be found in the [`CITATIONS.md`](CITATIONS.md) file.
+An extensive list of references for the tools used by the pipeline can be found in the [`CITATIONS.md`](CITATIONS.md) file, grouped by the workflow that runs them. The MultiQC report produced by each run also contains a Methods Description section listing only the tools that particular run executed, with citations.
 
 This pipeline uses code and infrastructure developed and maintained by the [nf-core](https://nf-co.re) community, reused here under the [MIT license](https://github.com/nf-core/tools/blob/main/LICENSE).
 

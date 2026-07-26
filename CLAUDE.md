@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Pipeline overview
 
-`schirmer-lab/metagear` is an nf-core-templated Nextflow DSL2 pipeline for shotgun metagenomics. It is a **multi-workflow pipeline** — `main.nf` always enters `workflows/metagear.nf`, which dispatches to one of several entry-point workflows based on `params.workflow`:
+`schirmer-lab/metagear-pipeline` is an nf-core-templated Nextflow DSL2 pipeline for shotgun metagenomics. It is a **multi-workflow pipeline** — `main.nf` always enters `workflows/metagear.nf`, which dispatches to one of several entry-point workflows based on `params.workflow`:
 
 | `params.workflow` value                         | Entry subworkflow                                                                                                                   |
 | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
