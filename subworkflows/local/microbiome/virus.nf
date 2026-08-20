@@ -78,10 +78,24 @@ workflow VIRUS {
             ch_contigs = ASSEMBLY.out.contigs
         }
 
+        // NOTE on re-running to change the clustering criterion: detection cannot
+        // currently be skipped, and that is the dominant cost of such a re-run.
+        // VIRAL_DETECTION emits eleven channels, and this workflow consumes eight
+        // of them besides versions: viral_sequences, plasmid_sequences, viral_ids,
+        // plasmid_ids, virus_tables, virus_filtered_tables, plasmid_tables and
+        // plasmid_filtered_tables. A bypass parameter would have to supply all
+        // eight from disk, not just the FASTAs, so it is a larger change than the
+        // criterion fix itself. Nextflow's own -resume covers this correctly when
+        // the previous run's work directory is available, which is the supported
+        // route; see docs/workflows/virus.md.
         VIRAL_DETECTION ( ch_contigs, genomad_db, checkv_db )
         ch_versions =  ch_versions.mix( VIRAL_DETECTION.out.versions )
 
-        CLUSTER_VIRUS ( VIRAL_DETECTION.out.viral_sequences, "mmseqs2", true )
+        // Default is 'vclust', which implements the MIUViG species criterion the
+        // catalog intends: 95% ANI over 85% of the shorter sequence, on merged
+        // local alignments. Set --virus_clustering_method mmseqs2 to reproduce
+        // catalogs built before this changed; see docs/workflows/virus.md.
+        CLUSTER_VIRUS ( VIRAL_DETECTION.out.viral_sequences, params.virus_clustering_method ?: "vclust", true )
         ch_versions =  ch_versions.mix( CLUSTER_VIRUS.out.versions )
 
         CLUSTER_PLASMID ( VIRAL_DETECTION.out.plasmid_sequences, "mmseqs2", true )
