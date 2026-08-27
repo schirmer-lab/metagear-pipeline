@@ -32,6 +32,7 @@ workflow VIRUS_INIT {
         dram_db = Channel.fromPath("${params.dram_db}", checkIfExists: true).first()
         iphop_db = Channel.fromPath("${params.iphop_db}", checkIfExists: true).first()
         amrfinder_db = Channel.fromPath("${params.amrfinder_db}", checkIfExists: true).first()
+        phatyp_db = Channel.fromPath("${params.phatyp_db}", checkIfExists: true).first()
 
         INPUT_CHECK ( ch_input, "reads" )
 
@@ -43,6 +44,7 @@ workflow VIRUS_INIT {
         dram_db
         iphop_db
         amrfinder_db
+        phatyp_db
 
         reads = INPUT_CHECK.out.validated_input
         versions = INPUT_CHECK.out.versions
@@ -60,6 +62,7 @@ workflow VIRUS {
         dram_db
         iphop_db
         amrfinder_db
+        phatyp_db
 
     main:
 
@@ -181,7 +184,7 @@ workflow VIRUS {
         virus_representative_proteins = FIND_REPRESENTATIVES.out.representative_proteins.filter { meta, _ -> meta.id == 'virus.genes' }.map { it[1] }
         input_viral_annotation = CLUSTER_VIRUS.out.representative.combine( virus_representative_proteins )
 
-        VIRAL_ANNOTATION ( input_viral_annotation, pharokka_db, virsorter2_db, dram_db, iphop_db )
+        VIRAL_ANNOTATION ( input_viral_annotation, pharokka_db, virsorter2_db, dram_db, iphop_db, phatyp_db )
         // ch_versions =  ch_versions.mix(VIRAL_ANNOTATION.out.versions)
 
         // Collect tables
@@ -199,6 +202,10 @@ workflow VIRUS {
                     .concat( prepare_table_channels('amg', VIRAL_ANNOTATION.out.amgs ) )
                     .concat( prepare_table_channels('host.genus', VIRAL_ANNOTATION.out.iphop_genus ) )
                     .concat( prepare_table_channels('host.genome', VIRAL_ANNOTATION.out.iphop_genomes ) )
+                    // PhaTYP lifestyle calls take the same route as the host
+                    // predictions: per-chunk tables merged by COLLECT_TABLES into
+                    // one catalog-level table, so no bespoke merge step is needed.
+                    .concat( prepare_table_channels('lifestyle', VIRAL_ANNOTATION.out.lifestyle ) )
 
         COLLECT_TABLES ( ch_tables )
 

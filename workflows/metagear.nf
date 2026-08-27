@@ -91,7 +91,7 @@ workflow METAGEAR {
         if ( params.workflow == "virus" ) {
             init = VIRUS_INIT ( )
 
-            VIRUS ( init.reads, init.genomad_db, init.checkv_db, init.pharokka_db, init.virsorter2_db, init.dram_db, init.iphop_db, init.amrfinder_db )
+            VIRUS ( init.reads, init.genomad_db, init.checkv_db, init.pharokka_db, init.virsorter2_db, init.dram_db, init.iphop_db, init.amrfinder_db, init.phatyp_db )
             ch_versions = VIRUS.out.versions
         }
 

@@ -1,0 +1,7 @@
+name: phabox2_phatyp
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - bioconda::phabox=2.1.13
