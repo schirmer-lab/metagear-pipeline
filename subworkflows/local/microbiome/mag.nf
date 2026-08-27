@@ -140,6 +140,7 @@ workflow MAG {
         ch_drep_work  = ch_per_batch.map { meta, _bins, seed -> tuple([id: "${meta.id}_work"], seed) }
 
         DREP_DEREPLICATE ( ch_drep_input, ch_drep_work )
+        ch_versions = ch_versions.mix(DREP_DEREPLICATE.out.versions)
         // DREP emits versions via topic-style channel (not versions.yml).
 
         // ─── 2d. Concatenate per-batch Cdb/Wdb into cohort tables (gather) ───

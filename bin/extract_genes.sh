@@ -91,7 +91,12 @@ if [[ -s "$partial_contigs" ]]; then
         {
             header = $0
             gsub(/^>/, "", header)
+            # Strip the FASTA ">" from the contig field too. gsub above rewrites
+            # a copy of the record, so $1 still carries the leading ">" and the
+            # boundaries[] lookup below would never match, silently dropping
+            # every provirus gene.
             contig = $1
+            sub(/^>/, "", contig)
             gene_start = $3 + 0
             gene_end = $4 + 0
             if (!(contig in boundaries)) {

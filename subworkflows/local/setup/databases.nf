@@ -16,6 +16,7 @@ include { PHAROKKA_INSTALLDATABASES } from "$projectDir/modules/nf-core/pharokka
 include { AMRFINDERPLUS_UPDATE } from "$projectDir/modules/nf-core/amrfinderplus/update/main"
 
 include { PHOLD_INSTALL } from "$projectDir/modules/local/phold/install/main"
+include { PHABOX2_DOWNLOAD } from "$projectDir/modules/local/phabox/download/main"
 
 include { EXPORT_DATABASES } from "$projectDir/modules/local/metagear/export_databases"
 
@@ -41,7 +42,12 @@ workflow DATABASES_INIT {
                                             [ 'pharokka', file( params.pharokka_db ) ],
                                             [ 'checkm2', file( params.checkm2_db ) ],
                                             [ 'mmseqs_taxonomy', file( params.mmseqs_taxonomy_db ) ],
-                                            [ 'phold', file( params.phold_db ?: '/dev/null' ) ] )
+                                            [ 'phold', file( params.phold_db ?: '/dev/null' ) ],
+                                            // Same `?:` guard as phold: this database is only
+                                            // needed by the virus workflow's lifestyle step, so an
+                                            // install that predates it has no phatyp_db set and
+                                            // file(null) would throw during channel construction.
+                                            [ 'phabox', file( params.phatyp_db ?: '/dev/null' ) ] )
 
         //TODO: Currently only 1 kneaddata database is supported. Ensure ch_kneaddata_databases keep consistent with ch_database_destinations.
 
@@ -122,6 +128,15 @@ workflow DATABASES {
             pharokka_database = pharokka.pharokka_db.map { [ "pharokka", it ] }
             ch_versions = ch_versions.mix( pharokka.versions )
             ch_databases_data = ch_databases_data.concat( pharokka_database )
+
+            // PhaBOX2 models, consumed by PHABOX2_PHATYP in VIRAL_ANNOTATION for
+            // temperate/virulent lifestyle calls. ~673 MB compressed. Part of the
+            // viral group because it annotates the viral catalog alongside iPHoP
+            // and DRAM-V, so a user installing the viral stack gets it in one pass.
+            phabox = PHABOX2_DOWNLOAD ( )
+            phabox_database = phabox.phabox_db.map { [ "phabox", it ] }
+            ch_versions = ch_versions.mix( phabox.versions )
+            ch_databases_data = ch_databases_data.concat( phabox_database )
 
         }
 

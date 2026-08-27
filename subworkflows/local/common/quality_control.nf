@@ -72,6 +72,8 @@ workflow QUALITY_CONTROL {
                             .mix(TRIMGALORE.out.versions)
                             .mix(KNEADDATA.out.versions)
                             .mix(FASTQC_CLEAN.out.versions)
+                            .mix(PARSE_KNEADDATA.out.versions)
+                            .mix(SUMMARY_KNEADDATA.out.versions)
 
     emit:
         fastqc_zip_pre = FASTQC_RAW.out.zip

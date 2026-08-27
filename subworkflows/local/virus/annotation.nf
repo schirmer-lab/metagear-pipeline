@@ -4,6 +4,7 @@ include { IPHOP_PREDICT } from "$projectDir/modules/local/iphop/predict/main"
 include { SEQKIT_SPLIT2; SEQKIT_SPLIT2 as SEQKIT_SPLIT2_IPHOP } from "$projectDir/modules/nf-core/seqkit/split2"
 
 include { PHAROKKA_PROTEINS } from "$projectDir/modules/local/pharokka/pharokka_proteins/main"
+include { PHABOX2_PHATYP } from "$projectDir/modules/local/phabox/phatyp/main"
 
 workflow VIRAL_ANNOTATION_INIT {
 
@@ -19,6 +20,7 @@ workflow VIRAL_ANNOTATION_INIT {
         virsorter2_db = Channel.fromPath("${params.virsorter2_db}", checkIfExists: true)
         dram_db = Channel.fromPath("${params.dram_db}", checkIfExists: true)
         iphop_db = Channel.fromPath("${params.iphop_db}", checkIfExists: true)
+        phatyp_db = Channel.fromPath("${params.phatyp_db}", checkIfExists: true)
 
     emit:
         catalog_input = ch_catalog
@@ -26,6 +28,7 @@ workflow VIRAL_ANNOTATION_INIT {
         virsorter2_db
         dram_db
         iphop_db
+        phatyp_db
 }
 
 
@@ -37,6 +40,7 @@ workflow VIRAL_ANNOTATION {
         virsorter2_db
         dram_db
         iphop_db
+        phatyp_db
 
     main:
         ch_versions = Channel.empty()
@@ -50,6 +54,7 @@ workflow VIRAL_ANNOTATION {
         // Split the viral catalog into chunks. Sized by
         // params.viral_sequences_batch_size — feeds VIRSORTER2 + DRAMV.
         SEQKIT_SPLIT2 ( ch_split )
+        ch_versions = ch_versions.mix(SEQKIT_SPLIT2.out.versions)
 
         SEQKIT_SPLIT2.out.reads
             .flatMap { meta, gz ->
@@ -86,8 +91,21 @@ workflow VIRAL_ANNOTATION {
         }
 
         PHAROKKA_PROTEINS ( pharokka_input, pharokka_db )
+        ch_versions = ch_versions.mix(PHAROKKA_PROTEINS.out.versions)
 
         IPHOP_PREDICT ( ch_iphop_chunks, iphop_db )
+        ch_versions = ch_versions.mix(IPHOP_PREDICT.out.versions)
+
+        // PhaTYP shares the VIRSORTER2/DRAMV chunks rather than getting its own
+        // split. IPHOP needs a separate, smaller split because a 3000-sequence
+        // batch runs for hours and finer chunks buy more cached completions per
+        // SLURM window; PhaTYP is three orders of magnitude faster (seconds per
+        // megabase), so a second split would add channel plumbing and an extra
+        // tuning knob for no throughput gain. The cost of sharing is that
+        // retuning params.viral_sequences_batch_size invalidates PhaTYP's cache
+        // along with VIRSORTER2's, which is cheap to recompute.
+        PHABOX2_PHATYP ( ch_virsorter2_chunks, phatyp_db )
+        ch_versions = ch_versions.mix(PHABOX2_PHATYP.out.versions)
 
         VIRSORTER2_4DRAMV( ch_virsorter2_chunks, virsorter2_db )
         ch_versions = ch_versions.mix(VIRSORTER2_4DRAMV.out.versions)
@@ -106,5 +124,6 @@ workflow VIRAL_ANNOTATION {
         amg_faa = DRAMV.out.genes_faa
         iphop_genus = IPHOP_PREDICT.out.iphop_genus
         iphop_genomes = IPHOP_PREDICT.out.iphop_genome
+        lifestyle = PHABOX2_PHATYP.out.lifestyle
         versions = ch_versions
 }

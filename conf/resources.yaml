@@ -34,12 +34,12 @@ processes:
   RENAME_FILES: { label: process_single }
 
   # === Assembly ===
-  MEGAHIT: { label: process_high, cpus: 12, memory_gb: 24, time_h: 16 } # was 72 GB
+  MEGAHIT: { label: process_high, cpus: 10, memory_gb: 32, time_h: 16, note: "Measured across 25 assemblies on kch and 218 on CAMI: never above 9.6 cores. Memory raised rather than trimmed - a kch sample peaked at 23.8 GB against a 24 GB request. Under HyperQueue `mem` is a scheduling number with nothing enforcing it: an under-declared task does not get retried at double - it silently oversubscribes the node and the OOM killer picks a victim."} # was 72 GB
 
   # === Viral detection ===
-  GENOMAD_PASS1: { label: process_high, cpus: 12, memory_gb: 24, time_h: 16 }
-  GENOMAD_PASS2: { label: process_high, cpus: 12, memory_gb: 24, time_h: 16 }
-  CHECKV_PASS1: { label: process_medium, cpus: 12, memory_gb: 24, time_h: 16 }
+  GENOMAD_PASS1: { label: process_high, cpus: 9, memory_gb: 24, time_h: 16, note: "Measured over 276 tasks on the CAMI cohorts: 8.3 cores at p95, 8.4 at most. The largest single source of reserved-but-idle cores in the pipeline."}
+  GENOMAD_PASS2: { label: process_high, cpus: 10, memory_gb: 24, time_h: 16, note: "Measured over 276 tasks: 9.3 at p95, 9.5 at most."}
+  CHECKV_PASS1: { label: process_medium, cpus: 10, memory_gb: 24, time_h: 16, note: "Measured over 276 tasks: 9.3 at p95, 9.6 at most."}
   CHECKV_PASS2: { label: process_medium, cpus: 12, memory_gb: 24, time_h: 16 }
   MERGE_TABLES: { label: process_medium, cpus: 8, memory_gb: 16, time_h: 16 }
   EXTRACT_SEQUENCES: { label: process_single }
@@ -57,31 +57,31 @@ processes:
   HUMANN_FUNCTION: { label: process_medium, cpus: 12, memory_gb: 24, time_h: 24 } # bumped from 36 GB
 
   # === Protein call / annotation ===
-  TRANSLATE_DNA2PROT: { label: process_medium, cpus: 8, memory_gb: 16, time_h: 4 }
-  SEQKIT_SPLIT2: { label: process_medium, cpus: 8, memory_gb: 16, time_h: 4 }
-  INTERPROSCAN: { label: process_long, cpus: 12, memory_gb: 24, time_h: 24, note: "process_long sets only time — needs explicit cpu/mem" }
-  FUNCTIONALGROUP_ANNOTATION: { label: process_medium, cpus: 12, memory_gb: 24, time_h: 24 }
+  TRANSLATE_DNA2PROT: { label: process_medium, cpus: 2, memory_gb: 16, time_h: 4, note: "Measured 1.2 cores at peak: single-threaded in practice."}
+  SEQKIT_SPLIT2: { label: process_medium, cpus: 4, memory_gb: 16, time_h: 4, note: "Measured 3.4 cores at peak."}
+  INTERPROSCAN: { label: process_long, cpus: 11, memory_gb: 24, time_h: 24, note: "Measured over 208 tasks: 9.9 at p95, 10.3 at most. process_long sets only time — needs explicit cpu/mem" }
+  FUNCTIONALGROUP_ANNOTATION: { label: process_medium, cpus: 2, memory_gb: 24, time_h: 24, note: "Measured 1.0 core at peak."}
   AMRFINDERPLUS_RUN: { label: process_medium, cpus: 12, memory_gb: 24, time_h: 24 }
 
   # === Viral annotation ===
   PHAROKKA_PROTEINS: { label: process_high, cpus: 24, memory_gb: 68, time_h: 24 }
-  IPHOP_PREDICT: { label: process_high, cpus: 24, memory_gb: 120, time_h: 24, note: "Heavy I/O + mmap workload — observed peak_rss ~197 GB (mostly shared host-DB mmap), 3 TB read per batch, 40% CPU utilization (I/O bound). The 120 GB request acts as elastic concurrency control: on a 500 GB node it caps at ~4 concurrent (avoids GPFS bandwidth contention that stretches per-batch wall clock past the SLURM 24h limit); on a 1 TB node it scales to 8 concurrent automatically. Don't use maxForks here — the goal is for concurrency to grow with hardware." }
-  VIRSORTER2_4DRAMV: { label: "(none)", cpus: 12, memory_gb: 24, time_h: 24, note: "module has no label" }
-  DRAMV: { label: "(none)", cpus: 12, memory_gb: 24, time_h: 24, note: "module has no label" }
+  IPHOP_PREDICT: { label: process_high, cpus: 12, memory_gb: 120, time_h: 24, note: "Measured 8.7 cores at most over 8 tasks against 24 requested; trimmed to 12 so the other 12 are available to whatever runs alongside. Memory is deliberately left at 120 GB even though peak_rss reaches 201 GB: see below. Heavy I/O + mmap workload — observed peak_rss ~197 GB (mostly shared host-DB mmap), 3 TB read per batch, 40% CPU utilization (I/O bound). The 120 GB request acts as elastic concurrency control: on a 500 GB node it caps at ~4 concurrent (avoids GPFS bandwidth contention that stretches per-batch wall clock past the SLURM 24h limit); on a 1 TB node it scales to 8 concurrent automatically. Don't use maxForks here — the goal is for concurrency to grow with hardware." }
+  VIRSORTER2_4DRAMV: { label: "(none)", cpus: 6, memory_gb: 24, time_h: 24, note: "Measured 4.8 cores at most over 4 tasks. Long-running, so the reserved cores sit idle for hours. module has no label" }
+  DRAMV: { label: "(none)", cpus: 4, memory_gb: 24, time_h: 24, note: "Measured 3.2 cores at most over 4 tasks. Long-running, as above. module has no label" }
 
   # === Abundance ===
   BWA_INDEX: { label: "(dynamic)", note: "module sets memory dynamically: { 6.B * fasta.size() }" }
   COVERM_MAKE: { label: process_medium, cpus: 12, memory_gb: 24, time_h: 24 }
-  COVERM_CONTIG: { label: process_medium, cpus: 12, memory_gb: 24, time_h: 24 }
+  COVERM_CONTIG: { label: process_medium, cpus: 6, memory_gb: 24, time_h: 24, note: "Measured 4.4 cores at p95 over 20 tasks."}
   COVERM_CONTIG_MERGE: { label: process_medium, cpus: 12, memory_gb: 24, time_h: 24 }
 
   # === Bacterial binning ===
   SAMTOOLS_INDEX: { label: process_low, cpus: 4, memory_gb: 8, time_h: 2 }
-  METABAT2_JGISUMMARIZEBAMCONTIGDEPTHS: { label: process_low, cpus: 4, memory_gb: 8, time_h: 4 }
+  METABAT2_JGISUMMARIZEBAMCONTIGDEPTHS: { label: process_low, cpus: 2, memory_gb: 8, time_h: 4, note: "Measured 1.0 core over 138 tasks: single-threaded in practice."}
   METABAT2_METABAT2: { label: process_medium, cpus: 8, memory_gb: 16, time_h: 8 }
-  SEMIBIN_SINGLEEASYBIN: { label: process_high, cpus: 12, memory_gb: 32, time_h: 16, note: "SemiBin2 single_easy_bin: model inference + binning; --environment from meta.biome" }
-  BINETTE: { label: process_high, cpus: 12, memory_gb: 32, time_h: 16, note: "Runs CheckM2 internally (DIAMOND); refines SemiBin2+MetaBAT2 bins" }
-  GTDBTK_CLASSIFYWF: { label: process_high_memory, cpus: 16, memory_gb: 64, time_h: 24, note: "Module labeled process_high_memory (memory-only tier sets 200 GB, no cpus/time). Per-process override: 16 cpu / 64 GB / 24 h. pplacer is the memory hog and largely single-threaded; cpus mostly help the HMMER + ANI screen steps." }
+  SEMIBIN_SINGLEEASYBIN: { label: process_high, cpus: 4, memory_gb: 32, time_h: 16, note: "Measured 1.8 cores at p95 and 1.9 at most over 138 tasks; nothing near 12 was ever used. SemiBin2 single_easy_bin: model inference + binning; --environment from meta.biome" }
+  BINETTE: { label: process_high, cpus: 9, memory_gb: 32, time_h: 16, note: "Measured 8.1 at p95, 8.3 at most over 138 tasks. Runs CheckM2 internally (DIAMOND); refines SemiBin2+MetaBAT2 bins" }
+  GTDBTK_CLASSIFYWF: { label: process_high_memory, cpus: 12, memory_gb: 64, time_h: 24, note: "Measured 2.2 cores over 8 tasks, but only on cohorts of ~50-100 MAGs and the steps that do use cpus scale with genome count, so this is trimmed cautiously rather than to the measurement. Module labeled process_high_memory (memory-only tier sets 200 GB, no cpus/time). Per-process override: 16 cpu / 64 GB / 24 h. pplacer is the memory hog and largely single-threaded; cpus mostly help the HMMER + ANI screen steps." }
 
   # === Integrated classification (per-contig TSV) ===
   TIARA_TIARA: { label: process_medium, cpus: 4, memory_gb: 8, time_h: 4, note: "K-mer + small DL model; CPU-bound (no DB). Per-sample contigs are small enough that 8 GB / 4 cpu finishes in <1 h." }

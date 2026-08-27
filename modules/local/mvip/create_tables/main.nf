@@ -68,9 +68,9 @@ process MERGE_TABLES {
 
     cut -f1 ${prefix}_Plasmid_Summary.filtered.tsv > ${prefix}_plasmid_ids_to_keep.txt
 
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        python: \$(python --version | sed 's/Python //g')
-    END_VERSIONS
+cat <<-END_VERSIONS > versions.yml
+"${task.process}":
+    python: \$(python --version | sed 's/Python //g')
+END_VERSIONS
     """
 }

@@ -77,6 +77,7 @@ workflow MSP {
         ch_versions = MSPMINER_MSPMINER.out.versions
                         .mix(MSP_SEQUENCES.out.versions)
                         .mix(MSP_ABUNDANCE.out.versions)
+                        .mix(GTDBTK_CLASSIFYWF.out.versions)
 
     emit:
         pangenome_dir = MSP_SEQUENCES.out.pangenome_dir

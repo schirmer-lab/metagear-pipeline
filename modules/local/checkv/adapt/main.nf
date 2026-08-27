@@ -11,6 +11,7 @@ process CHECKV_ADAPT_OUTPUT {
 
     output:
         tuple val(meta), path("${prefix}/*.${suffix}_*"), emit: adapted_results
+        path "versions.yml"                             , emit: versions
 
     script:
     prefix = task.ext.prefix ?: "${meta.id}"
@@ -26,5 +27,7 @@ process CHECKV_ADAPT_OUTPUT {
 
     # Create a new symlink pointing directly at the resolved file
     ln -s "\$target" "\${symlink_name}"
+
+    printf '"%s":\n    checkv: %s\n' "${task.process}" "1.0.1" > versions.yml
     """
 }

@@ -1,0 +1,9 @@
+name: phabox2_download
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - bioconda::phabox=2.1.13
+  - conda-forge::wget
+  - conda-forge::unzip

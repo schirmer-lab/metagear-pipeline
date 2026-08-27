@@ -92,6 +92,7 @@ workflow ABUNDANCE {
         // summary channel versions
         ch_versions = COVERM_MAKE.out.versions
                         .mix(ch_abund_versions)
+                        .mix(BWA_INDEX.out.versions)
         // ch_versions = Channel.empty()
 
     emit:

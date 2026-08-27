@@ -48,6 +48,14 @@ process COLLECT_TABLES {
         printf '%s\\n' ${tables} | xargs cat | grep -v Virus >> ${prefix}_summary.tsv
     fi
 
+    if [[ "${prefix}" == "lifestyle" ]]; then
+        # Join lifestyle tables (PhaTYP). Header is Accession/Length/TYPE/PhaTYPScore,
+        # so that is what has to be dropped from the chunks being concatenated.
+        head -1 ${tables[0]} > ${prefix}_summary.tsv
+
+        printf '%s\\n' ${tables} | xargs cat | grep -v Accession >> ${prefix}_summary.tsv
+    fi
+
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
