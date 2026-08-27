@@ -157,6 +157,7 @@ workflow CLASSIFICATION {
         def has_full_contigs = ( !params.chromosome_dir || params.contigs_dir )
         def ch_tiara_input   = has_full_contigs ? ch_contigs : ch_chromosome_seqs
         TIARA_TIARA ( ch_tiara_input )
+        ch_versions = ch_versions.mix( TIARA_TIARA.out.versions.first() )
         ch_tiara_labels = TIARA_TIARA.out.classifications
 
         // ─── 5. Compute the true post-Binette unbinned contigs ───────────────

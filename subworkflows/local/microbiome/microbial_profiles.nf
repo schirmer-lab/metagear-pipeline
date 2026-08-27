@@ -93,6 +93,7 @@ workflow MICROBIAL_PROFILES {
                                 .groupTuple(by: 0)
 
         HUMANN_MERGE_PROFILES ( ch_all_gene_families.concat( ch_all_path_abundances ) )
+        ch_versions = ch_versions.mix( HUMANN_MERGE_PROFILES.out.versions.first() )
 
     emit:
         // TODO: implement emission of all relevant channels

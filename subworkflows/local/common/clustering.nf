@@ -30,13 +30,13 @@ workflow CLUSTER_SEQUENCES {
             CDHIT_CDHITEST ( ch_sequences )
             ch_clustered = CDHIT_CDHITEST.out.fasta
             ch_clusters  = CDHIT_CDHITEST.out.clusters
-            ch_versions  = CDHIT_CDHITEST.out.versions
+            ch_versions  = CDHIT_CDHITEST.out.versions.mix(VAMB_CONCATENATE_FASTA.out.versions)
 
         } else if ( method == 'mmseqs2' ) {
             MMSEQS_EASY_CLUSTER ( ch_sequences )
             ch_clustered = MMSEQS_EASY_CLUSTER.out.representatives
             ch_clusters  = MMSEQS_EASY_CLUSTER.out.clusters_tsv
-            ch_versions  = MMSEQS_EASY_CLUSTER.out.versions
+            ch_versions  = MMSEQS_EASY_CLUSTER.out.versions.mix(VAMB_CONCATENATE_FASTA.out.versions)
 
         } else if ( method == 'vclust' ) {
             // Nucleotide clustering under the MIUViG species criterion: 95%
@@ -47,7 +47,7 @@ workflow CLUSTER_SEQUENCES {
             VCLUST_CLUSTER ( ch_sequences )
             ch_clustered = VCLUST_CLUSTER.out.representatives
             ch_clusters  = VCLUST_CLUSTER.out.clusters_tsv
-            ch_versions  = VCLUST_CLUSTER.out.versions
+            ch_versions  = VCLUST_CLUSTER.out.versions.mix(VAMB_CONCATENATE_FASTA.out.versions)
 
         } else {
             exit 1, "Unknown clustering method: ${method}"

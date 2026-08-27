@@ -17,6 +17,7 @@ workflow AMG_POSTPROCESS {
         search_ch = EXTRACT_AMGS.out.amgs_faa.combine( virus_proteins )
 
         MMSEQS_EASYSEARCH ( search_ch )
+        ch_versions = ch_versions.mix(MMSEQS_EASYSEARCH.out.versions)
 
         amg_catalog_input = amg_info
                             .map { [ it[0], it[1], it[4], it[5], it[6] ] }

@@ -54,6 +54,7 @@ workflow VIRAL_ANNOTATION {
         // Split the viral catalog into chunks. Sized by
         // params.viral_sequences_batch_size — feeds VIRSORTER2 + DRAMV.
         SEQKIT_SPLIT2 ( ch_split )
+        ch_versions = ch_versions.mix(SEQKIT_SPLIT2.out.versions)
 
         SEQKIT_SPLIT2.out.reads
             .flatMap { meta, gz ->
@@ -90,8 +91,10 @@ workflow VIRAL_ANNOTATION {
         }
 
         PHAROKKA_PROTEINS ( pharokka_input, pharokka_db )
+        ch_versions = ch_versions.mix(PHAROKKA_PROTEINS.out.versions)
 
         IPHOP_PREDICT ( ch_iphop_chunks, iphop_db )
+        ch_versions = ch_versions.mix(IPHOP_PREDICT.out.versions)
 
         // PhaTYP shares the VIRSORTER2/DRAMV chunks rather than getting its own
         // split. IPHOP needs a separate, smaller split because a 3000-sequence
