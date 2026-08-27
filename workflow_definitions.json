@@ -157,6 +157,11 @@
                             "description": "All-genes catalog (FILE: optional). Concatenated genes from all samples."
                         },
                         {
+                            "name": "gene_clusters_tsv",
+                            "required": false,
+                            "description": "Gene clusters TSV (FILE: optional). Path to catalogs/genes/all.genes.clusters.tsv from a prior genes run. Required alongside --representative_genes to skip re-clustering: the representatives alone do not say which genes clustered with them, and that mapping is what the viral/plasmid representative lookup reads. Auto-discovered by --reuse-outputs. Supplying both matters beyond saving time -- MMseqs2 picks different representatives on a re-run, so re-clustering here silently invalidates the gene-cluster classification table and the MSP catalog, which this workflow does not rebuild."
+                        },
+                        {
                             "name": "representative_genes",
                             "required": false,
                             "description": "Representative-genes catalog (FILE: optional). Dereplicated genes from all samples."
