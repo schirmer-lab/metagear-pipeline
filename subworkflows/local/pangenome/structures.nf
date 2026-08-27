@@ -22,12 +22,7 @@ workflow STRUCTURES_INIT {
         if ( !params.representative_proteins_clusters )   { exit 1, 'Protein cluster TSV not specified (--representative_proteins_clusters)' }
         if ( !params.viral_representative_proteins )      { exit 1, 'Viral representative-proteins catalog not specified (--viral_representative_proteins)' }
 
-        // phold_db is only strictly required when this run actually invokes
-        // PHOLD (i.e. NOT a --structures_prepare_for_gpu run, where the DB
-        // lives on the remote GPU machine). For the resume path
-        // (--phold_predict_dir set, no PHOLD_PREDICT on the source side),
-        // PHOLD_COMPARE still needs it. So we require phold_db unless
-        // structures_prepare_for_gpu is true.
+        // Not required only when preparing a GPU bundle: the DB lives on the remote machine.
         if ( !params.phold_db && !params.structures_prepare_for_gpu ) {
             exit 1, 'PHOLD structural DB not specified (--phold_db). Install via `metagear download_databases --databases structures` and point phold_db at the resulting directory in ~/.metagear/metagear.config.'
         }
@@ -38,11 +33,7 @@ workflow STRUCTURES_INIT {
         clusters_tsv   = createExistingFileChannel ( params.representative_proteins_clusters, { [ [id: "cohort"], it ] } )
         viral_proteins = createExistingFileChannel ( params.viral_representative_proteins,    { [ [id: "cohort"], it ] } )
 
-        // Pfam annotations are optional — the filter degrades gracefully:
-        // when missing, every all-protein-rep is treated as unannotated, so
-        // `unannotated` and `unannotated_plus_duf` collapse to `all`. We
-        // surface this as an empty channel so the join in STRUCTURES still
-        // composes; the FILTER step handles the null on disk.
+        // Optional: without it every rep counts as unannotated, so those scopes collapse to `all`.
         pfam_tsv = params.representative_proteins_annotations \
             ? createExistingFileChannel ( params.representative_proteins_annotations, { [ [id: "cohort"], it ] } ) \
             : Channel.of ( [ [id: "cohort"], file("$projectDir/assets/empty.txt") ] )
@@ -77,11 +68,7 @@ workflow STRUCTURES {
     main:
         ch_versions = Channel.empty()
 
-        // ─── 1. Pick the subset to feed PHOLD + build viral join table ───────
-        // The scope selector (params.structures_scope) plus the viral top-up
-        // logic both live in bin/filter_structures_inputs.py. Output is one
-        // FASTA destined for PHOLD_PREDICT and a mapping TSV used at the end
-        // for the viral catalog table.
+        // Scope selection and viral top-up both live in bin/filter_structures_inputs.py.
         ch_filter_in = all_proteins
                             .join( viral_proteins )
                             .join( clusters_tsv )
@@ -89,12 +76,7 @@ workflow STRUCTURES {
         FILTER_STRUCTURES_INPUTS ( ch_filter_in )
         ch_versions = ch_versions.mix( FILTER_STRUCTURES_INPUTS.out.versions )
 
-        // ─── 2. Shard the subset for parallel ProstT5 prediction ─────────────
-        // ProstT5 inference is the heavy step. We split into N chunks via
-        // SEQKIT_SPLIT2 (configurable through structures.config's ext.args
-        // -s <chunk-size>) so PHOLD_PREDICT runs N-way parallel on multi-core
-        // / multi-GPU hosts. The shard count is gated by chunk size, not
-        // file count — same pattern as iPHoP.
+        // Shard for parallel ProstT5 inference; chunk size, not file count, sets the shard count.
         ch_split_in = FILTER_STRUCTURES_INPUTS.out.subset_fasta
                             .map { meta, fa -> tuple( meta + [single_end: true], fa ) }
         SEQKIT_SPLIT2_STRUCTURES ( ch_split_in )
@@ -107,15 +89,7 @@ workflow STRUCTURES {
         ch_viral_phold    = Channel.empty()
         ch_di_fasta       = Channel.empty()
 
-        // ─── Branch A: prepare offsite GPU bundle and stop ───────────────────
-        // When the user can't run the GPU step locally (e.g. cluster without
-        // Singularity, no SLURM-from-job), this branch packages everything
-        // PHOLD_PREDICT needs into one rsync-friendly directory and stops.
-        // The user runs the bundled script on a GPU machine, rsyncs the
-        // results back, then re-invokes `metagear structures` without
-        // --structures_prepare_for_gpu — auto-reuse picks up the rsynced
-        // outputs and the pipeline resumes from MERGE_PHOLD_PREDICTIONS
-        // onward (Branch B).
+        // Package what PHOLD_PREDICT needs and stop; re-invoking without the flag resumes.
         if ( params.structures_prepare_for_gpu ) {
 
             // Collect all shards into one tuple for PACKAGE_PHOLD_OFFSITE.
@@ -151,14 +125,7 @@ workflow STRUCTURES {
 
             if ( params.phold_predict_dir ) {
 
-                // Resume path: per-shard predict_<id>/ dirs are on disk
-                // already (rsynced back from the GPU server). Skip
-                // PHOLD_PREDICT entirely and stream the existing dirs
-                // straight into MERGE_PHOLD_PREDICTIONS. The merge module
-                // tolerates missing files per shard with warnings, so a
-                // partial rsync surfaces as a warning rather than a silent
-                // skip — and the downstream PHOLD_COMPARE will fail loudly
-                // if the merged predict_dir is incomplete.
+                // Shards already on disk from the GPU server: skip PHOLD_PREDICT.
                 ch_merge_predict_in = Channel.fromPath(
                                             "${params.phold_predict_dir}/predict_*",
                                             type: 'dir',
@@ -169,11 +136,7 @@ workflow STRUCTURES {
 
             } else {
 
-                // Normal path: run PHOLD_PREDICT per shard (scatter).
-                // phold_db is passed as a value channel — PHOLD validates
-                // the DB on startup (even for predict, which only uses
-                // ProstT5 weights from the same dir), so every shard needs
-                // it bound.
+                // phold_db is a value channel: PHOLD validates it on startup, even for predict.
                 ch_predict_in = SEQKIT_SPLIT2_STRUCTURES.out.reads
                                     .flatMap { meta, gz ->
                                         def files = (gz instanceof java.nio.file.Path) ? [gz] : (gz as List)
@@ -197,24 +160,9 @@ workflow STRUCTURES {
             MERGE_PHOLD_PREDICTIONS ( ch_merge_predict_in )
             ch_versions = ch_versions.mix( MERGE_PHOLD_PREDICTIONS.out.versions )
 
-            // ─── PHOLD_COMPARE scatter-gather ────────────────────────────────
-            // Foldseek search at sensitivity 9.5 scales linearly with input
-            // protein count, but each `phold proteins-compare` invocation
-            // pays a fixed ~30-60 s DB-load overhead. Sweet spot is
-            // 50-200 k proteins per chunk; default 100 k via
-            // `structures_compare_shard_size`.
-            //
-            // For the 911 k-protein mouse cohort this is ~10 chunks; for a
-            // 500-sample, ~50 M-protein cohort it's ~500 chunks running
-            // 30-60 min each, parallelised across a fat node.
+            // Each compare pays a fixed DB-load cost, so chunk at ~100k proteins rather than per file.
 
-            //  Step a: split cohort AA FASTA into M chunks (chunk size set via
-            //          ext.args in conf/metagear/structures.config). The
-            //          nf-core SEQKIT_SPLIT2 module branches on
-            //          `meta.single_end`; tag it true so we hit the
-            //          single-file path instead of the paired-end path that
-            //          tries to pass `--read2 null`. Matches the trick the
-            //          PREDICT scatter (SEQKIT_SPLIT2_STRUCTURES) already uses.
+            // single_end:true picks SEQKIT_SPLIT2's single-file path; the paired one passes --read2 null.
             ch_split_compare_in = FILTER_STRUCTURES_INPUTS.out.subset_fasta
                                     .map { meta, fa -> tuple( meta + [single_end: true], fa ) }
             SEQKIT_SPLIT2_COMPARE ( ch_split_compare_in )
