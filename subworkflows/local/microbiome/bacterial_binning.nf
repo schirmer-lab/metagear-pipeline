@@ -68,7 +68,6 @@ workflow BACTERIAL_BINNING {
         // SEMIBIN_SINGLEEASYBIN below. Topic-version collection is a separate
         // pipeline-level concern; not blocking this subworkflow.
         SAMTOOLS_INDEX ( COVERM_MAKE.out.alignments )
-        ch_versions = ch_versions.mix( SAMTOOLS_INDEX.out.versions.first() )
 
         // ─── 4. Depth summary per contig for MetaBAT2 ───────────────────────
         ch_bam_bai = COVERM_MAKE.out.alignments
@@ -82,7 +81,6 @@ workflow BACTERIAL_BINNING {
             .join( METABAT2_JGISUMMARIZEBAMCONTIGDEPTHS.out.depth, by: 0 )  // [meta, fasta, depth]
 
         METABAT2_METABAT2 ( ch_metabat_input )
-        ch_versions = ch_versions.mix( METABAT2_METABAT2.out.versions.first() )
         // METABAT2_METABAT2 uses topic-style versions — see SAMTOOLS_INDEX note above.
 
         // ─── 6. SemiBin2 binning (biome-aware via meta.biome) ───────────────
@@ -99,7 +97,6 @@ workflow BACTERIAL_BINNING {
             }
 
         SEMIBIN_SINGLEEASYBIN ( ch_semibin_input )
-        ch_versions = ch_versions.mix( SEMIBIN_SINGLEEASYBIN.out.versions.first() )
         // SEMIBIN_SINGLEEASYBIN uses topic-style versions — see SAMTOOLS_INDEX note above.
 
         // ─── 7. Binette refinement ─────────────────────────────────────────
