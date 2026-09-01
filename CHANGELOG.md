@@ -4,6 +4,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versions are date-based (`YY.MM`, or `YY.MM.N` for a fix within the same month)
 and are released in lockstep with [metagear-tools](https://github.com/schirmer-lab/metagear-tools).
 
+## v26.10dev - [unreleased]
+
 ## v26.09 - [2026-09-01]
 
 First release of the integrated microbiome pipeline. This is a major version and
