@@ -2,7 +2,7 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://raw.githubusercontent.com/schirmer-lab/metagear-pipeline/master/nextflow_schema.json",
     "title": "schirmer-lab/metagear-pipeline pipeline parameters",
-    "description": "MetaGEAR Pipeline: Gene centric approach",
+    "description": "Integrated shotgun metagenomics — profiles, gene catalogs, MAGs, viruses and pangenomes",
     "type": "object",
     "$defs": {
         "input_output_options": {
