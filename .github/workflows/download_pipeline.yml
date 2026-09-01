@@ -11,6 +11,14 @@ on:
         description: "The specific branch you wish to utilize for the test execution of nf-core pipelines download."
         required: true
         default: "dev"
+      container_system:
+        description: "Download container images too. 'none' checks packaging only; 'singularity' needs ~35 GB of disk."
+        required: false
+        default: "none"
+        type: choice
+        options:
+          - none
+          - singularity
   pull_request:
     branches:
       - main
@@ -30,6 +38,7 @@ jobs:
       REPO_LOWERCASE: ${{ steps.get_repo_properties.outputs.REPO_LOWERCASE }}
       REPOTITLE_LOWERCASE: ${{ steps.get_repo_properties.outputs.REPOTITLE_LOWERCASE }}
       REPO_BRANCH: ${{ steps.get_repo_properties.outputs.REPO_BRANCH }}
+      CONTAINER_SYSTEM: ${{ steps.get_repo_properties.outputs.CONTAINER_SYSTEM }}
     steps:
       - name: Get the repository name and current branch
         id: get_repo_properties
@@ -40,6 +49,10 @@ jobs:
           # which means a PR fixing this job cannot demonstrate the fix -- the run downloads
           # dev regardless of what the PR changes.
           echo "REPO_BRANCH=${{ github.event.inputs.testbranch || github.head_ref || 'dev' }}" >> "$GITHUB_OUTPUT"
+          # Pull requests check packaging only. This pipeline's 48 images total ~35 GB -- InterProScan
+          # alone is 18.8 GB -- which does not fit a hosted runner's ~14 GB of free disk. Dispatch the
+          # workflow manually with container_system=singularity to exercise the full offline bundle.
+          echo "CONTAINER_SYSTEM=${{ github.event.inputs.container_system || 'none' }}" >> "$GITHUB_OUTPUT"
 
   download:
     runs-on: ubuntu-latest
@@ -86,7 +99,7 @@ jobs:
           --revision ${{ needs.configure.outputs.REPO_BRANCH }} \
           --outdir ./${{ needs.configure.outputs.REPOTITLE_LOWERCASE }} \
           --compress "none" \
-          --container-system 'singularity' \
+          --container-system '${{ needs.configure.outputs.CONTAINER_SYSTEM }}' \
           --container-library "quay.io" -l "docker.io" -l "community.wave.seqera.io/library/" \
           --container-cache-utilisation 'amend' \
           --download-configuration 'yes'
@@ -94,17 +107,45 @@ jobs:
       - name: Inspect download
         run: tree ./${{ needs.configure.outputs.REPOTITLE_LOWERCASE }}
 
+      # Keeps the check that actually catches bugs when images are not downloaded.
+      # `nf-core pipelines download` only resolves container URIs when it is fetching them
+      # (download.py:333), so with container_system=none nothing would validate them --
+      # and a malformed URI is exactly what broke this job before.
+      - name: Resolve every container URI
+        if: needs.configure.outputs.CONTAINER_SYSTEM == 'none'
+        run: |
+          cd ./${{ needs.configure.outputs.REPOTITLE_LOWERCASE }}/$( sed 's/\W/_/g' <<< ${{ needs.configure.outputs.REPO_BRANCH }})
+          nextflow inspect -format json -profile test,singularity main.nf > /tmp/inspect.json
+          python3 - <<'EOF'
+          import json, sys
+          raw = open('/tmp/inspect.json').read()
+          data, _ = json.JSONDecoder().raw_decode(raw[raw.index('{'):])
+          procs = data.get('processes', [])
+          bad = [(p['name'], p['container']) for p in procs
+                 if str(p.get('container', '')).count('://') > 1
+                 or str(p.get('container', '')).startswith('library://')]
+          print(f"resolved {len(procs)} processes")
+          if bad:
+              for n, c in bad:
+                  print(f"unpullable container in {n}: {c}")
+              sys.exit(1)
+          print("all container URIs are well formed")
+          EOF
+
       - name: Inspect container images
+        if: needs.configure.outputs.CONTAINER_SYSTEM != 'none'
         run: tree ./singularity_container_images | tee ./container_initial
 
       - name: Count the downloaded number of container images
         id: count_initial
+        if: needs.configure.outputs.CONTAINER_SYSTEM != 'none'
         run: |
           image_count=$(ls -1 ./singularity_container_images | wc -l | xargs)
           echo "Initial container image count: $image_count"
           echo "IMAGE_COUNT_INITIAL=$image_count" >> "$GITHUB_OUTPUT"
 
       - name: Run the downloaded pipeline (stub)
+        if: needs.configure.outputs.CONTAINER_SYSTEM != 'none'
         id: stub_run_pipeline
         continue-on-error: true
         env:
@@ -113,7 +154,7 @@ jobs:
         run: nextflow run ./${{needs.configure.outputs.REPOTITLE_LOWERCASE }}/$( sed 's/\W/_/g' <<< ${{ needs.configure.outputs.REPO_BRANCH }}) -stub -profile test,singularity --outdir ./results
       - name: Run the downloaded pipeline (stub run not supported)
         id: run_pipeline
-        if: ${{ steps.stub_run_pipeline.outcome == 'failure' }}
+        if: needs.configure.outputs.CONTAINER_SYSTEM != 'none' && steps.stub_run_pipeline.outcome == 'failure'
         env:
           NXF_SINGULARITY_CACHEDIR: ./singularity_container_images
           NXF_SINGULARITY_HOME_MOUNT: true
@@ -121,12 +162,14 @@ jobs:
 
       - name: Count the downloaded number of container images
         id: count_afterwards
+        if: needs.configure.outputs.CONTAINER_SYSTEM != 'none'
         run: |
           image_count=$(ls -1 ./singularity_container_images | wc -l | xargs)
           echo "Post-pipeline run container image count: $image_count"
           echo "IMAGE_COUNT_AFTER=$image_count" >> "$GITHUB_OUTPUT"
 
       - name: Compare container image counts
+        if: needs.configure.outputs.CONTAINER_SYSTEM != 'none'
         id: count_comparison
         run: |
           if [ "${{ steps.count_initial.outputs.IMAGE_COUNT_INITIAL }}" -ne "${{ steps.count_afterwards.outputs.IMAGE_COUNT_AFTER }}" ]; then
