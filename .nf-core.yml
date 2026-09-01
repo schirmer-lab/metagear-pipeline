@@ -46,7 +46,7 @@ nf_core_version: 4.0.2
 repository_type: pipeline
 template:
   author: Emilio Rios, Shen Jin
-  description: "MetaGEAR Pipeline: Gene centric approach"
+  description: "Integrated shotgun metagenomics — profiles, gene catalogs, MAGs, viruses and pangenomes"
   force: false
   is_nfcore: false
   name: metagear
