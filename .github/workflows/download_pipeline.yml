@@ -36,7 +36,10 @@ jobs:
         run: |
           echo "REPO_LOWERCASE=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
           echo "REPOTITLE_LOWERCASE=$(basename ${GITHUB_REPOSITORY,,})" >> "$GITHUB_OUTPUT"
-          echo "REPO_BRANCH=${{ github.event.inputs.testbranch || 'dev' }}" >> "$GITHUB_OUTPUT"
+          # On a pull request, test the branch under review. The template hardcodes 'dev',
+          # which means a PR fixing this job cannot demonstrate the fix -- the run downloads
+          # dev regardless of what the PR changes.
+          echo "REPO_BRANCH=${{ github.event.inputs.testbranch || github.head_ref || 'dev' }}" >> "$GITHUB_OUTPUT"
 
   download:
     runs-on: ubuntu-latest
