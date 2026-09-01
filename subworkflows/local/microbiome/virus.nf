@@ -120,13 +120,8 @@ workflow VIRUS {
         ch_representative_genes = Channel.empty()
         ch_gene_clusters = Channel.empty()
 
-        // Re-clustering is not merely wasted work. MMseqs2 picks a different
-        // representative per cluster on a re-run, so a virus run that rebuilds the
-        // catalog silently invalidates everything keyed on the old representatives --
-        // the gene-cluster classification table and the whole MSP tree among them,
-        // both of which are written by other workflows and are not re-derived here.
-        // Both files are required to skip: the representatives alone cannot say which
-        // genes clustered with them, and that mapping is what FIND_REPRESENTATIVES reads.
+        // Re-clustering picks different representatives and silently invalidates the
+        // classification and MSP tables. Needs the cluster map too, not just the reps.
         if ( params.representative_genes && params.gene_clusters_tsv ) {
             ch_representative_genes = createExistingFileChannel ( params.representative_genes, { [ [id: "all.genes"], it ] } )
             ch_gene_clusters = createExistingFileChannel ( params.gene_clusters_tsv, { [ [id: "all.genes"], it ] } )
@@ -139,10 +134,8 @@ workflow VIRUS {
             ch_gene_clusters = CLUSTER_GENES.out.clusters
         }
 
-        // Runs even when the catalogs were supplied, unlike the pairing in genes.nf:
-        // FIND_REPRESENTATIVES needs the *unclustered* translation, which is not among
-        // the artifacts --reuse-outputs hands back, and translating is deterministic
-        // and costs about two minutes against InterProScan's hours.
+        // Always runs: FIND_REPRESENTATIVES needs the unclustered translation, and
+        // that is not a reusable artifact.
         PROTEIN_CALL ( ch_representative_genes )
         ch_versions =  ch_versions.mix(PROTEIN_CALL.out.versions)
 

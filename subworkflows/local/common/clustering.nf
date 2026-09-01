@@ -15,12 +15,7 @@ workflow CLUSTER_SEQUENCES {
 
         ch_sequences = sequences
 
-        // Empty unless the concatenate branch runs. Mixing the VAMB versions in
-        // directly below reads VAMB_CONCATENATE_FASTA.out in the branch where the
-        // process was never invoked, which is an error Nextflow raises while
-        // building the DAG -- the callers that pass concatenate=false (protein
-        // clustering) only get away with it because another alias happens to have
-        // invoked it first.
+        // Stays empty when concatenate is false; reading VAMB's .out there aborts the DAG.
         ch_concat_versions = Channel.empty()
 
         if ( concatenate ) {

@@ -26,22 +26,8 @@ workflow MAG_INIT {
         ch_reads = INPUT_CHECK.out.validated_input
 
         // ─── Per-sample Binette outputs ──────────────────────────────────────
-        // bacterial_binning.config publishes BINETTE's per-sample deliverables
-        // (renamed and flattened) to:
-        //   ${outdir}/assemblies/bins/<sample>/
-        //     ├── <sample>_binN.fa                  (MAGs, --prefix-ed by Binette)
-        //     ├── <sample>.quality_report.tsv       (renamed at publish time;
-        //     │                                      sample-prefixed so cohort
-        //     │                                      collection doesn't collide)
-        //     └── <sample>.contig_to_bin.tsv        (renamed at publish time;
-        //                                            sample-prefixed for the
-        //                                            same reason)
-        // params.bins_dir points at the `assemblies/bins/` parent. The
-        // sample subdir holds the .fa files at top level — no final_bins/
-        // nesting — so the cohort step below globs them directly.
-        // The c2b path (sample contig_to_bin.tsv) was previously surfaced
-        // here for ENRICH_PER_CONTIG_TSV; that step was dropped (see comment
-        // in the main workflow below) so we no longer need it in the tuple.
+        // params.bins_dir is the assemblies/bins/ parent; each <sample>/ holds the
+        // .fa files at top level (no final_bins/ nesting), so the glob below works.
         ch_bins_inputs = ch_reads
             .map { meta, _reads ->
                 def sample_root = file("${params.bins_dir}/${meta.id}")
@@ -97,23 +83,13 @@ workflow MAG {
         ch_versions = ch_versions.mix( SKANI_TRIANGLE.out.versions )
 
         // ─── 2b. Partition bins into dRep batches ────────────────────────────
-        // Connected components at params.drep_batch_ani (default 0.90)
-        // strictly contain dRep's 0.95 secondary clustering threshold, so
-        // within-batch dRep produces the same cohort-wide representatives
-        // as a single all-vs-all run on the full cohort. See bin/batch_bins.py
-        // for the full safety argument. Singleton bins become 1-bin batches
-        // — they still run through dRep so its -comp/-con quality filter is
-        // applied uniformly across the cohort.
+        // Batching at 0.90 ANI strictly contains dRep's 0.95 threshold, so batched
+        // and all-vs-all runs give the same representatives. Argument in bin/batch_bins.py.
         ch_genome_info_csv = STAGE_DREP_WORK.out.drep_work
                                 .map { dir -> file("${dir}/genomeInfo.csv") }
 
-        // Two-input call: the first channel zips (ani, genome_info) by meta;
-        // the second is the cohort bin list (a single-emission list channel).
-        // We deliberately do NOT use .combine() to thread the bins through:
-        // .combine() unpacks list-typed emissions into cartesian factors, so
-        // a list of 326 paths becomes 326 separate emissions — which would
-        // run BATCH_BINS 326 times with 1 bin each. Passing as a separate
-        // input keeps the list intact as a single emission.
+        // Bins go in as a second input, not via .combine(): combine unpacks a
+        // list emission into cartesian factors, running BATCH_BINS once per bin.
         ch_batch_bins_in = SKANI_TRIANGLE.out.ani
                                 .join( ch_genome_info_csv.map { csv -> [ [id: 'cohort'], csv ] } )
         BATCH_BINS ( ch_batch_bins_in, ch_all_bins )
@@ -140,7 +116,7 @@ workflow MAG {
         ch_drep_work  = ch_per_batch.map { meta, _bins, seed -> tuple([id: "${meta.id}_work"], seed) }
 
         DREP_DEREPLICATE ( ch_drep_input, ch_drep_work )
-        // DREP_DEREPLICATE is topic-versions only -- see the note in classification.nf.
+        // DREP_DEREPLICATE is topic-versions only; .out.versions aborts the DAG.
         // DREP emits versions via topic-style channel (not versions.yml).
 
         // ─── 2d. Concatenate per-batch Cdb/Wdb into cohort tables (gather) ───
