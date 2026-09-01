@@ -17,15 +17,8 @@ workflow CLASSIFICATION_INIT {
         if ( !params.input ) { exit 1, 'Input samplesheet not specified!' }
         ch_input = file(params.input)
 
-        // DBs required for the full iter-3 chain:
-        //   geNomad + CheckV   → viral/plasmid contig classification
-        //   CheckM2            → Binette bin refinement and quality scoring
-        //   MMseqs2 taxonomy   → contig-level fallback taxonomy for the
-        //                        post-Binette unbinned set (long-tail)
-        //
-        // GTDB-Tk DB is intentionally NOT loaded — per-MAG taxonomy moves
-        // into the mag iteration (dRep + GTDB-Tk on the
-        // dereplicated representatives; standard cohort practice).
+        // GTDB-Tk is deliberately absent: per-MAG taxonomy belongs to the mag
+        // workflow, on the dereplicated representatives.
         genomad_db          = Channel.fromPath("${params.genomad_db}",          checkIfExists: true).first()
         checkv_db           = Channel.fromPath("${params.checkv_db}",           checkIfExists: true).first()
         checkm2_db          = Channel.fromPath("${params.checkm2_db}",          checkIfExists: true).first()
@@ -69,16 +62,9 @@ workflow CLASSIFICATION {
         def empty_file = file("$projectDir/assets/empty.txt", checkIfExists: true)
 
         // ─── 1. Assemble reads → contigs ─────────────────────────────────────
-        // Load full-assembly contigs whenever we can:
-        //   --contigs_dir set    → load from disk (skip ASSEMBLY)
-        //   --chromosome_dir set without contigs_dir → no full assembly available;
-        //                          ch_contigs stays empty and Tiara + MERGE fall
-        //                          back to ch_chromosome_seqs as their reference.
-        //   neither set         → run ASSEMBLY.
-        // Having ch_contigs populated even when --chromosome_dir bypasses
-        // VIRAL_DETECTION lets Tiara see virus + plasmid contigs (not just the
-        // chromosome partition), which is needed for conflict detection in the
-        // per-contig TSV (genomad-vs-Tiara disagreements on the viral set).
+        // Full contigs are loaded whenever possible, even when --chromosome_dir
+        // bypasses VIRAL_DETECTION: Tiara needs the virus and plasmid contigs too,
+        // or the per-contig TSV cannot flag genomad-vs-Tiara conflicts.
         ch_contigs = Channel.empty()
         if ( params.contigs_dir ) {
             ch_contigs = createExistingDirChannel ( params.contigs_dir, "*.contigs.fa.gz", ".contigs.fa", false )
@@ -118,16 +104,9 @@ workflow CLASSIFICATION {
             ch_plasmid_ids       = VIRAL_DETECTION.out.plasmid_ids
         }
 
-        // Explicit override: if the user (or auto-reuse) passed --viral_ids_dir
-        // / --plasmid_ids_dir, load those instead. Lets `--chromosome_dir` users
-        // still classify virus/plasmid contigs in the per-contig TSV, and lets
-        // anyone preserve virus's MERGE_TABLES outputs across re-runs.
-        //
-        // Per-sample subdir layout produced by viral_detection.config under
-        //   results/virus/per_sample/<sample>/{virus,plasmid}.ids.txt
-        // sample id is derived from the parent directory's name, so the
-        // helper createExistingDirChannel (which keys off the filename
-        // baseName) doesn't fit — using an inline channel here instead.
+        // Lets --chromosome_dir runs still classify virus/plasmid contigs.
+        // Inline rather than createExistingDirChannel: the sample id is the parent
+        // directory here, not the filename.
         if ( params.viral_ids_dir ) {
             ch_viral_ids = Channel.fromPath("${params.viral_ids_dir}/*/virus.ids.txt")
                                 .map { f -> [ [id: f.parent.name], f ] }
@@ -157,7 +136,7 @@ workflow CLASSIFICATION {
         def has_full_contigs = ( !params.chromosome_dir || params.contigs_dir )
         def ch_tiara_input   = has_full_contigs ? ch_contigs : ch_chromosome_seqs
         TIARA_TIARA ( ch_tiara_input )
-        ch_versions = ch_versions.mix( TIARA_TIARA.out.versions.first() )
+        // TIARA_TIARA is topic-versions only; .out.versions aborts the DAG.
         ch_tiara_labels = TIARA_TIARA.out.classifications
 
         // ─── 5. Compute the true post-Binette unbinned contigs ───────────────
@@ -193,17 +172,8 @@ workflow CLASSIFICATION {
         }
 
         // ─── 7. Per-contig classification TSV ────────────────────────────────
-        // Joins all evidence channels by sample id (String key, since metas
-        // drift across subworkflows). Missing channels get assets/empty.txt as
-        // the staged fallback; merge_contig_classification.py treats zero-byte
-        // / non-directory inputs as empty evidence sets.
-        //
-        // Reference contigs are the FULL assembly when available (covers
-        // viral/plasmid/chromosome all). Only when --chromosome_dir is set
-        // WITHOUT --contigs_dir do we lack the full assembly and fall back to
-        // the chromosome partition. Same rule as the Tiara routing above —
-        // when full contigs are loaded, virus + plasmid rows appear in the
-        // TSV and the evidence columns can flag genomad-vs-Tiara conflicts.
+        // Joined on sample id, not meta, which drifts across subworkflows. Missing
+        // evidence is staged as assets/empty.txt and read as an empty set.
         def ch_ref_contigs = has_full_contigs ? ch_contigs : ch_chromosome_seqs
 
         ch_merge_input = ch_ref_contigs

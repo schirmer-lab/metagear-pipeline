@@ -90,7 +90,7 @@ workflow GENES {
         }
 
         if ( !params.representative_proteins_annotations ) {
-            PROTEIN_ANNOTATION ( CLUSTER_PROTEINS.out.representative, amrfinder_db )
+            PROTEIN_ANNOTATION ( ch_representative_proteins, amrfinder_db )
             ch_versions =  ch_versions.mix(PROTEIN_ANNOTATION.out.versions)
         }
 

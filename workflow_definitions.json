@@ -157,6 +157,11 @@
                             "description": "All-genes catalog (FILE: optional). Concatenated genes from all samples."
                         },
                         {
+                            "name": "gene_clusters_tsv",
+                            "required": false,
+                            "description": "Gene clusters TSV (FILE: optional). Path to catalogs/genes/all.genes.clusters.tsv from a prior genes run. Required alongside --representative_genes to skip re-clustering: the representatives alone do not say which genes clustered with them, and that mapping is what the viral/plasmid representative lookup reads. Auto-discovered by --reuse-outputs. Supplying both matters beyond saving time -- MMseqs2 picks different representatives on a re-run, so re-clustering here silently invalidates the gene-cluster classification table and the MSP catalog, which this workflow does not rebuild."
+                        },
+                        {
                             "name": "representative_genes",
                             "required": false,
                             "description": "Representative-genes catalog (FILE: optional). Dereplicated genes from all samples."
@@ -175,6 +180,16 @@
                             "name": "viral_annotation",
                             "required": false,
                             "description": "Perform viral annotation (default: true)."
+                        },
+                        {
+                            "name": "phatyp_db",
+                            "required": false,
+                            "description": "PhaBOX2 model/database bundle (DIRECTORY: optional). Consumed by PHABOX2_PHATYP for temperate/virulent lifestyle calls on the vOTU catalog. Installed by `metagear download_databases --databases virus`; point this at an already-unpacked bundle to skip the ~673 MB download. Must be the directory that CONTAINS bert/, not its parent. phabox2 has no download subcommand, so the bundle URL is version-bound in the module's ext.url."
+                        },
+                        {
+                            "name": "virus_lifestyle",
+                            "required": false,
+                            "description": "PhaTYP lifestyle table (FILE: optional). Path to virus/lifestyle/phatyp/virus.lifestyle.tsv from a prior run; auto-discovered by --reuse-outputs. Columns are Accession, Length, TYPE, PhaTYPScore, and TYPE carries four values rather than two: `temperate` and `virulent` are calls, `filtered` marks a contig below the --len threshold that was never classified, and `-` marks one attempted with no call. Only `filtered` should leave the denominator of a temperate fraction."
                         }
                     ]
                 },

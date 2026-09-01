@@ -117,16 +117,42 @@ workflow VIRUS {
             ch_genes = GENE_CALL.out.genes
         }
 
-        CLUSTER_GENES ( ch_genes, "mmseqs2", true )
-        ch_versions =  ch_versions.mix( CLUSTER_GENES.out.versions )
+        ch_representative_genes = Channel.empty()
+        ch_gene_clusters = Channel.empty()
 
-        PROTEIN_CALL ( CLUSTER_GENES.out.representative )
+        // Re-clustering picks different representatives and silently invalidates the
+        // classification and MSP tables. Needs the cluster map too, not just the reps.
+        if ( params.representative_genes && params.gene_clusters_tsv ) {
+            ch_representative_genes = createExistingFileChannel ( params.representative_genes, { [ [id: "all.genes"], it ] } )
+            ch_gene_clusters = createExistingFileChannel ( params.gene_clusters_tsv, { [ [id: "all.genes"], it ] } )
+
+        } else {
+            CLUSTER_GENES ( ch_genes, "mmseqs2", true )
+            ch_versions =  ch_versions.mix( CLUSTER_GENES.out.versions )
+
+            ch_representative_genes = CLUSTER_GENES.out.representative
+            ch_gene_clusters = CLUSTER_GENES.out.clusters
+        }
+
+        // Always runs: FIND_REPRESENTATIVES needs the unclustered translation, and
+        // that is not a reusable artifact.
+        PROTEIN_CALL ( ch_representative_genes )
         ch_versions =  ch_versions.mix(PROTEIN_CALL.out.versions)
 
-        CLUSTER_PROTEINS ( PROTEIN_CALL.out.proteins, "mmseqs2", false )
+        ch_representative_proteins = Channel.empty()
 
-        PROTEIN_ANNOTATION ( CLUSTER_PROTEINS.out.representative, amrfinder_db )
-        ch_versions =  ch_versions.mix(PROTEIN_ANNOTATION.out.versions)
+        if ( params.representative_proteins ) {
+            ch_representative_proteins = createExistingFileChannel ( params.representative_proteins, { [ [id: "all.genes"], it ] } )
+
+        } else {
+            CLUSTER_PROTEINS ( PROTEIN_CALL.out.proteins, "mmseqs2", false )
+            ch_representative_proteins = CLUSTER_PROTEINS.out.representative
+        }
+
+        if ( !params.representative_proteins_annotations ) {
+            PROTEIN_ANNOTATION ( ch_representative_proteins, amrfinder_db )
+            ch_versions =  ch_versions.mix(PROTEIN_ANNOTATION.out.versions)
+        }
 
         ch_genes_reformatted = ch_genes.map { meta, file -> [ [id: meta.src ], file ]  }
 
@@ -155,8 +181,8 @@ workflow VIRUS {
                 .map {meta, file -> [ [id: meta.label + '.genes'], file ]}
                 .groupTuple( by:0 )
                 .combine (
-                    CLUSTER_GENES.out.clusters
-                    .join( CLUSTER_GENES.out.representative )
+                    ch_gene_clusters
+                    .join( ch_representative_genes )
                     .join( PROTEIN_CALL.out.proteins )
                     .map { meta, clusters, representative_genes, representative_proteins -> [ clusters, representative_genes, representative_proteins ] }
                 )
@@ -171,7 +197,7 @@ workflow VIRUS {
 
         MERGE_CLUSTER_ANNOTATIONS ( ch_merge_annotations )
 
-        ch_all_sequences = CLUSTER_GENES.out.representative
+        ch_all_sequences = ch_representative_genes
                             .concat( CLUSTER_PLASMID.out.representative )
                             .concat( CLUSTER_VIRUS.out.representative )
 

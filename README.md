@@ -60,7 +60,7 @@ nextflow run schirmer-lab/metagear-pipeline \
 
 ## Credits
 
-schirmer-lab/metagear-pipeline was written by Emilio Rios and Shen Jin, with additional contributions from Svenja Weißenberger.
+schirmer-lab/metagear-pipeline was written by Emilio Rios and Shen Jin.
 
 ## Contributions and Support
 

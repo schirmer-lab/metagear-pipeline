@@ -10,10 +10,8 @@ include { BINETTE                            } from "$projectDir/modules/local/b
 workflow BACTERIAL_BINNING_INIT {
 
     main:
-        // Per integrated_classification_handoff §6 trap 2: do not pull `biome` out
-        // of INPUT_CHECK's meta — that would invalidate every meta-keyed cache
-        // downstream of input_check.nf. Instead, re-read the samplesheet here and
-        // join the biome onto our own channels before SemiBin2.
+        // Re-read here rather than adding `biome` to INPUT_CHECK's meta, which would
+        // invalidate every meta-keyed cache downstream of input_check.nf.
         if ( !params.input ) { exit 1, 'Input samplesheet not specified!' }
 
         ch_biome_lookup = Channel
@@ -38,13 +36,8 @@ workflow BACTERIAL_BINNING {
         ch_versions = Channel.empty()
 
         // ─── 0. Normalize chromosome_contigs' meta against reads' meta ─────
-        // When chromosome_contigs comes from createExistingDirChannel (i.e.
-        // --contigs_dir or --chromosome_dir reuse), its meta is reconstructed
-        // from the filename and only contains `id`. Reads' meta carries
-        // `single_end` (and whatever INPUT_CHECK injected). The two are NOT
-        // equal as Groovy maps, so `.join(by:0)` would silently drop every
-        // sample. Re-key both by meta.id (String), pick reads' meta, then
-        // use ch_chromosome for the rest of the subworkflow.
+        // Reuse channels carry only `id` while reads' meta carries `single_end` too,
+        // so joining on the maps drops every sample. Re-key both by meta.id.
         ch_chromosome = reads
             .map { meta, _r -> [ meta.id, meta ] }
             .join( chromosome_contigs.map { meta, fa -> [ meta.id, fa ] }, by: 0 )
@@ -63,12 +56,9 @@ workflow BACTERIAL_BINNING {
         ch_versions = ch_versions.mix( COVERM_MAKE.out.versions.first() )
 
         // ─── 3. Index the BAM (BAI required by metabat2 depth step) ─────────
-        // SAMTOOLS_INDEX uses topic-style version emit (no versions.yml path) —
-        // not mixed into ch_versions here. Same for METABAT2_METABAT2 and
-        // SEMIBIN_SINGLEEASYBIN below. Topic-version collection is a separate
-        // pipeline-level concern; not blocking this subworkflow.
+        // SAMTOOLS_INDEX, METABAT2_METABAT2 and SEMIBIN_SINGLEEASYBIN are
+        // topic-versions only; reading .out.versions on them aborts the DAG.
         SAMTOOLS_INDEX ( COVERM_MAKE.out.alignments )
-        ch_versions = ch_versions.mix( SAMTOOLS_INDEX.out.versions.first() )
 
         // ─── 4. Depth summary per contig for MetaBAT2 ───────────────────────
         ch_bam_bai = COVERM_MAKE.out.alignments
@@ -82,14 +72,11 @@ workflow BACTERIAL_BINNING {
             .join( METABAT2_JGISUMMARIZEBAMCONTIGDEPTHS.out.depth, by: 0 )  // [meta, fasta, depth]
 
         METABAT2_METABAT2 ( ch_metabat_input )
-        ch_versions = ch_versions.mix( METABAT2_METABAT2.out.versions.first() )
         // METABAT2_METABAT2 uses topic-style versions — see SAMTOOLS_INDEX note above.
 
         // ─── 6. SemiBin2 binning (biome-aware via meta.biome) ───────────────
-        // Inject biome into meta JUST BEFORE SemiBin2 so the meta change is
-        // scoped to this process (no other meta-keyed task downstream sees it).
-        // SEMIBIN_SINGLEEASYBIN's tag uses meta.id only; --environment is wired
-        // via ext.args2 closure in conf/metagear/bacterial_binning.config.
+        // biome joins the meta only here, so no other meta-keyed task sees the change.
+        // --environment is wired via the ext.args2 closure in the config.
         ch_semibin_input = ch_chromosome
             .join( COVERM_MAKE.out.alignments, by: 0 )         // [meta, fasta, bam]
             .map { meta, fasta, bam -> [ meta.id, meta, fasta, bam ] }
@@ -99,39 +86,12 @@ workflow BACTERIAL_BINNING {
             }
 
         SEMIBIN_SINGLEEASYBIN ( ch_semibin_input )
-        ch_versions = ch_versions.mix( SEMIBIN_SINGLEEASYBIN.out.versions.first() )
         // SEMIBIN_SINGLEEASYBIN uses topic-style versions — see SAMTOOLS_INDEX note above.
 
         // ─── 7. Binette refinement ─────────────────────────────────────────
-        //   Binette 1.2.1's CLI requires --bin_dirs XOR --contig2bin_tables
-        //   (not both — verified at runtime: "Either ... must be provided, but
-        //   not both"). Both upstream binners emit per-bin FASTAs in
-        //   directories, so we use --bin_dirs for both and stage SemiBin's
-        //   output_bins/*.fa.gz next to MetaBAT2's bin FASTAs.
-        //
-        //   --min_completeness 50 (set via ext.args in config) gates to MIMAG
-        //   MQ+ bins, so final_bins/ is already the passing set.
-        //
-        //   Meta normalization: SEMIBIN_SINGLEEASYBIN's input meta carries
-        //   `biome` (so its ext.args2 closure can read meta.biome to set
-        //   --environment), and that enriched meta propagates to its outputs.
-        //   ch_chromosome and METABAT2_METABAT2.out.fasta still have the slim
-        //   [id, single_end] meta. Re-key all three by meta.id (String) so the
-        //   join is meta-shape-agnostic; ch_chromosome's clean meta becomes
-        //   the canonical meta for BINETTE.
-        //
-        //   remainder:true on both binner joins gives effective LEFT-join
-        //   semantics: every chromosome sample reaches Binette even if one
-        //   binner produced 0 bins. SemiBin's nf-core module's non-optional
-        //   output_fasta declaration combines with errorStrategy='ignore' on
-        //   exit-0 missing output (see conf/metagear/bacterial_binning.config)
-        //   to suppress the failed emit. MetaBAT2's nf-core module already
-        //   declares all outputs as `optional: true`, so the same handling
-        //   covers MetaBAT2's 0-bin case for free. ?:[] substitutes an empty
-        //   list for the missing side; Binette's script uses `shopt -s
-        //   nullglob` over the staged dirs (same pattern as EXTRACT_UNBINNED
-        //   → classification.nf:174) so the missing binner is omitted from
-        //   --bin_dirs cleanly.
+        // Binette takes --bin_dirs XOR --contig2bin_tables, never both.
+        // SemiBin's meta carries `biome` and the others' does not, so re-key by
+        // meta.id again. remainder:true keeps a sample whose binner produced 0 bins.
         ch_binette_input = ch_chromosome
             .map { meta, fa -> [ meta.id, meta, fa ] }
             .join( SEMIBIN_SINGLEEASYBIN.out.output_fasta.map { meta, bins -> [ meta.id, bins ] }, by: 0, remainder: true )

@@ -45,7 +45,7 @@ lint:
 nf_core_version: 4.0.2
 repository_type: pipeline
 template:
-  author: Emilio Rios, Shen Jin, Svenja Weißenberger
+  author: Emilio Rios, Shen Jin
   description: "MetaGEAR Pipeline: Gene centric approach"
   force: false
   is_nfcore: false
