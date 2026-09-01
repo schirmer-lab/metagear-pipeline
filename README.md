@@ -18,12 +18,24 @@
 > [!TIP]
 > For easy installation, configuration, and usage, please refer to the **streamlined documentation** at **[MetaGEAR](https://metagear-platform.schirmerlab.de/)** and the **wrapper** at **[schirmer-lab/metagear-tools](https://github.com/schirmer-lab/metagear-tools)**.
 
-The pipeline includes the following main workflows:
+The pipeline is a set of workflows selected with `--workflow`. Four run from clean reads and are
+complementary; three build on an earlier run's outputs, read from the same `--outdir`.
 
-1. **Database Download** - Install required databases (Kneaddata, MetaPhlAn, HUMAnN)
-2. **Quality Control** - DNA/RNA quality assessment and trimming
-3. **Microbial Profiles** - Taxonomic and functional profiling using MetaPhlAn and HUMAnN
-4. **Gene Analysis** - Gene-centric analysis workflow with optional contig catalogs
+| Workflow | Purpose |
+| --- | --- |
+| `download_databases` | One-time install of the reference databases |
+| `qc_dna` / `qc_rna` | Trimming and host decontamination |
+| `microbial_profiles` | Reference-based taxonomic and functional profiling (MetaPhlAn, HUMAnN) |
+| `genes` | Assembly, gene calling, gene and protein catalogs, abundance |
+| `virus` | Viral and plasmid detection, clustering, annotation, host prediction |
+| `classification` | Viral/plasmid partition, bacterial binning, per-contig classification |
+| `mag` | Cohort MAG catalog: dRep, GTDB-Tk taxonomy, abundance — follows `classification` |
+| `msp` | MetaSpecies Pangenomes from co-abundance — follows `genes` |
+| `structures` | Protein structural-homology annotation via PHOLD — follows `genes`/`virus` |
+
+See [docs/workflows/](docs/workflows/index.md) for a page per workflow. The
+[metagear-tools](https://github.com/schirmer-lab/metagear-tools) wrapper adds presets that chain
+several of these in one command.
 
 ## Usage
 
@@ -51,9 +63,13 @@ Now, you can run the pipeline using:
 ```bash
 nextflow run schirmer-lab/metagear-pipeline \
    -profile <docker/singularity/.../institute> \
+   --workflow genes \
    --input samplesheet.csv \
    --outdir <OUTDIR>
 ```
+
+`--workflow` is required. Without it the run validates the samplesheet and exits without
+analysing anything.
 
 > [!WARNING]
 > Please provide pipeline parameters via the CLI or Nextflow `-params-file` option. Custom config files including those provided by the `-c` Nextflow option can be used to provide any configuration _**except for parameters**_; see [docs](https://nf-co.re/docs/running/run-pipelines#using-parameter-files).
