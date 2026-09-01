@@ -47,10 +47,17 @@ workflow PIPELINE_INITIALISATION {
     //
     UTILS_NEXTFLOW_PIPELINE (
         version,
-        true,
+        false,
         outdir,
         workflow.profile.tokenize(',').intersect(['conda', 'mamba']).size() >= 1
     )
+
+    // Dumped here rather than by UTILS_NEXTFLOW_PIPELINE: this file is written
+    // straight to disk, so unlike every other pipeline_info output there is no
+    // publishDir saveAs hook to prefix it with the workflow name.
+    if (outdir) {
+        dumpParametersToWorkflowJSON(outdir)
+    }
 
     //
     // Validate parameters and generate parameter summary to stdout
@@ -158,6 +165,16 @@ workflow PIPELINE_COMPLETION {
 // Tools without a peer-reviewed publication are cited by their canonical URL.
 // Keep this in sync with CITATIONS.md.
 //
+def dumpParametersToWorkflowJSON(outdir) {
+    def timestamp = new java.util.Date().format('yyyy-MM-dd_HH-mm-ss')
+    def temp_pf   = new File(workflow.launchDir.toString(), ".params_${timestamp}.json")
+    temp_pf.text  = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(params))
+
+    nextflow.extension.FilesEx.copyTo(temp_pf.toPath(), "${outdir}/pipeline_info/${params.workflow}_params_${timestamp}.json")
+    temp_pf.delete()
+}
+
+
 def metagearToolRegistry() {
     return [
         amrfinderplus: [cite: 'AMRFinderPlus (Feldgarden et al. 2021)', ref: '<li>Feldgarden, M., Brover, V., Gonzalez-Escalona, N., Frye, J. G., Haendiges, J., Haft, D. H., et al. (2021). AMRFinderPlus and the Reference Gene Catalog facilitate examination of the genomic links among antimicrobial resistance, stress response, and virulence. Scientific Reports, 11, 12728. doi: <a href="https://doi.org/10.1038/s41598-021-91456-0">10.1038/s41598-021-91456-0</a></li>'],
