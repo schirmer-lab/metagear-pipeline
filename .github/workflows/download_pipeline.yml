@@ -18,6 +18,10 @@ on:
 
 env:
   NXF_ANSI_LOG: false
+  # The pipeline uses interpolated include paths (`from "$projectDir/..."`), which the strict
+  # parser rejects; `nf-core pipelines download` shells out to `nextflow inspect`, so without
+  # this the download test fails to compile main.nf. Every real run sets the same thing.
+  NXF_SYNTAX_PARSER: v1
 
 jobs:
   configure:
