@@ -4,7 +4,7 @@ process VAMB_CONCATENATE_FASTA {
 
     conda "bioconda::metaphlan=4.0.2"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'library://schirmerlab/tools/vamb:4.1.3' :
+        'docker.io/schirmerlab/vamb:4.1.3' :
         'docker.io/schirmerlab/vamb:4.1.3' }"
 
     input:

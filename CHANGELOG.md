@@ -4,6 +4,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versions are date-based (`YY.MM`, or `YY.MM.N` for a fix within the same month)
 and are released in lockstep with [metagear-tools](https://github.com/schirmer-lab/metagear-tools).
 
+## v26.09.1 - [2026-09-01]
+
+Documentation only. No pipeline code changes; results are identical to 26.09.
+
+### `Added`
+
+- Reference pages for `classification`, `mag`, `msp` and `structures`, the four workflows that
+  shipped in 26.09 without one. `docs/workflows/index.md` now links all ten.
+
+### `Fixed`
+
+- The README listed four workflows and named `gene_analysis`, which 26.09 renamed to `genes`.
+- The README quick-start omitted `--workflow`. Without it a run validates the samplesheet and
+  exits without analysing anything, so the example appeared to work while doing nothing.
+
 ## v26.09 - [2026-09-01]
 
 First release of the integrated microbiome pipeline. This is a major version and
