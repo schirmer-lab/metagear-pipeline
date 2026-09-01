@@ -18,30 +18,30 @@ Group the gene catalog into MetaSpecies Pangenomes: sets of genes that rise and 
 
 ## Parameters
 
-| Parameter                     | Type | Default      | Controls                                                                       |
-| ----------------------------- | ---- | ------------ | -------------------------------------------------------------------------------- |
-| `--input`                     | path | _(required)_ | Samplesheet of clean reads.                                                    |
-| `--outdir`                    | path | _(required)_ | Result directory.                                                              |
-| `--representative_genes`      | path | _(required)_ | Representative gene catalog from `genes`.                                      |
-| `--representative_genes_count`| path | _(required)_ | Gene-by-sample count matrix.                                                   |
-| `--representative_genes_rpkm` | path | _(required)_ | Gene-by-sample RPKM matrix.                                                    |
-| `--metaphlan_profiles`        | path | —            | Pre-computed MetaPhlAn profiles. When omitted they are computed from the reads.|
-| `--gtdb_tk_db`                | path | —            | GTDB-Tk reference. Usually set once in `~/.metagear/metagear.config`.          |
+| Parameter                      | Type | Default      | Controls                                                                        |
+| ------------------------------ | ---- | ------------ | ------------------------------------------------------------------------------- |
+| `--input`                      | path | _(required)_ | Samplesheet of clean reads.                                                     |
+| `--outdir`                     | path | _(required)_ | Result directory.                                                               |
+| `--representative_genes`       | path | _(required)_ | Representative gene catalog from `genes`.                                       |
+| `--representative_genes_count` | path | _(required)_ | Gene-by-sample count matrix.                                                    |
+| `--representative_genes_rpkm`  | path | _(required)_ | Gene-by-sample RPKM matrix.                                                     |
+| `--metaphlan_profiles`         | path | —            | Pre-computed MetaPhlAn profiles. When omitted they are computed from the reads. |
+| `--gtdb_tk_db`                 | path | —            | GTDB-Tk reference. Usually set once in `~/.metagear/metagear.config`.           |
 
 The three catalog inputs are marked optional in the schema because `--reuse-outputs` supplies them, but the workflow exits early with a clear message if they are neither passed nor discovered.
 
 ## Output
 
-| Path (relative to `--outdir`)          | Content                                                                   |
-| -------------------------------------- | --------------------------------------------------------------------------- |
-| `msp/mspminer/mspminer/all_msps.tsv`   | **MSP membership** — every gene, its MSP, and whether it is core or accessory. |
-| `msp/mspminer/mspminer/all_core_seeds.tsv` | The core gene set that defines each MSP.                                |
-| `msp/mspminer/mspminer/genes_filtered_out.tsv` | Genes MSPminer excluded, with the reason.                            |
-| `msp/pangenome_sequences/`             | One FASTA per MSP.                                                        |
-| `msp/gtdbtk/pangenome/`                | **GTDB-Tk taxonomy** for the MSP representatives.                         |
-| `msp/msp_metaphlan4_LM.bestR2.txt`     | **Best MetaPhlAn match per MSP**, by regression R².                       |
-| `msp/msp_metaphlan4_LM.full.txt`       | All MSP-to-taxon regressions, not just the best.                          |
-| `abundance/msp/msp_abundance.median.tsv` | **MSP-by-sample abundance**, median over core genes.                    |
+| Path (relative to `--outdir`)                  | Content                                                                        |
+| ---------------------------------------------- | ------------------------------------------------------------------------------ |
+| `msp/mspminer/mspminer/all_msps.tsv`           | **MSP membership** — every gene, its MSP, and whether it is core or accessory. |
+| `msp/mspminer/mspminer/all_core_seeds.tsv`     | The core gene set that defines each MSP.                                       |
+| `msp/mspminer/mspminer/genes_filtered_out.tsv` | Genes MSPminer excluded, with the reason.                                      |
+| `msp/pangenome_sequences/`                     | One FASTA per MSP.                                                             |
+| `msp/gtdbtk/pangenome/`                        | **GTDB-Tk taxonomy** for the MSP representatives.                              |
+| `msp/msp_metaphlan4_LM.bestR2.txt`             | **Best MetaPhlAn match per MSP**, by regression R².                            |
+| `msp/msp_metaphlan4_LM.full.txt`               | All MSP-to-taxon regressions, not just the best.                               |
+| `abundance/msp/msp_abundance.median.tsv`       | **MSP-by-sample abundance**, median over core genes.                           |
 
 ## Example
 

@@ -10,10 +10,10 @@ The `schirmer-lab/metagear-pipeline` pipeline groups its work into ten entry-poi
 | [microbial_profiles](microbial_profiles.md) | Reference-based taxonomic and functional profiling                                  | Clean reads             | MetaPhlAn4 species table + HUMAnN3 gene-family and pathway tables | Medium–High    |
 | [genes](genes.md)                           | De novo assembly, gene calling, gene catalog, MSP analysis                          | Clean reads             | Gene/protein representative catalogs, abundance matrices, MSPs    | High           |
 | [virus](virus.md)                           | Viral and plasmid detection, clustering, annotation, host prediction, AMG discovery | Clean reads             | Viral and plasmid catalogs, AMGs, iPHoP host predictions          | Very high      |
-| [classification](classification.md)                            | Viral/plasmid partition, bacterial binning, per-contig classification               | Clean reads             | Per-contig classification TSV, per-sample MAG bins                | Very high      |
-| [mag](mag.md)                                       | Cohort MAG catalog — dRep, GTDB-Tk taxonomy, MAG×sample abundance                   | `classification` output | MAG catalog, GTDB-Tk lineages, abundance matrices                 | High           |
-| [msp](msp.md)                                       | MetaSpecies Pangenomes — MSPminer co-abundance clustering, GTDB-Tk, MetaPhlAn       | `genes` output          | MSP membership, taxonomy, MSP×sample abundance                    | High           |
-| [structures](structures.md)                                | Protein structural-homology annotation via PHOLD (ProstT5 → Foldseek)               | `genes`/`virus` output  | Per-representative structural annotations                         | High (GPU)     |
+| [classification](classification.md)         | Viral/plasmid partition, bacterial binning, per-contig classification               | Clean reads             | Per-contig classification TSV, per-sample MAG bins                | Very high      |
+| [mag](mag.md)                               | Cohort MAG catalog — dRep, GTDB-Tk taxonomy, MAG×sample abundance                   | `classification` output | MAG catalog, GTDB-Tk lineages, abundance matrices                 | High           |
+| [msp](msp.md)                               | MetaSpecies Pangenomes — MSPminer co-abundance clustering, GTDB-Tk, MetaPhlAn       | `genes` output          | MSP membership, taxonomy, MSP×sample abundance                    | High           |
+| [structures](structures.md)                 | Protein structural-homology annotation via PHOLD (ProstT5 → Foldseek)               | `genes`/`virus` output  | Per-representative structural annotations                         | High (GPU)     |
 
 ## Recommended order
 

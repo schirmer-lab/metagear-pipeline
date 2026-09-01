@@ -20,29 +20,29 @@ Turn per-sample bins into one cohort MAG catalog: dereplicate across samples, pl
 
 ## Parameters
 
-| Parameter           | Type  | Default      | Controls                                                                              |
-| ------------------- | ----- | ------------ | --------------------------------------------------------------------------------------- |
-| `--input`           | path  | _(required)_ | Samplesheet of clean reads.                                                           |
-| `--outdir`          | path  | _(required)_ | Result directory.                                                                     |
-| `--bins_dir`        | path  | _(required)_ | Per-sample Binette bins from `classification`.                                        |
-| `--gtdb_tk_db`      | path  | —            | GTDB-Tk reference. Usually set once in `~/.metagear/metagear.config`.                 |
-| `--drep_batch_ani`  | float | `0.90`       | ANI at which bins are grouped into dRep batches. See Notes before changing.           |
+| Parameter          | Type  | Default      | Controls                                                                    |
+| ------------------ | ----- | ------------ | --------------------------------------------------------------------------- |
+| `--input`          | path  | _(required)_ | Samplesheet of clean reads.                                                 |
+| `--outdir`         | path  | _(required)_ | Result directory.                                                           |
+| `--bins_dir`       | path  | _(required)_ | Per-sample Binette bins from `classification`.                              |
+| `--gtdb_tk_db`     | path  | —            | GTDB-Tk reference. Usually set once in `~/.metagear/metagear.config`.       |
+| `--drep_batch_ani` | float | `0.90`       | ANI at which bins are grouped into dRep batches. See Notes before changing. |
 
 ## Output
 
-| Path (relative to `--outdir`)          | Content                                                          |
-| -------------------------------------- | ------------------------------------------------------------------ |
-| `catalogs/mag/mag.representative.fa.gz` | **The cohort MAG catalog** — one representative genome per cluster. |
-| `catalogs/mag/mag_catalog.csv`         | **One row per MAG**: identity, source sample, quality.           |
-| `catalogs/mag/contig_to_mag.tsv`       | Which contig belongs to which MAG.                               |
-| `catalogs/mag/mag_contig_lengths.tsv`  | Contig lengths, for length-weighted statistics.                  |
-| `mag/drep/Wdb.cohort.csv`              | dRep winners — the representative chosen per cluster.            |
-| `mag/drep/Cdb.cohort.csv`              | Cluster membership: which bins collapsed together.               |
-| `mag/drep/skani/`                      | Raw pairwise ANI.                                                |
-| `mag/gtdbtk/cohort/`                   | **GTDB-Tk summaries** (`*.bac120.summary.tsv`, `*.ar53.summary.tsv`). |
-| `abundance/mag/mag.count.tsv`          | **MAG-by-sample read counts.**                                   |
-| `abundance/mag/mag.rpkm.tsv`           | **MAG-by-sample RPKM.**                                          |
-| `abundance/mag/mag.tpm.tsv`            | **MAG-by-sample TPM.**                                           |
+| Path (relative to `--outdir`)           | Content                                                               |
+| --------------------------------------- | --------------------------------------------------------------------- |
+| `catalogs/mag/mag.representative.fa.gz` | **The cohort MAG catalog** — one representative genome per cluster.   |
+| `catalogs/mag/mag_catalog.csv`          | **One row per MAG**: identity, source sample, quality.                |
+| `catalogs/mag/contig_to_mag.tsv`        | Which contig belongs to which MAG.                                    |
+| `catalogs/mag/mag_contig_lengths.tsv`   | Contig lengths, for length-weighted statistics.                       |
+| `mag/drep/Wdb.cohort.csv`               | dRep winners — the representative chosen per cluster.                 |
+| `mag/drep/Cdb.cohort.csv`               | Cluster membership: which bins collapsed together.                    |
+| `mag/drep/skani/`                       | Raw pairwise ANI.                                                     |
+| `mag/gtdbtk/cohort/`                    | **GTDB-Tk summaries** (`*.bac120.summary.tsv`, `*.ar53.summary.tsv`). |
+| `abundance/mag/mag.count.tsv`           | **MAG-by-sample read counts.**                                        |
+| `abundance/mag/mag.rpkm.tsv`            | **MAG-by-sample RPKM.**                                               |
+| `abundance/mag/mag.tpm.tsv`             | **MAG-by-sample TPM.**                                                |
 
 `Wdb.cohort.csv`, `mag_catalog.csv` and the number of representative FASTAs should all agree; a mismatch means dereplication and catalog assembly disagreed and is worth investigating before using the abundance matrices.
 

@@ -20,31 +20,31 @@ Recover function for proteins that sequence homology leaves unassigned, by compa
 
 ## Parameters
 
-| Parameter                        | Type   | Default                  | Controls                                                                     |
-| -------------------------------- | ------ | ------------------------ | ------------------------------------------------------------------------------ |
-| `--input`                        | path   | _(required)_             | Samplesheet, for provenance.                                                 |
-| `--outdir`                       | path   | _(required)_             | Result directory.                                                            |
-| `--phold_db`                     | path   | —                        | PHOLD structural database.                                                   |
-| `--representative_proteins`      | path   | _(required)_             | Full protein catalog from `genes`/`virus`.                                   |
-| `--representative_proteins_clusters` | path | _(required)_          | Protein cluster table, used to map annotations back to members.              |
-| `--viral_representative_proteins`| path   | _(required)_             | Viral protein catalog, used for the guaranteed viral top-up.                 |
-| `--representative_proteins_annotations` | path | —                   | Pfam/InterProScan table. Without it every protein counts as unannotated.     |
-| `--structures_scope`             | enum   | `unannotated_plus_duf`   | `all` \| `unannotated` \| `unannotated_plus_duf` \| `viral_only`.            |
-| `--structures_use_cpu`           | bool   | `true`                   | CPU prediction. Set `false` on a GPU node for a 10–50× speedup.              |
-| `--structures_batch_size`        | int    | `1`                      | ProstT5 batch size. Higher is faster on GPU and uses more VRAM.              |
-| `--structures_predict_shard_size`| int    | `5000`                   | Proteins per prediction shard.                                              |
-| `--structures_compare_shard_size`| int    | `100000`                 | Proteins per Foldseek chunk.                                                |
-| `--structures_prepare_for_gpu`   | bool   | `false`                  | Package the prediction step for an offsite GPU and stop. See Notes.          |
-| `--phold_predict_dir`            | path   | —                        | Consume prediction output produced elsewhere, skipping prediction.           |
+| Parameter                               | Type | Default                | Controls                                                                 |
+| --------------------------------------- | ---- | ---------------------- | ------------------------------------------------------------------------ |
+| `--input`                               | path | _(required)_           | Samplesheet, for provenance.                                             |
+| `--outdir`                              | path | _(required)_           | Result directory.                                                        |
+| `--phold_db`                            | path | —                      | PHOLD structural database.                                               |
+| `--representative_proteins`             | path | _(required)_           | Full protein catalog from `genes`/`virus`.                               |
+| `--representative_proteins_clusters`    | path | _(required)_           | Protein cluster table, used to map annotations back to members.          |
+| `--viral_representative_proteins`       | path | _(required)_           | Viral protein catalog, used for the guaranteed viral top-up.             |
+| `--representative_proteins_annotations` | path | —                      | Pfam/InterProScan table. Without it every protein counts as unannotated. |
+| `--structures_scope`                    | enum | `unannotated_plus_duf` | `all` \| `unannotated` \| `unannotated_plus_duf` \| `viral_only`.        |
+| `--structures_use_cpu`                  | bool | `true`                 | CPU prediction. Set `false` on a GPU node for a 10–50× speedup.          |
+| `--structures_batch_size`               | int  | `1`                    | ProstT5 batch size. Higher is faster on GPU and uses more VRAM.          |
+| `--structures_predict_shard_size`       | int  | `5000`                 | Proteins per prediction shard.                                           |
+| `--structures_compare_shard_size`       | int  | `100000`               | Proteins per Foldseek chunk.                                             |
+| `--structures_prepare_for_gpu`          | bool | `false`                | Package the prediction step for an offsite GPU and stop. See Notes.      |
+| `--phold_predict_dir`                   | path | —                      | Consume prediction output produced elsewhere, skipping prediction.       |
 
 ## Output
 
-| Path (relative to `--outdir`)         | Content                                                                |
-| ------------------------------------- | ------------------------------------------------------------------------ |
-| `structures/all.proteins.3di.fasta`   | The 3Di structural translation of the selected proteins.               |
-| `structures/phold_predict/`           | Per-shard prediction output, and the resume point for offsite GPU runs. |
-| `structures/`                         | **Merged PHOLD annotations** for the full catalog and, separately, the viral catalog. |
-| `structures/offsite_predict/`         | The self-contained bundle, only when `--structures_prepare_for_gpu` is set. |
+| Path (relative to `--outdir`)       | Content                                                                               |
+| ----------------------------------- | ------------------------------------------------------------------------------------- |
+| `structures/all.proteins.3di.fasta` | The 3Di structural translation of the selected proteins.                              |
+| `structures/phold_predict/`         | Per-shard prediction output, and the resume point for offsite GPU runs.               |
+| `structures/`                       | **Merged PHOLD annotations** for the full catalog and, separately, the viral catalog. |
+| `structures/offsite_predict/`       | The self-contained bundle, only when `--structures_prepare_for_gpu` is set.           |
 
 ## Example
 

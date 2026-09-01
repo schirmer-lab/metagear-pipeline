@@ -20,35 +20,35 @@ Decide what every assembled contig is, and recover bacterial genomes from the ch
 
 ## Parameters
 
-| Parameter                  | Type | Default      | Controls                                                                                                  |
-| -------------------------- | ---- | ------------ | --------------------------------------------------------------------------------------------------------- |
-| `--input`                  | path | _(required)_ | Samplesheet of clean reads.                                                                               |
-| `--outdir`                 | path | _(required)_ | Result directory.                                                                                         |
-| `--genomad_db`             | path | —            | geNomad database.                                                                                         |
-| `--checkv_db`              | path | —            | CheckV database.                                                                                          |
-| `--checkm2_db`             | path | —            | CheckM2 database, used by Binette for bin scoring.                                                        |
-| `--contigs_dir`            | path | —            | **Skip assembly.** Directory of `<sample>.contigs.fa.gz`.                                                 |
-| `--chromosome_dir`         | path | —            | **Skip viral detection.** Directory of `<sample>.chromosome.fna.gz` from a prior run.                     |
-| `--viral_ids_dir`          | path | —            | Viral contig IDs from a prior `virus` run, so the per-contig table can still label virus contigs.         |
-| `--plasmid_ids_dir`        | path | —            | Plasmid contig IDs, same purpose.                                                                         |
-| `--gene_clusters_tsv`      | path | —            | Gene clusters from a prior `genes` run; enables the gene-catalog cross-walk.                              |
-| `--enable_contig_taxonomy` | bool | `false`      | Run MMseqs2 taxonomy on unbinned contigs. Expensive; see Notes.                                           |
-| `--mmseqs_taxonomy_db`     | path | —            | Prebuilt MMseqs2 taxonomy database, required only when the above is `true`.                               |
+| Parameter                  | Type | Default      | Controls                                                                                          |
+| -------------------------- | ---- | ------------ | ------------------------------------------------------------------------------------------------- |
+| `--input`                  | path | _(required)_ | Samplesheet of clean reads.                                                                       |
+| `--outdir`                 | path | _(required)_ | Result directory.                                                                                 |
+| `--genomad_db`             | path | —            | geNomad database.                                                                                 |
+| `--checkv_db`              | path | —            | CheckV database.                                                                                  |
+| `--checkm2_db`             | path | —            | CheckM2 database, used by Binette for bin scoring.                                                |
+| `--contigs_dir`            | path | —            | **Skip assembly.** Directory of `<sample>.contigs.fa.gz`.                                         |
+| `--chromosome_dir`         | path | —            | **Skip viral detection.** Directory of `<sample>.chromosome.fna.gz` from a prior run.             |
+| `--viral_ids_dir`          | path | —            | Viral contig IDs from a prior `virus` run, so the per-contig table can still label virus contigs. |
+| `--plasmid_ids_dir`        | path | —            | Plasmid contig IDs, same purpose.                                                                 |
+| `--gene_clusters_tsv`      | path | —            | Gene clusters from a prior `genes` run; enables the gene-catalog cross-walk.                      |
+| `--enable_contig_taxonomy` | bool | `false`      | Run MMseqs2 taxonomy on unbinned contigs. Expensive; see Notes.                                   |
+| `--mmseqs_taxonomy_db`     | path | —            | Prebuilt MMseqs2 taxonomy database, required only when the above is `true`.                       |
 
 ## Output
 
-| Path (relative to `--outdir`)                        | Content                                                                       |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `assemblies/contigs/<sample>.contigs.fa.gz`          | Per-sample assembled contigs.                                                 |
-| `assemblies/bins/<sample>/<sample>_binN.fa`          | **Refined bins (MAGs) per sample**, from Binette.                             |
-| `assemblies/bins/<sample>/quality_report.tsv`        | CheckM2 completeness and contamination per bin.                               |
-| `assemblies/bins/<sample>/contig_to_bin.tsv`         | Which contig went into which bin.                                             |
-| `binning/bams/`, `binning/bwa_index/`                | Read mapping against each sample's own chromosomal contigs.                   |
-| `binning/metabat2/`, `binning/semibin2/`             | The two upstream bin sets, before refinement.                                 |
-| `classification/per_contig/<sample>.tsv`             | **Per-contig classification**, one row per contig (columns below).            |
-| `classification/tiara/`                              | Raw Tiara labels.                                                             |
-| `classification/unbinned/`                           | Contigs in no bin, and their taxonomy when enabled.                           |
-| `classification/all.genes.classified.raw.tsv`        | Gene catalog with each gene's contig class attached.                          |
+| Path (relative to `--outdir`)                              | Content                                                                  |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `assemblies/contigs/<sample>.contigs.fa.gz`                | Per-sample assembled contigs.                                            |
+| `assemblies/bins/<sample>/<sample>_binN.fa`                | **Refined bins (MAGs) per sample**, from Binette.                        |
+| `assemblies/bins/<sample>/quality_report.tsv`              | CheckM2 completeness and contamination per bin.                          |
+| `assemblies/bins/<sample>/contig_to_bin.tsv`               | Which contig went into which bin.                                        |
+| `binning/bams/`, `binning/bwa_index/`                      | Read mapping against each sample's own chromosomal contigs.              |
+| `binning/metabat2/`, `binning/semibin2/`                   | The two upstream bin sets, before refinement.                            |
+| `classification/per_contig/<sample>.tsv`                   | **Per-contig classification**, one row per contig (columns below).       |
+| `classification/tiara/`                                    | Raw Tiara labels.                                                        |
+| `classification/unbinned/`                                 | Contigs in no bin, and their taxonomy when enabled.                      |
+| `classification/all.genes.classified.raw.tsv`              | Gene catalog with each gene's contig class attached.                     |
 | `classification/all.genes.clusters.classified.refined.tsv` | **Gene clusters with a `multi_class` flag** — clusters spanning classes. |
 
 The per-contig table carries `contig_id`, `sample`, `length`, `primary_class`, `classifier`, `lineage`, `confidence`, `bin_id`, `genomad_viral`, `genomad_plasmid` and `tiara_label`. `classifier` records which evidence source decided `primary_class`, so a disagreement between geNomad and Tiara is visible rather than silently resolved.

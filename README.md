@@ -21,17 +21,17 @@
 The pipeline is a set of workflows selected with `--workflow`. Four run from clean reads and are
 complementary; three build on an earlier run's outputs, read from the same `--outdir`.
 
-| Workflow | Purpose |
-| --- | --- |
-| `download_databases` | One-time install of the reference databases |
-| `qc_dna` / `qc_rna` | Trimming and host decontamination |
-| `microbial_profiles` | Reference-based taxonomic and functional profiling (MetaPhlAn, HUMAnN) |
-| `genes` | Assembly, gene calling, gene and protein catalogs, abundance |
-| `virus` | Viral and plasmid detection, clustering, annotation, host prediction |
-| `classification` | Viral/plasmid partition, bacterial binning, per-contig classification |
-| `mag` | Cohort MAG catalog: dRep, GTDB-Tk taxonomy, abundance — follows `classification` |
-| `msp` | MetaSpecies Pangenomes from co-abundance — follows `genes` |
-| `structures` | Protein structural-homology annotation via PHOLD — follows `genes`/`virus` |
+| Workflow             | Purpose                                                                          |
+| -------------------- | -------------------------------------------------------------------------------- |
+| `download_databases` | One-time install of the reference databases                                      |
+| `qc_dna` / `qc_rna`  | Trimming and host decontamination                                                |
+| `microbial_profiles` | Reference-based taxonomic and functional profiling (MetaPhlAn, HUMAnN)           |
+| `genes`              | Assembly, gene calling, gene and protein catalogs, abundance                     |
+| `virus`              | Viral and plasmid detection, clustering, annotation, host prediction             |
+| `classification`     | Viral/plasmid partition, bacterial binning, per-contig classification            |
+| `mag`                | Cohort MAG catalog: dRep, GTDB-Tk taxonomy, abundance — follows `classification` |
+| `msp`                | MetaSpecies Pangenomes from co-abundance — follows `genes`                       |
+| `structures`         | Protein structural-homology annotation via PHOLD — follows `genes`/`virus`       |
 
 See [docs/workflows/](docs/workflows/index.md) for a page per workflow. The
 [metagear-tools](https://github.com/schirmer-lab/metagear-tools) wrapper adds presets that chain
