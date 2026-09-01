@@ -95,13 +95,24 @@ jobs:
         env:
           NXF_SINGULARITY_CACHEDIR: ./singularity_container_images
         run: |
+          # The container library and cache flags only apply when images are being fetched.
+          # Passing them with --container-system none makes nf-core warn, then prompt
+          # "Do you want to download singularity images?", which aborts with no TTY.
+          container_args=()
+          if [ "${{ needs.configure.outputs.CONTAINER_SYSTEM }}" != "none" ]; then
+            container_args=(
+              --container-library "quay.io"
+              -l "docker.io"
+              -l "community.wave.seqera.io/library/"
+              --container-cache-utilisation 'amend'
+            )
+          fi
           nf-core pipelines download ${{ needs.configure.outputs.REPO_LOWERCASE }} \
           --revision ${{ needs.configure.outputs.REPO_BRANCH }} \
           --outdir ./${{ needs.configure.outputs.REPOTITLE_LOWERCASE }} \
           --compress "none" \
           --container-system '${{ needs.configure.outputs.CONTAINER_SYSTEM }}' \
-          --container-library "quay.io" -l "docker.io" -l "community.wave.seqera.io/library/" \
-          --container-cache-utilisation 'amend' \
+          "${container_args[@]}" \
           --download-configuration 'yes'
 
       - name: Inspect download
