@@ -1,0 +1,25 @@
+{
+    "upload_type": "software",
+    "access_right": "open",
+    "license": "mit",
+    "creators": [
+        {
+            "name": "Ríos, Emilio",
+            "affiliation": "Technische Universität München",
+            "orcid": "0000-0002-0699-4769"
+        },
+        {
+            "name": "Jin, Shen",
+            "affiliation": "Technische Universität München",
+            "orcid": "0000-0001-5159-1187"
+        }
+    ],
+    "keywords": [
+        "metagenomics",
+        "microbiome",
+        "nextflow",
+        "nf-core",
+        "bioinformatics",
+        "workflow"
+    ]
+}
