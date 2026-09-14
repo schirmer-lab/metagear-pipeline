@@ -56,15 +56,6 @@
                 "fix_fastq_header": {
                     "type": "boolean",
                     "description": "Fix fastq header."
-                },
-                "catalog": {
-                    "type": "string",
-                    "format": "file-path",
-                    "description": "FASTA to map reads against (easy_map). Any catalog, including one built outside this pipeline."
-                },
-                "catalog_label": {
-                    "type": "string",
-                    "description": "Name for easy_map's outputs. Defaults to the catalog's file name without extensions."
                 }
             }
         },
