@@ -19,6 +19,8 @@ include { MSP_INIT; MSP } from "$projectDir/subworkflows/local/pangenome/msp"
 
 include { STRUCTURES_INIT; STRUCTURES } from "$projectDir/subworkflows/local/pangenome/structures"
 
+include { EASY_MAP_INIT; EASY_MAP } from "$projectDir/subworkflows/local/common/easy_map"
+
 /* --- RUN MAIN WORKFLOW --- */
 workflow METAGEAR {
 
@@ -144,6 +146,16 @@ workflow METAGEAR {
                 init.phold_db
             )
             ch_versions = STRUCTURES.out.versions
+        }
+
+        // easy_map — map reads against a catalog the caller supplies. A utility:
+        // it assembles nothing and calls no genes, so it works with any catalog,
+        // including one built outside this pipeline.
+        if ( params.workflow == "easy_map" ) {
+            init = EASY_MAP_INIT ( )
+
+            EASY_MAP ( init.validated_input )
+            ch_versions = EASY_MAP.out.versions
         }
 
 

@@ -60,12 +60,27 @@ Produced by `microbial_profiles`. This is the only analysis workflow that does n
 - `catalogs/genes/`: `all.genes.representative.fa.gz` (the **representative gene catalog**) and `all.genes.clusters.tsv` (cluster membership).
 - `catalogs/proteins/`: the equivalent protein-level catalog and cluster table.
 - `clusters/`: cohort-wide gene-cluster annotations. These sit at top level rather than under `virus/` because they are not virus-specific; `classification` adds sibling files here without colliding.
-- `abundance/all.genes/`: `bwa_index/`, `bams/<sample>.bam`, `per_batch/` provenance tables, and the merged `all.genes.{count,rpkm,tpm}.tsv` matrices.
+- `abundance/all.genes/`: `bwa_index/`, `bams/<sample>.bam`, `per_batch/` provenance tables, and the merged `all.genes.{count,rpkm,tpm,covered_bases}.tsv` matrices.
 - `annotations/amrfinder/`, `annotations/interproscan/`: functional annotation of the representative proteins.
 
 </details>
 
-Produced by `genes`. The three merged matrices under `abundance/all.genes/` are the headline deliverables — gene-by-sample counts, RPKM, and TPM. The `per_batch/` tables are kept as provenance for the merge and are not normally analysed directly.
+Produced by `genes`. The merged matrices under `abundance/all.genes/` are the headline deliverables — gene-by-sample counts, RPKM, TPM, and covered bases. The `per_batch/` tables are kept as provenance for the merge and are not normally analysed directly.
+
+`count` and `covered_bases` are computed with read filters only; `rpkm` and `tpm` additionally require `--min-covered-fraction 20`, so a zero in those two can mean coverage below that threshold rather than no reads. A detection rule that needs to distinguish absence from low coverage should use `count` and `covered_bases`. Slightly more features carry a non-zero `covered_bases` than a non-zero `count`, so breadth does not imply a counted read.
+
+## Mapping against a supplied catalog
+
+<details markdown="1">
+<summary>Output files</summary>
+
+- `abundance/<label>/`: `bwa_index/`, `bams/<sample>.bam`, `per_batch/` provenance tables, and the merged `<label>.{count,covered_bases,rpkm,tpm}.tsv` matrices.
+
+</details>
+
+Produced by `easy_map`, which maps the reads in the samplesheet against the FASTA given in `--catalog` and does nothing else: no assembly, no gene calling, no clustering. `<label>` is `--catalog_label`, or the catalog's file name without extensions when that is not set.
+
+The four matrices are the same quantities, computed the same way, as the abundance matrices `genes` and `virus` produce, so the note above about `count` and `covered_bases` against `rpkm` and `tpm` applies here too. Use this when the catalog is not one this pipeline built, or when reads from several assays have to be quantified against one catalog.
 
 ## Viral and plasmid analysis
 
