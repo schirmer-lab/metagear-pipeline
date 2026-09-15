@@ -1,4 +1,5 @@
 include { BWA_INDEX } from "$projectDir/modules/nf-core/bwa/index"
+include { BWA_INDEX_CHECK } from "$projectDir/modules/local/bwa/check_index"
 
 include { COVERM_MAKE } from "$projectDir/modules/local/coverm/make"
 include { COVERM_CONTIG; COVERM_CONTIG_MERGE } from "$projectDir/modules/local/coverm/contig"
@@ -13,6 +14,9 @@ workflow ABUNDANCE {
         genome_definition    // path: contig→genome TSV consumed when mode == 'genome'.
                              // In contig mode pass a placeholder (e.g.
                              // file("$projectDir/assets/empty.txt")); it is never read.
+        existing_index       // directory holding a bwa index for the catalog, or null to
+                             // build one. Built for a single catalog: with several, the
+                             // check below fails for the ones it does not match.
 
     main:
 
@@ -21,12 +25,21 @@ workflow ABUNDANCE {
                         .map { meta, reads, catalog -> [ [id: meta.label, src: catalog.getName()], catalog ] }
                         .unique()
 
-        BWA_INDEX ( ch_catalogs )
+        if ( existing_index ) {
+            BWA_INDEX_CHECK ( ch_catalogs.map { meta, catalog ->
+                                  [ meta, file(existing_index, checkIfExists: true), catalog ] } )
+            ch_index = BWA_INDEX_CHECK.out.index
+            ch_index_versions = Channel.empty()
+        } else {
+            BWA_INDEX ( ch_catalogs )
+            ch_index = BWA_INDEX.out.index
+            ch_index_versions = BWA_INDEX.out.versions
+        }
 
         // Combine back the index with reads and catalog for abundance estimation
         ch_reads_with_index = reads_with_sequences
                         .map { meta, reads, catalog -> [ [id: meta.label, src: catalog.getName()], meta, reads ] }
-                        .combine( BWA_INDEX.out.index, by: 0 )
+                        .combine( ch_index, by: 0 )
                         .map { src, meta, reads, index -> [ meta, reads, index ] }
 
         COVERM_MAKE ( ch_reads_with_index, true )
@@ -78,11 +91,11 @@ workflow ABUNDANCE {
         // summary channel versions
         ch_versions = COVERM_MAKE.out.versions
                         .mix(ch_abund_versions)
-                        .mix(BWA_INDEX.out.versions)
+                        .mix(ch_index_versions)
         // ch_versions = Channel.empty()
 
     emit:
-        index = BWA_INDEX.out.index
+        index = ch_index
         alignments = COVERM_MAKE.out.alignments
         tpm = merged_metric('tpm')
         rpkm = merged_metric('rpkm')

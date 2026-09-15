@@ -40,7 +40,8 @@ workflow EASY_MAP {
                                 .map { meta_reads, read_files, meta_catalog, catalog ->
                                     [ meta_reads + [label: meta_catalog.id], read_files, catalog ] }
 
-        ABUNDANCE ( ch_abundance_input, 'contig', file("$projectDir/assets/empty.txt") )
+        ABUNDANCE ( ch_abundance_input, 'contig', file("$projectDir/assets/empty.txt"),
+                    params.catalog_index )
         ch_versions = ch_versions.mix( ABUNDANCE.out.versions )
 
     emit:

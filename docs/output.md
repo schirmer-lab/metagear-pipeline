@@ -78,7 +78,7 @@ Produced by `genes`. The merged matrices under `abundance/all.genes/` are the he
 
 </details>
 
-Produced by `easy_map`, which maps the reads in the samplesheet against the FASTA given in `--catalog` and does nothing else: no assembly, no gene calling, no clustering. `<label>` is `--catalog_label`, or the catalog's file name without extensions when that is not set.
+Produced by `easy_map`, which maps the reads in the samplesheet against the FASTA given in `--catalog` and does nothing else: no assembly, no gene calling, no clustering. `<label>` is `--catalog_label`, or the catalog's file name without extensions when that is not set. Pass `--catalog_index <dir>` to reuse a bwa index built earlier from the same catalog; the run stops before mapping if the index does not match it.
 
 The four matrices are the same quantities, computed the same way, as the abundance matrices `genes` and `virus` produce, so the note above about `count` and `covered_bases` against `rpkm` and `tpm` applies here too. Use this when the catalog is not one this pipeline built, or when reads from several assays have to be quantified against one catalog.
 

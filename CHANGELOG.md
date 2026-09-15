@@ -8,6 +8,13 @@ and are released in lockstep with [metagear-tools](https://github.com/schirmer-l
 
 ### `Added`
 
+- `easy_map` takes `--catalog_index <dir>`, a bwa index built earlier from the same
+  catalog, and skips the index build. On the KCH gene catalog that build took 3 h 38 min
+  on one core with the rest of the node idle. `BWA_INDEX_CHECK` compares the sequence
+  count in the index's `.ann` against the catalog and fails the run before any mapping
+  if they disagree, because bwa reads the index and never the FASTA, so a mismatched
+  index would otherwise map to the wrong names without erroring.
+
 - `easy_map`: map reads against a catalog the caller supplies. It assembles nothing and
   calls no genes, so the catalog can come from anywhere, including another pipeline. Takes
   `--input` and `--catalog`, plus `--catalog_label` to name the outputs, and publishes
