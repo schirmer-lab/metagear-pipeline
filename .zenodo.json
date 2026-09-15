@@ -14,12 +14,5 @@
             "orcid": "0000-0001-5159-1187"
         }
     ],
-    "keywords": [
-        "metagenomics",
-        "microbiome",
-        "nextflow",
-        "nf-core",
-        "bioinformatics",
-        "workflow"
-    ]
+    "keywords": ["metagenomics", "microbiome", "nextflow", "nf-core", "bioinformatics", "workflow"]
 }
