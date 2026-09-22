@@ -372,6 +372,32 @@
                             "description": "Path to pre-existing per-shard PHOLD_PREDICT outputs (predict_*/ subdirectories). When set, skips the PHOLD_PREDICT step entirely and consumes the on-disk dirs. Typically set after rsyncing offsite-GPU predict results back into ${outdir}/structures/phold_predict/."
                         }
                     ]
+                },
+                {
+                    "name": "easy_map",
+                    "description": "Map reads against a catalog you supply. No assembly, no gene calling: produces per-sample count, covered bases, RPKM and TPM against that catalog.",
+                    "parameters": [
+                        {
+                            "name": "input",
+                            "required": true,
+                            "description": "Input .csv file (samplesheet) with sample, fastq_1 and fastq_2 columns."
+                        },
+                        {
+                            "name": "catalog",
+                            "required": true,
+                            "description": "FASTA to map against (FILE). Any catalog, including one built outside this pipeline."
+                        },
+                        {
+                            "name": "catalog_label",
+                            "required": false,
+                            "description": "Name for the outputs. Defaults to the catalog's file name without extensions."
+                        },
+                        {
+                            "name": "catalog_index",
+                            "required": false,
+                            "description": "Directory holding a bwa index built from the catalog (DIR). Skips the index build, which takes hours on a large catalog. The run stops before mapping if the index does not match the catalog."
+                        }
+                    ]
                 }
             ]
         }
