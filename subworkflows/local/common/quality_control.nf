@@ -1,29 +1,39 @@
 /* --- Perform quality control on reads --- */
 
 include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
-include { CONCATENATE_READS } from "$projectDir/modules/local/metagear/utils/concatenate_reads"
 
 include { FASTQC as FASTQC_RAW; FASTQC as FASTQC_CLEAN} from "$projectDir/modules/nf-core/fastqc/main"
 include { TRIMGALORE } from "$projectDir/modules/nf-core/trimgalore/main"
 include { KNEADDATA; PARSE_KNEADDATA; SUMMARY_KNEADDATA } from "$projectDir/modules/local/kneaddata/main"
-include { FIX_FASTX_HEADERS } from "$projectDir/modules/local/metagear/utils/fix_fastx_headers"
+
+// Per-assay name first, so qc_dna and qc_rna can both stay configured; kneaddata_refdb
+// remains the fallback for installations that already set it.
+def qc_reference_databases(String assay) {
+    def configured = params["qc_${assay}_refdb"] ?: params.kneaddata_refdb
+    def paths = (configured instanceof List ? configured : [configured]).findAll { it }
+
+    if ( !paths ) {
+        error "qc_${assay}: no reference database configured. Set qc_${assay}_refdb (or kneaddata_refdb) to one or more bowtie2 index prefixes."
+    }
+
+    return paths.collect { file(it, checkIfExists: true) }
+}
 
 /* --- Main Workflow --- */
 workflow QUALITY_CONTROL_INIT {
+    take:
+        assay // str: dna | rna
+
     main:
 
-        if ( params.input ) { ch_input = file(params.input) } else { exit 1, 'Input samplesheet not specified!' }
+        if ( params.input ) { ch_input = file(params.input) } else { error 'Input samplesheet not specified!' }
 
         INPUT_CHECK ( ch_input, "reads" )
 
-        // Get the kneaddata reference database
-        def kneaddata_dbs = params.kneaddata_refdb.collect { file(it) }
-        kneaddata_refdb = Channel.value(kneaddata_dbs)
-
-        CONCATENATE_READS ( INPUT_CHECK.out.validated_input )
+        kneaddata_refdb = Channel.value( qc_reference_databases(assay) )
 
     emit:
-        validated_input = CONCATENATE_READS.out
+        validated_input = INPUT_CHECK.out.validated_input
         kneaddata_refdb = kneaddata_refdb
         versions = INPUT_CHECK.out.versions
 
@@ -43,24 +53,16 @@ workflow QUALITY_CONTROL {
 
         TRIMGALORE ( validated_input )
 
-        // Fix fastq headers (enabled by default)
-        if ( params.fix_fastq_header ) {
-            FIX_HEADER ( TRIMGALORE.out.reads )
-            ch_kneaddata = FIX_HEADER.out.reads
-        }else {
-            ch_kneaddata = TRIMGALORE.out.reads
-        }
-
-        KNEADDATA ( ch_kneaddata , kneaddata_refdb )
+        KNEADDATA ( TRIMGALORE.out.reads, kneaddata_refdb )
 
         PARSE_KNEADDATA ( KNEADDATA.out.kneaddata_log )
 
-        PARSE_KNEADDATA.out.kneadata_stats
-            .map { meta, kneaddata_stats -> kneaddata_stats }
+        PARSE_KNEADDATA.out.read_counts
+            .map { meta, read_counts -> read_counts }
             .collect()
-            .set { all_kneaddata_stats }
+            .set { all_read_counts }
 
-        SUMMARY_KNEADDATA ( all_kneaddata_stats )
+        SUMMARY_KNEADDATA ( all_read_counts )
 
         // Append "_clean" to IDs for post cleaning fastqc
         ch_fastqc_clean = KNEADDATA.out.reads
@@ -80,6 +82,7 @@ workflow QUALITY_CONTROL {
         fastqc_zip_post = FASTQC_CLEAN.out.zip
         trimmed = TRIMGALORE.out.reads
         clean = KNEADDATA.out.reads
-        summary_plot = SUMMARY_KNEADDATA.out.qc_summary_plot
+        read_counts = SUMMARY_KNEADDATA.out.read_counts
+        summary_sections = SUMMARY_KNEADDATA.out.mqc
         versions = ch_versions_qc
 }
