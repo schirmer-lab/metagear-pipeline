@@ -194,19 +194,19 @@ def main():
     mode = modes.pop() if len(modes) == 1 else "mixed"
 
     databases = database_order(rows)
-    summary = (
-        summarise(rows, databases)
-        if mode == "serial"
-        else summarise_parallel(rows, databases)
-    )
+    # With one database the two modes are the same filter, so the removals partition the
+    # reads whatever the log says. Only several databases can overlap.
+    stackable = mode == "serial" or len(databases) < 2
+    summary = summarise(rows, databases) if stackable else summarise_parallel(rows, databases)
 
     write_long_table(Path(f"{args.prefix}_read_counts.tsv"), rows)
     write_mqc_table(Path(f"{args.prefix}_table_mqc.tsv"), summary, databases, mode)
 
-    if mode != "serial":
+    if not stackable:
         print(
-            f"Filtering mode is '{mode}', so per-database removals overlap and cannot be "
-            f"stacked. Wrote the table only; the per-database columns are still there."
+            f"Filtering mode is '{mode}' across {len(databases)} databases, so per-database "
+            f"removals overlap and cannot be stacked. Wrote the table only; the per-database "
+            f"columns are still there."
         )
     elif len(summary) > args.max_plot_samples:
         print(
