@@ -31,6 +31,7 @@ labels:
 processes:
   # === Setup ===
   SAMPLESHEET_CHECK: { label: process_single }
+  BWA_INDEX_CHECK: { label: process_single }
   RENAME_FILES: { label: process_single }
 
   # === Assembly ===

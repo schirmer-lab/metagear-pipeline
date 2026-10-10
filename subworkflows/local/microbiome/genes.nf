@@ -108,7 +108,7 @@ workflow GENES {
             ch_abundance_input = clean_reads.combine( ch_representative_genes )
                                 .map { meta_reads, reads, meta_genes, genes -> [ meta_reads + [label: meta_genes.id], reads, genes ] }
 
-            ABUNDANCE ( ch_abundance_input, 'contig', file("$projectDir/assets/empty.txt") )
+            ABUNDANCE ( ch_abundance_input, 'contig', file("$projectDir/assets/empty.txt"), null )
             ch_versions =  ch_versions.mix(ABUNDANCE.out.versions)
 
             ch_representative_genes_count = ABUNDANCE.out.count

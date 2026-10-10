@@ -6,6 +6,49 @@ and are released in lockstep with [metagear-tools](https://github.com/schirmer-l
 
 ## v26.10dev - [unreleased]
 
+### `Added`
+
+- `easy_map` takes `--catalog_index <dir>`, a bwa index built earlier from the same
+  catalog, and skips the index build. On the KCH gene catalog that build took 3 h 38 min
+  on one core with the rest of the node idle. `BWA_INDEX_CHECK` compares the sequence
+  count in the index's `.ann` against the catalog and fails the run before any mapping
+  if they disagree, because bwa reads the index and never the FASTA, so a mismatched
+  index would otherwise map to the wrong names without erroring.
+
+- `easy_map`: map reads against a catalog the caller supplies. It assembles nothing and
+  calls no genes, so the catalog can come from anywhere, including another pipeline. Takes
+  `--input` and `--catalog`, plus `--catalog_label` to name the outputs, and publishes
+  `abundance/<label>/<label>.{count,covered_bases,rpkm,tpm}.tsv` in the same shape as the
+  other abundance classes.
+- The abundance metrics are now configuration. `COVERM_CONTIG` and `COVERM_GENOME` take
+  `ext.methods` (computed with `ext.args`) and `ext.methods2` (computed with `ext.args2`),
+  one coverm call and one published table per metric, so adding or dropping a metric no
+  longer touches the modules or `ABUNDANCE`.
+- Breadth of coverage for contig-mode callers (`genes`, `virus`):
+  `abundance/<class>/<class>.covered_bases.tsv`, the number of reference bases covered per
+  feature per sample. It sits in `ext.methods` beside `count`, without
+  `--min-covered-fraction`, so a zero means no covered base rather than a value below a
+  threshold, which is what a detection criterion needs.
+
+### `Changed`
+
+- `trimmed_mean` is no longer computed. Both coverm modules produced it on every run and
+  `ABUNDANCE` never consumed it, so it was never published. It can be restored for any
+  caller by adding it to `ext.methods2`, and it will then be published like any other
+  metric.
+- Comments across `conf/` now carry only what the code cannot state. Removed were a
+  published-layout tree that contradicted the block below it, descriptions of output
+  files that `docs/output.md` owns, restatements of the rename each `saveAs` performs,
+  superseded `ext.args` kept as history, and a claim that the raw gene classification
+  table holds virus labels only, which it does not. Kept were tool quirks, thresholds
+  with a reason, and resource numbers a failure justified.
+- Removed an empty `process { }` block in `conf/metagear/genes.config` left behind when
+  the MSP blocks moved out. It made Nextflow warn `Unknown config attribute 'process'`
+  on every run.
+- `COVERM_CONTIG_BATCH` is removed. Batching moved into `ABUNDANCE` itself, which splits
+  each label's BAMs with `collate(params.files_batch_size)`, and the process had been an
+  unused include since `d72ff74` with its own hardcoded batch size of 50.
+
 ## v26.09 - [2026-09-01]
 
 First release of the integrated microbiome pipeline. This is a major version and

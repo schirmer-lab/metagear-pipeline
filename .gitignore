@@ -21,3 +21,4 @@ metagear_user.config
 
 # Local scratch — verification scripts, ad-hoc results, handoff notes
 scratch/
+.scratch/

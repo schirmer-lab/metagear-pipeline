@@ -204,7 +204,7 @@ workflow VIRUS {
         ch_abundance_input = reads.combine( ch_all_sequences )
                     .map { meta_reads, reads, meta_sequences, sequences -> [ meta_reads + [label: meta_sequences.id], reads, sequences ] }
 
-        ABUNDANCE ( ch_abundance_input, 'contig', file("$projectDir/assets/empty.txt") )
+        ABUNDANCE ( ch_abundance_input, 'contig', file("$projectDir/assets/empty.txt"), null )
         ch_versions =  ch_versions.mix( ABUNDANCE.out.versions )
 
         virus_representative_proteins = FIND_REPRESENTATIVES.out.representative_proteins.filter { meta, _ -> meta.id == 'virus.genes' }.map { it[1] }

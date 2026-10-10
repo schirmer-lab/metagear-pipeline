@@ -1,9 +1,8 @@
 include { BWA_INDEX } from "$projectDir/modules/nf-core/bwa/index"
+include { BWA_INDEX_CHECK } from "$projectDir/modules/local/bwa/check_index"
 
 include { COVERM_MAKE } from "$projectDir/modules/local/coverm/make"
-include { COVERM_CONTIG_BATCH; COVERM_CONTIG_MERGE } from "$projectDir/modules/local/coverm/contig"
-
-include { COVERM_CONTIG } from "$projectDir/modules/local/coverm/contig"
+include { COVERM_CONTIG; COVERM_CONTIG_MERGE } from "$projectDir/modules/local/coverm/contig"
 include { COVERM_GENOME } from "$projectDir/modules/local/coverm/genome"
 
 
@@ -15,6 +14,9 @@ workflow ABUNDANCE {
         genome_definition    // path: contig→genome TSV consumed when mode == 'genome'.
                              // In contig mode pass a placeholder (e.g.
                              // file("$projectDir/assets/empty.txt")); it is never read.
+        existing_index       // directory holding a bwa index for the catalog, or null to
+                             // build one. Built for a single catalog: with several, the
+                             // check below fails for the ones it does not match.
 
     main:
 
@@ -23,12 +25,21 @@ workflow ABUNDANCE {
                         .map { meta, reads, catalog -> [ [id: meta.label, src: catalog.getName()], catalog ] }
                         .unique()
 
-        BWA_INDEX ( ch_catalogs )
+        if ( existing_index ) {
+            BWA_INDEX_CHECK ( ch_catalogs.map { meta, catalog ->
+                                  [ meta, file(existing_index, checkIfExists: true), catalog ] } )
+            ch_index = BWA_INDEX_CHECK.out.index
+            ch_index_versions = Channel.empty()
+        } else {
+            BWA_INDEX ( ch_catalogs )
+            ch_index = BWA_INDEX.out.index
+            ch_index_versions = BWA_INDEX.out.versions
+        }
 
         // Combine back the index with reads and catalog for abundance estimation
         ch_reads_with_index = reads_with_sequences
                         .map { meta, reads, catalog -> [ [id: meta.label, src: catalog.getName()], meta, reads ] }
-                        .combine( BWA_INDEX.out.index, by: 0 )
+                        .combine( ch_index, by: 0 )
                         .map { src, meta, reads, index -> [ meta, reads, index ] }
 
         COVERM_MAKE ( ch_reads_with_index, true )
@@ -50,56 +61,45 @@ workflow ABUNDANCE {
                                         }
                                 }
 
-        // Branch on mode. The contig arm is byte-identical to the pre-mode flow
-        // (same process, same input channel) so existing genes /
-        // virus / msp -resume runs cache-hit.
         if ( mode == 'genome' ) {
             // Attach the cohort-global contig→genome definition to every batch.
             // `combine` against a value/queue channel of one item broadcasts.
             COVERM_GENOME ( ch_coverm_contig.combine( genome_definition ) )
-            ch_abund_count = COVERM_GENOME.out.abundance_count
-            ch_abund_rpkm  = COVERM_GENOME.out.abundance_rpkm
-            ch_abund_tpm   = COVERM_GENOME.out.abundance_tpm
+            ch_abundance = COVERM_GENOME.out.abundance
             ch_abund_versions = COVERM_GENOME.out.versions
         } else {
             COVERM_CONTIG ( ch_coverm_contig )
-            ch_abund_count = COVERM_CONTIG.out.abundance_count
-            ch_abund_rpkm  = COVERM_CONTIG.out.abundance_rpkm
-            ch_abund_tpm   = COVERM_CONTIG.out.abundance_tpm
+            ch_abundance = COVERM_CONTIG.out.abundance
             ch_abund_versions = COVERM_CONTIG.out.versions
         }
 
-        // helper to prepare abundance channels -> [ [id: label_suffix], [files...] ]
-        def prepare_merge_channels = { suffix, ch ->
-            ch
-                .map { meta, file -> [ [id: meta.label], file ] }
-                .groupTuple (by: 0)
-                .map { tuple([id: "${it[0].id}_${suffix}"], it[1]) }
-        }
-
-        ch_coverm_merge = prepare_merge_channels( 'count', ch_abund_count )
-                            .concat( prepare_merge_channels( 'rpkm', ch_abund_rpkm ) )
-                            .concat( prepare_merge_channels( 'tpm', ch_abund_tpm ) )
-
+        // One merge per label and metric, the metric taken from the file name.
+        ch_coverm_merge = ch_abundance
+                            .transpose()
+                            .map { meta, tsv ->
+                                def metric = ( tsv.name =~ /\.abundance_(.+)\.tsv$/ )[0][1]
+                                [ [id: "${meta.label}_${metric}"], tsv ]
+                            }
+                            .groupTuple (by: 0)
 
         COVERM_CONTIG_MERGE ( ch_coverm_merge )
 
-        // // split merged abundance into separate channels by suffix (avoid AST/into issues)
-        ch_tpm   = COVERM_CONTIG_MERGE.out.abundance_merged.filter { it[0].id.endsWith('_tpm') }
-        ch_rpkm  = COVERM_CONTIG_MERGE.out.abundance_merged.filter { it[0].id.endsWith('_rpkm') }
-        ch_count = COVERM_CONTIG_MERGE.out.abundance_merged.filter { it[0].id.endsWith('_count') }
+        def merged_metric = { metric ->
+            COVERM_CONTIG_MERGE.out.abundance_merged.filter { it[0].id.endsWith("_${metric}") }
+        }
 
         // summary channel versions
         ch_versions = COVERM_MAKE.out.versions
                         .mix(ch_abund_versions)
-                        .mix(BWA_INDEX.out.versions)
+                        .mix(ch_index_versions)
         // ch_versions = Channel.empty()
 
     emit:
-        index = BWA_INDEX.out.index
+        index = ch_index
         alignments = COVERM_MAKE.out.alignments
-        tpm = ch_tpm
-        rpkm = ch_rpkm
-        count = ch_count
+        tpm = merged_metric('tpm')
+        rpkm = merged_metric('rpkm')
+        count = merged_metric('count')
+        covered_bases = merged_metric('covered_bases')
         versions = ch_versions
 }
