@@ -177,6 +177,44 @@ class RowValidator:
             validator.validate(row[validator._field_name])
 
 
+# The column whose value must be unique across rows, per input type. It is the one
+# the pipeline groups a sample's files by, so two rows sharing it are two samples
+# wearing one name: every workflow would then analyse whichever row it saw first and
+# silently ignore the other. Rows are one sample each; a sample split over several
+# lanes has to be concatenated before it reaches the pipeline.
+ROW_KEYS = {
+    INPUT_TYPES.READS: "sample",
+    INPUT_TYPES.CONTIG_READS: "sample",
+    INPUT_TYPES.CONTIG: "sample",
+    INPUT_TYPES.BLAST_SEQUENCES: "analysis",
+    # grouped_reads keys on tag, which is what the pipeline renames files by; the
+    # same sample legitimately appears under several tags.
+    INPUT_TYPES.GROUPED_READS: "tag",
+}
+
+
+def check_unique_rows(rows, validation_type):
+    key = ROW_KEYS.get(validation_type)
+    if key is None:
+        return
+
+    seen = {}
+    for number, row in enumerate(rows, start=2):
+        value = (row.get(key) or "").strip()
+        if value and not value.startswith("#"):
+            seen.setdefault(value, []).append(number)
+
+    repeated = {value: lines for value, lines in seen.items() if len(lines) > 1}
+    if repeated:
+        for value, lines in sorted(repeated.items()):
+            logger.critical(
+                f"{key} '{value}' appears {len(lines)} times (lines "
+                f"{', '.join(str(line) for line in lines)}). Every row must be one "
+                f"{key}; concatenate files split over several lanes or runs first."
+            )
+        sys.exit(1)
+
+
 def read_head(handle, num_lines=10):
     """Read the specified number of lines from the current position in the file."""
     lines = []
@@ -292,12 +330,16 @@ def check_input(file_in, validation_type, file_out):
             )
             sys.exit(1)
         # Validate each row.
+        rows = []
         for i, row in enumerate(reader):
             try:
                 row_validator.validate(row)
             except AssertionError as error:
                 logger.critical(f"{str(error)} On line {i + 2}.")
                 sys.exit(1)
+            rows.append(row)
+
+        check_unique_rows(rows, validation_type)
 
     # Copy file if there are not error in validation
     shutil.copy(file_in, file_out)
