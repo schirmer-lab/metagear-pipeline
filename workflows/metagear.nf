@@ -39,8 +39,8 @@ workflow METAGEAR {
             ch_versions = SETUP.out.versions
         }
 
-        // Named rather than matched on "qc_": a typo should be an error, not a run
-        // that quietly picks up the other assay's databases.
+        // Named rather than matched on "qc_", so a mistyped qc_* runs nothing instead of
+        // running QC against whichever assay's databases the merged config happened to carry.
         if ( params.workflow in ["qc_dna", "qc_rna"] ) {
             init = QUALITY_CONTROL_INIT ( params.workflow - "qc_" )
             QUALITY_CONTROL ( init.validated_input, init.kneaddata_refdb )
