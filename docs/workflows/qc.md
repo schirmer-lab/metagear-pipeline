@@ -21,6 +21,23 @@ The assay is declared, not detected. By the time a library is a FASTQ both are D
 
 `qc_dna` and `qc_rna` still work as commands in `metagear`; they are aliases for `qc --assay dna` and `qc --assay rna`.
 
+### Working it out from the reads
+
+Running `metagear qc` without `--assay` makes the wrapper look at the first few samples and decide. What it measures is not rRNA content -- that would mean aligning against the very reference the answer selects -- but how **concentrated** the library is: the share of reads taken by the ten commonest sequences. An RNA library is dominated by a handful of transcripts; a shotgun DNA library is not, even when nearly all of it is host.
+
+On this lab's own cohorts (12 DNA samples and 12 RNA samples, 300k reads each):
+
+|     | top-10 read share |
+| --- | ----------------- |
+| DNA | 0.016% - 0.078%   |
+| RNA | 3.0% - 28.4%      |
+
+A gap of about 39x, and the closest DNA sample to the boundary was one that was 98.8% human. The thresholds sit either side of that gap with an order of magnitude of room on both sides.
+
+**A reading between them stops the run.** So does a sheet whose samples disagree with each other. Guessing would produce a run that finishes, reports normally, and filtered against the wrong references, which is the one failure nobody would catch. Pass `--assay` to skip the check entirely; it costs about two seconds either way.
+
+This is a convenience, not a classifier. It has been measured on shotgun DNA and total RNA from two cohorts; an amplicon library, a single-isolate genome at high depth or a heavily over-amplified low-biomass library are all concentrated for reasons that have nothing to do with being RNA, and none of those has been tested.
+
 ## Inputs
 
 - `--input` — CSV samplesheet (`sample,fastq_1,fastq_2`). One row per sample; see [usage.md](../usage.md) for the contract.
