@@ -323,7 +323,7 @@
         {
             "@id": "https://orcid.org/0000-0002-0699-4769",
             "@type": "Person",
-            "affiliation": "Technische Universit\u00e4t M\u00fcnchen",
+            "affiliation": "Technische Universität München",
             "email": "emilio.rios@tum.de",
             "name": "Emilio Rios",
             "url": "https://github.com/gariem"
@@ -331,7 +331,7 @@
         {
             "@id": "https://orcid.org/0000-0001-5159-1187",
             "@type": "Person",
-            "affiliation": "Technische Universit\u00e4t M\u00fcnchen",
+            "affiliation": "Technische Universität München",
             "name": "Shen Jin"
         }
     ]
