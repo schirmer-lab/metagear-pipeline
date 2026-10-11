@@ -40,36 +40,24 @@
                     "group": "utility"
                 },
                 {
-                    "name": "qc_dna",
-                    "description": "Quality Control for DNA",
+                    "name": "qc",
+                    "description": "Quality Control",
                     "parameters": [
                         {
                             "name": "input",
                             "required": true,
                             "description": "Input .csv file for quality control"
+                        },
+                        {
+                            "name": "assay",
+                            "required": false,
+                            "default": "dna",
+                            "description": "Which library is being cleaned: dna reads qc_dna_refdb, rna reads qc_rna_refdb. Declared rather than detected -- both are DNA sequence by the time they are FASTQ."
                         },
                         {
                             "name": "qc_dna_refdb",
                             "required": false,
                             "description": "Reference database(s) for decontamination (DIR, repeatable). Usually one host genome. Falls back to kneaddata_refdb."
-                        },
-                        {
-                            "name": "qc_max_plot_samples",
-                            "required": false,
-                            "default": 100,
-                            "description": "Largest cohort for which the report draws the per-sample read-fate bar graph. Beyond it only the table is written."
-                        }
-                    ],
-                    "group": "workflow"
-                },
-                {
-                    "name": "qc_rna",
-                    "description": "Quality Control for RNA",
-                    "parameters": [
-                        {
-                            "name": "input",
-                            "required": true,
-                            "description": "Input .csv file for quality control"
                         },
                         {
                             "name": "qc_rna_refdb",

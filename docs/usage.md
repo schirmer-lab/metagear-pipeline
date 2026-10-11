@@ -56,12 +56,12 @@ TREATMENT_REP3,AEG588A6_S6_L003_R1_001.fastq.gz,
 
 Mate files may be named `_1`/`_2`, `_R1`/`_R2` or `_R1_001`/`_R2_001`: which file is which mate comes from the `fastq_1` and `fastq_2` columns, not from the file name.
 
-| Column    | Description                                                                                                                                                                            |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sample`  | Custom sample name, unique across the samplesheet. Spaces in sample names are automatically converted to underscores (`_`). |
-| `biome`   | _Optional._ Sits between `sample` and `fastq_1`. Selects the SemiBin2 pretrained model used by `classification`. Ignored by every other workflow. See below.                           |
-| `fastq_1` | Full path to FastQ file for Illumina short reads 1. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                                             |
-| `fastq_2` | Full path to FastQ file for Illumina short reads 2. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                                             |
+| Column    | Description                                                                                                                                                  |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `sample`  | Custom sample name, unique across the samplesheet. Spaces in sample names are automatically converted to underscores (`_`).                                  |
+| `biome`   | _Optional._ Sits between `sample` and `fastq_1`. Selects the SemiBin2 pretrained model used by `classification`. Ignored by every other workflow. See below. |
+| `fastq_1` | Full path to FastQ file for Illumina short reads 1. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                   |
+| `fastq_2` | Full path to FastQ file for Illumina short reads 2. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                   |
 
 Only `sample` and `fastq_1` are required.
 
@@ -87,7 +87,7 @@ The pipeline bundles ten entry-point workflows; the active one is chosen at run 
 | `--workflow`         | Purpose                                                                   | Builds on        |
 | -------------------- | ------------------------------------------------------------------------- | ---------------- |
 | `download_databases` | One-time reference database install                                       | —                |
-| `qc_dna`, `qc_rna`   | Adapter/quality trimming and host (and rRNA, for RNA) decontamination     | —                |
+| `qc`                 | Adapter/quality trimming and decontamination; `--assay dna` or `rna`      | —                |
 | `microbial_profiles` | Taxonomic and functional profiling (MetaPhlAn 4 + HUMAnN 3)               | QC'd reads       |
 | `genes`              | De novo assembly, gene calling, cohort gene and protein catalogs          | QC'd reads       |
 | `virus`              | Viral/plasmid detection, clustering, annotation, host prediction, AMGs    | QC'd reads       |
@@ -103,7 +103,7 @@ See the [workflows guide](workflows/index.md) for per-workflow descriptions, inp
 The typical command for running the pipeline is as follows:
 
 ```bash
-nextflow run schirmer-lab/metagear-pipeline --workflow qc_dna --input ./samplesheet.csv --outdir ./results -profile docker
+nextflow run schirmer-lab/metagear-pipeline --workflow qc --input ./samplesheet.csv --outdir ./results -profile docker
 ```
 
 This will launch the pipeline with the `docker` configuration profile. See below for more information about profiles.

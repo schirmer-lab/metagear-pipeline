@@ -45,6 +45,19 @@
                     "type": "string",
                     "description": "Entry point (workflow)."
                 },
+                "assay": {
+                    "type": "string",
+                    "default": "dna",
+                    "enum": ["dna", "rna"],
+                    "description": "Which library qc is cleaning.",
+                    "help_text": "dna filters against qc_dna_refdb, rna against qc_rna_refdb. Declared rather than detected: an RNA library is DNA sequence by the time it is a FASTQ, and separating them means aligning against the reference the answer would choose."
+                },
+                "run_label": {
+                    "type": "string",
+                    "hidden": true,
+                    "description": "Prefix for this run's output files.",
+                    "help_text": "Derived, not set by hand: the workflow name, except that qc uses qc_dna or qc_rna so one dataset cleaned both ways keeps both results."
+                },
                 "kneaddata_refdb": {
                     "type": "array",
                     "description": "Database(s) to use for KneadData."

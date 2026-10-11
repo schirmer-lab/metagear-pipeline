@@ -39,11 +39,16 @@ workflow METAGEAR {
             ch_versions = SETUP.out.versions
         }
 
-        // Named rather than matched on "qc_", so a mistyped qc_* runs nothing instead of
-        // running QC against whichever assay's databases the merged config happened to carry.
-        if ( params.workflow in ["qc_dna", "qc_rna"] ) {
-            init = QUALITY_CONTROL_INIT ( params.workflow - "qc_" )
-            QUALITY_CONTROL ( init.validated_input, init.kneaddata_refdb )
+        // One workflow, with the library it is cleaning as a parameter. The two differ only in
+        // which references they filter against, and the assay still picks a distinct parameter
+        // name (qc_dna_refdb / qc_rna_refdb) rather than one shared key: the wrapper merges the
+        // user's metagear.config last, so a shared name would quietly win over either.
+        if ( params.workflow == "qc" ) {
+            if ( !( params.assay in ["dna", "rna"] ) ) {
+                error "qc: --assay must be dna or rna, not '${params.assay}'."
+            }
+            init = QUALITY_CONTROL_INIT ( params.assay )
+            QUALITY_CONTROL ( init.validated_input, init.kneaddata_refdb, init.samplesheet )
             ch_versions = QUALITY_CONTROL.out.versions
 
             ch_summary_data = QUALITY_CONTROL.out.fastqc_zip_pre.collect{it[1]}.ifEmpty([])
