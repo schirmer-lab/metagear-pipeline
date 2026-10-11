@@ -25,14 +25,14 @@ The assay is declared, not detected. By the time a library is a FASTQ both are D
 
 Running `metagear qc` without `--assay` makes the wrapper look at the first few samples and decide. What it measures is not rRNA content -- that would mean aligning against the very reference the answer selects -- but how **concentrated** the library is: the share of reads taken by the ten commonest sequences. An RNA library is dominated by a handful of transcripts; a shotgun DNA library is not, even when nearly all of it is host.
 
-On this lab's own cohorts (12 DNA samples and 12 RNA samples, 300k reads each):
+On this lab's own cohorts, measured with exactly the settings the detector uses (12 DNA samples and 12 RNA samples, 200k reads each after skipping the first 100k):
 
 |     | top-10 read share |
 | --- | ----------------- |
-| DNA | 0.016% - 0.078%   |
-| RNA | 3.0% - 28.4%      |
+| DNA | 0.021% - 0.069%   |
+| RNA | 3.02% - 28.3%     |
 
-A gap of about 39x, and the closest DNA sample to the boundary was one that was 98.8% human. The thresholds sit either side of that gap with an order of magnitude of room on both sides.
+A gap of 43x. The closest DNA sample to it was `MUNICH-001-518_Vagina`, which was 67% host, so host content alone does not push a DNA library towards the RNA range. The thresholds are 0.2% and 1.0%, about 3x clear of the nearest measured sample on each side.
 
 **A reading between them stops the run.** So does a sheet whose samples disagree with each other. Guessing would produce a run that finishes, reports normally, and filtered against the wrong references, which is the one failure nobody would catch. Pass `--assay` to skip the check entirely; it costs about two seconds either way.
 
