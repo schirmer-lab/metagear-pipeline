@@ -4,7 +4,7 @@ include { INPUT_CHECK } from "$projectDir/subworkflows/local/common/input_check"
 
 include { FASTQC as FASTQC_RAW; FASTQC as FASTQC_CLEAN} from "$projectDir/modules/nf-core/fastqc/main"
 include { TRIMGALORE } from "$projectDir/modules/nf-core/trimgalore/main"
-include { KNEADDATA; PARSE_KNEADDATA; SUMMARY_KNEADDATA } from "$projectDir/modules/local/kneaddata/main"
+include { KNEADDATA; PARSE_KNEADDATA; SUMMARY_KNEADDATA; CLEAN_SAMPLESHEET } from "$projectDir/modules/local/kneaddata/main"
 
 // Per-assay name first, so qc_dna and qc_rna can both stay configured; kneaddata_refdb
 // remains the fallback for installations that already set it.
@@ -35,6 +35,7 @@ workflow QUALITY_CONTROL_INIT {
     emit:
         validated_input = INPUT_CHECK.out.validated_input
         kneaddata_refdb = kneaddata_refdb
+        samplesheet = INPUT_CHECK.out.csv
         versions = INPUT_CHECK.out.versions
 
 }
@@ -45,6 +46,7 @@ workflow QUALITY_CONTROL {
     take:
         validated_input // meta, reads
         kneaddata_refdb
+        samplesheet     // the validated input sheet, carried into the one QC writes
 
     main:
         // FastQC, quality trimming, adapter removal, and host decontamination
@@ -70,12 +72,22 @@ workflow QUALITY_CONTROL {
 
         FASTQC_CLEAN ( ch_fastqc_clean )
 
+        // Names rather than staged paths: the sheet points at where they are published, and
+        // collectFile keeps it off the command line for a cohort of any size.
+        KNEADDATA.out.reads
+            .map { meta, reads -> "${meta.id}\t${reads[0].name}\t${reads[1].name}\n" }
+            .collectFile ( name: "clean_pairs.tsv", sort: true )
+            .set { ch_clean_pairs }
+
+        CLEAN_SAMPLESHEET ( samplesheet, ch_clean_pairs )
+
         ch_versions_qc = FASTQC_RAW.out.versions
                             .mix(TRIMGALORE.out.versions)
                             .mix(KNEADDATA.out.versions)
                             .mix(FASTQC_CLEAN.out.versions)
                             .mix(PARSE_KNEADDATA.out.versions)
                             .mix(SUMMARY_KNEADDATA.out.versions)
+                            .mix(CLEAN_SAMPLESHEET.out.versions)
 
     emit:
         fastqc_zip_pre = FASTQC_RAW.out.zip
@@ -83,6 +95,7 @@ workflow QUALITY_CONTROL {
         trimmed = TRIMGALORE.out.reads
         clean = KNEADDATA.out.reads
         read_counts = SUMMARY_KNEADDATA.out.read_counts
+        samplesheet = CLEAN_SAMPLESHEET.out.samplesheet
         summary_sections = SUMMARY_KNEADDATA.out.mqc
         versions = ch_versions_qc
 }

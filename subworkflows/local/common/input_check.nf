@@ -53,6 +53,7 @@ workflow INPUT_CHECK {
 
     emit:
         validated_input = validated_input  // channel: [ val(meta), [ etc ] ]
+        csv = SAMPLESHEET_CHECK.out.csv    // the validated sheet, for a workflow that writes one
         versions = SAMPLESHEET_CHECK.out.versions.mix(RENAME_FILES.out.versions) // channel: [ versions.yml ]
 }
 

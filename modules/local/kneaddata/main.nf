@@ -104,7 +104,7 @@ process SUMMARY_KNEADDATA {
     path read_counts
 
     output:
-    path "${params.workflow}_read_counts.tsv", emit: read_counts
+    path "${params.run_label}_read_counts.tsv", emit: read_counts
     path "*_mqc.*"                           , emit: mqc
     path "versions.yml"                      , emit: versions
 
@@ -117,7 +117,7 @@ process SUMMARY_KNEADDATA {
     """
     kneaddata_qc_report.py \\
         ${read_counts} \\
-        --prefix ${params.workflow} \\
+        --prefix ${params.run_label} \\
         ${args}
 
     cat <<-END_VERSIONS > versions.yml
@@ -156,6 +156,45 @@ process KNEADDATA_DATABASE {
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         kneaddata: \$(kneaddata --version | sed -e "s/kneaddata v//g")
+    END_VERSIONS
+    """
+}
+
+// The samplesheet for whatever runs next. QC's real output is a set of clean FASTQs, and the
+// step after it has always been writing out their paths by hand -- which is where a typo
+// silently reprocesses the raw reads.
+process CLEAN_SAMPLESHEET {
+    label 'process_single'
+
+    conda "conda-forge::python=3.10"
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://github.com/schirmer-lab/singularity-images/releases/download/23.11.22/python_3.10.sif' :
+        'docker.io/raphsoft/python_base:3.10-R4' }"
+
+    input:
+    path samplesheet
+    path pairs
+
+    output:
+    path "${params.run_label}_samplesheet.csv", emit: samplesheet
+    path "versions.yml"                      , emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    // Absolute, because this sheet is meant to be handed to a run started from somewhere else.
+    def reads_dir = "${file(params.outdir).toAbsolutePath()}/kneaddata"
+    """
+    clean_samplesheet.py \\
+        --samplesheet ${samplesheet} \\
+        --pairs ${pairs} \\
+        --reads-dir ${reads_dir} \\
+        --output ${params.run_label}_samplesheet.csv
+
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        python: \$(python --version | sed 's/Python //g')
     END_VERSIONS
     """
 }
