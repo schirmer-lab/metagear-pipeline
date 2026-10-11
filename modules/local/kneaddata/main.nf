@@ -50,7 +50,7 @@ process KNEADDATA {
 
 process PARSE_KNEADDATA {
     tag "$meta.id"
-    label 'process_small'
+    label 'process_single'
 
     conda "conda-forge::python=3.10"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
@@ -84,7 +84,7 @@ process PARSE_KNEADDATA {
 }
 
 process SUMMARY_KNEADDATA {
-    label 'process_small'
+    label 'process_single'
 
     conda "conda-forge::python=3.10"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
