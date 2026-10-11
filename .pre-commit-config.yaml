@@ -17,6 +17,9 @@ repos:
               subworkflows/(?!local/).*|
               .*\.snap$
           )$
+      # Nextflow puts bin/ on PATH and calls these by name, so a script committed
+      # without its executable bit fails the task with exit 126 at run time.
+      - id: check-shebang-scripts-are-executable
       - id: end-of-file-fixer
         exclude: |
           (?x)^(
