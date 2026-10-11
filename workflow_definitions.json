@@ -37,7 +37,7 @@
                             "description": "Databases to install. Accepted values: all | genes | virus | contig_classification | mmseqs_taxonomy | structures. Multiple values comma-separated. Default: all. The `contig_classification` group bundles CheckM2 + the MMseqs2 GTDB taxonomy DB; use `mmseqs_taxonomy` to pull only the latter. The `structures` group installs the PHOLD structural DB (~7.7 GB) used by the structures workflow."
                         }
                     ],
-                    "group": "setup"
+                    "group": "utility"
                 },
                 {
                     "name": "qc_dna",
