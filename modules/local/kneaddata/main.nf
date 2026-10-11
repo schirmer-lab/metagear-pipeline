@@ -37,7 +37,16 @@ process KNEADDATA {
         --output-prefix ${prefix} \\
         --output .
 
-    gzip -f *paired_*.fastq
+    # Named rather than globbed: KneadData keeps the contaminant reads it pulled out, and
+    # *paired_* matches those too. Compressing them cost two thirds of this step on a 64 M
+    # pair sample and the scratch directory then threw them away. The container has no pigz,
+    # so the two that are published go in parallel instead.
+    gzip -f ${prefix}_paired_1.fastq &
+    gz1=\$!
+    gzip -f ${prefix}_paired_2.fastq &
+    gz2=\$!
+    wait \$gz1
+    wait \$gz2
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
