@@ -104,7 +104,7 @@ nextflow run schirmer-lab/metagear-pipeline -profile singularity \
   -c my.config   # sets params.qc_dna_refdb = ["/data/metagear/hg38_bt2"]
 ```
 
-The run writes `qc/qc_dna_samplesheet.csv` pointing at the clean reads, with every column of the input sheet preserved. Feed that straight to `microbial_profiles`, `genes` or `virus` -- or import it into lab-tools as a dataset.
+The run writes `qc/qc_dna_samplesheet.csv` pointing at the clean reads, with every column of the input sheet preserved. Feed that straight to `microbial_profiles`, `genes` or `virus`.
 
 Output files are prefixed `qc_dna_` or `qc_rna_` rather than `qc_`, so one dataset cleaned both ways keeps both sets of results.
 
