@@ -9,14 +9,14 @@ The `schirmer-lab/metagear-pipeline` pipeline groups its work into ten entry-poi
 | [microbial_profiles](microbial_profiles.md) | Reference-based taxonomic and functional profiling                                  | Clean reads             | MetaPhlAn4 species table + HUMAnN3 gene-family and pathway tables  | Medium–High    |
 | [genes](genes.md)                           | De novo assembly, gene calling, gene catalog, MSP analysis                          | Clean reads             | Gene/protein representative catalogs, abundance matrices, MSPs     | High           |
 | [virus](virus.md)                           | Viral and plasmid detection, clustering, annotation, host prediction, AMG discovery | Clean reads             | Viral and plasmid catalogs, AMGs, iPHoP host predictions           | Very high      |
-| `classification`                            | Viral/plasmid partition, bacterial binning, per-contig classification               | Clean reads             | Per-contig classification TSV, per-sample MAG bins                 | Very high      |
-| `mag`                                       | Cohort MAG catalog — dRep, GTDB-Tk taxonomy, MAG×sample abundance                   | `classification` output | MAG catalog, GTDB-Tk lineages, abundance matrices                  | High           |
-| `msp`                                       | MetaSpecies Pangenomes — MSPminer co-abundance clustering, GTDB-Tk, MetaPhlAn       | `genes` output          | MSP membership, taxonomy, MSP×sample abundance                     | High           |
-| `structures`                                | Protein structural-homology annotation via PHOLD (ProstT5 → Foldseek)               | `genes`/`virus` output  | Per-representative structural annotations                          | High (GPU)     |
+| [classification](classification.md)         | Viral/plasmid partition, bacterial binning, per-contig classification               | Clean reads             | Per-contig classification TSV, per-sample MAG bins                 | Very high      |
+| [mag](mag.md)                               | Cohort MAG catalog — dRep, GTDB-Tk taxonomy, MAG×sample abundance                   | `classification` output | MAG catalog, GTDB-Tk lineages, abundance matrices                  | High           |
+| [msp](msp.md)                               | MetaSpecies Pangenomes — MSPminer co-abundance clustering, GTDB-Tk, MetaPhlAn       | `genes` output          | MSP membership, taxonomy, MSP×sample abundance                     | High           |
+| [structures](structures.md)                 | Protein structural-homology annotation via PHOLD (ProstT5 → Foldseek)               | `genes`/`virus` output  | Per-representative structural annotations                          | High (GPU)     |
 | `easy_map`                                  | Map reads against a catalog supplied by the caller. No assembly, no gene calling    | Clean reads + a FASTA   | Per-sample count, covered bases, RPKM and TPM against that catalog | Medium         |
 
 > [!NOTE]
-> Dedicated pages for `classification`, `mag`, `msp`, `structures`, and `easy_map` are still being written. Until they land, `metagear <workflow> --help` and `workflow_definitions.json` are the authoritative parameter references, and [output.md](../output.md) documents what each produces.
+> A dedicated page for `easy_map` is still being written. Until it lands, `metagear easy_map --help` and `workflow_definitions.json` are the authoritative parameter references, and [output.md](../output.md) documents what it produces.
 
 ## Recommended order
 
