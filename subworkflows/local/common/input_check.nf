@@ -48,26 +48,23 @@ workflow INPUT_CHECK {
 
         RENAME_FILES.out.renamed_files
             .groupTuple(by: 0)
-            .map{ it ->
-                    def indexes = it[1]
-                    def reads = it[2]
-                    ordered_reads = []
-
-                    for (int i = 0; i < indexes.size(); i++) {
-                        for (int j = 0; j < reads.size(); j++) {
-                            if (indexes[j] == i) {
-                                ordered_reads.add(reads[j])
-                            }
-                        }
-                    }
-
-                    return [ it[0], ordered_reads ]
-            }
+            .map { meta, mate_indexes, files -> [ meta, group_by_mate(mate_indexes, files).flatten() ] }
             .set { validated_input }
 
     emit:
         validated_input = validated_input  // channel: [ val(meta), [ etc ] ]
+        csv = SAMPLESHEET_CHECK.out.csv    // the validated sheet, for a workflow that writes one
         versions = SAMPLESHEET_CHECK.out.versions.mix(RENAME_FILES.out.versions) // channel: [ versions.yml ]
+}
+
+// Order one sample's files by mate (0 = fastq_1, 1 = fastq_2, ...). RENAME_FILES runs
+// once per file and groupTuple collects them in completion order, so the mate index
+// carried alongside each file is the only reliable way to tell them apart: reading it
+// off the file name instead used to drop reads named _R1.fastq.gz.
+def group_by_mate(List mate_indexes, List files) {
+    def by_mate = [:]
+    mate_indexes.eachWithIndex { mate, i -> by_mate.get(mate, []) << files[i] }
+    return by_mate.keySet().sort().collect { by_mate[it].sort { a, b -> a.name <=> b.name } }
 }
 
 // Function to get list of [ meta, [ fastq_1, fastq_2 ] ]

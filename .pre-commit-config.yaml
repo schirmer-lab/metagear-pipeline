@@ -17,6 +17,21 @@ repos:
               subworkflows/(?!local/).*|
               .*\.snap$
           )$
+      # Nextflow puts bin/ on PATH and calls these by name, so a script committed
+      # without its executable bit fails the task with exit 126 at run time.
+      #
+      # Excluded: files whose shebang names the interpreter that will be handed the
+      # file, rather than asking to be run as a program.
+      #   main.nf            `nextflow run` reads it; nf-core ships it non-executable
+      #   *.sbatch.in        submitted with `sbatch`, which does not need the bit
+      #   run_phold_*.sh.in  a template read by structures.nf and substituted; the
+      #                      rendered copy is invoked as `bash run_phold_predict.sh`
+      - id: check-shebang-scripts-are-executable
+        exclude: |
+          (?x)^(
+              main\.nf$|
+              assets/structures/offsite/.*\.in$
+          )$
       - id: end-of-file-fixer
         exclude: |
           (?x)^(

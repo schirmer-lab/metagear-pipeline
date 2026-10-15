@@ -1,12 +1,11 @@
 # Workflows
 
-The `schirmer-lab/metagear-pipeline` pipeline groups its work into eleven entry-point workflows, selected at run time with the `--workflow` parameter:
+The `schirmer-lab/metagear-pipeline` pipeline groups its work into ten entry-point workflows, selected at run time with the `--workflow` parameter:
 
 | Workflow                                    | Purpose                                                                             | Input                   | Output                                                             | Cost           |
 | ------------------------------------------- | ----------------------------------------------------------------------------------- | ----------------------- | ------------------------------------------------------------------ | -------------- |
 | [download_databases](download_databases.md) | One-time install of all reference databases                                         | —                       | KneadData, MetaPhlAn4, HUMAnN3, GTDB-Tk, plus viral databases      | Disk + network |
-| [qc_dna](qc_dna.md)                         | Adapter/quality trimming and host decontamination of DNA reads                      | Raw DNA FASTQ           | Clean paired reads + QC report                                     | Medium         |
-| [qc_rna](qc_rna.md)                         | Same flow as `qc_dna`; intended for metatranscriptomic input                        | Raw RNA FASTQ           | Clean paired reads + QC report                                     | Medium         |
+| [qc](qc.md)                                 | Adapter/quality trimming and decontamination, `--assay dna` or `rna`                | Raw FASTQ               | Clean paired reads, a samplesheet for them, and a QC report        | Medium         |
 | [microbial_profiles](microbial_profiles.md) | Reference-based taxonomic and functional profiling                                  | Clean reads             | MetaPhlAn4 species table + HUMAnN3 gene-family and pathway tables  | Medium–High    |
 | [genes](genes.md)                           | De novo assembly, gene calling, gene catalog, MSP analysis                          | Clean reads             | Gene/protein representative catalogs, abundance matrices, MSPs     | High           |
 | [virus](virus.md)                           | Viral and plasmid detection, clustering, annotation, host prediction, AMG discovery | Clean reads             | Viral and plasmid catalogs, AMGs, iPHoP host predictions           | Very high      |
@@ -32,7 +31,7 @@ nextflow run schirmer-lab/metagear-pipeline -profile docker \
 
 # 2. QC the raw reads
 nextflow run schirmer-lab/metagear-pipeline -profile docker \
-  --workflow qc_dna --input raw.csv --outdir qc/
+  --workflow qc --input raw.csv --outdir qc/
 
 # 3. Pick one or more analyses
 nextflow run schirmer-lab/metagear-pipeline -profile docker \

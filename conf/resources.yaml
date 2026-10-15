@@ -34,6 +34,12 @@ processes:
   BWA_INDEX_CHECK: { label: process_single }
   RENAME_FILES: { label: process_single }
 
+  # === Quality control ===
+  # Measured on the 2026-10-11 qc_dna run: 4 MRI samples, 4.6 M to 63.7 M pairs.
+  'FASTQC_RAW|FASTQC_CLEAN': { label: process_medium, cpus: 2, memory_gb: 16, time_h: 4, note: "FastQC threads over files, not within one, so a paired sample can never use more than 2 cores - all four tasks sat at 199% of the 6 requested. Peak RSS was 9.6 GB against the 36 GB the medium tier reserved." } # was 6 cpus / 36 GB
+  TRIMGALORE: { label: process_high, cpus: 12, memory_gb: 6, time_h: 4, note: "Cores are right: 1208% of 12, because the module gives cutadapt task.cpus-4 and the rest go to the pigz writers. Memory was the problem - 455 MB peak against 72 GB reserved, and it does not grow with the sample because trim_galore streams. Reserving 72 GB capped the node at 6 concurrent tasks on memory while half its cores sat idle." } # was 72 GB
+  KNEADDATA: { label: process_high, cpus: 12, memory_expr: "10.GB + 4.GB * Math.ceil([reads].flatten()*.size().sum() / 1e9)", time_h: 16, note: "Memory tracks input size: peak RSS over four measured samples fits 2.3 GB + 2.27 GB per GB of staged (gzipped) input, across 0.58-11.5 GB of input and 3.7-28.7 GB of RSS. This cohort spans 4.6 M to 187.7 M pairs, so a flat number is either wasteful at the bottom or tight at the top - 72 GB left only about 1.2x over the largest sample. The formula holds 1.9-3.9x across the range. Cores stay at 12 in spite of the trace, which reports 0.28-1.67 cores over those same four samples: on the one sample with both a trace and a KneadData log, 0.54 cores would put bowtie2 at 19000 pairs/s/core, about nineteen times what the tool does, while the 12 threads it was given give a plausible 862. The trace figure is not usable for sizing." } # was 72 GB flat
+
   # === Assembly ===
   MEGAHIT: { label: process_high, cpus: 10, memory_gb: 32, time_h: 16, note: "Measured across 25 assemblies on kch and 218 on CAMI: never above 9.6 cores. Memory raised rather than trimmed - a kch sample peaked at 23.8 GB against a 24 GB request. Under HyperQueue `mem` is a scheduling number with nothing enforcing it: an under-declared task does not get retried at double - it silently oversubscribes the node and the OOM killer picks a victim."} # was 72 GB
 

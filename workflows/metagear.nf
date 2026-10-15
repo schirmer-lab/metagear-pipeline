@@ -39,15 +39,21 @@ workflow METAGEAR {
             ch_versions = SETUP.out.versions
         }
 
-        // Quality Control handler
-        if ( params.workflow.startsWith("qc_") ) {
-            init = QUALITY_CONTROL_INIT ( )
-            QUALITY_CONTROL ( init.validated_input, init.kneaddata_refdb )
+        // One workflow, with the library it is cleaning as a parameter. The two differ only in
+        // which references they filter against, and the assay still picks a distinct parameter
+        // name (qc_dna_refdb / qc_rna_refdb) rather than one shared key: the wrapper merges the
+        // user's metagear.config last, so a shared name would quietly win over either.
+        if ( params.workflow == "qc" ) {
+            if ( !( params.assay in ["dna", "rna"] ) ) {
+                error "qc: --assay must be dna or rna, not '${params.assay}'."
+            }
+            init = QUALITY_CONTROL_INIT ( params.assay )
+            QUALITY_CONTROL ( init.validated_input, init.kneaddata_refdb, init.samplesheet )
             ch_versions = QUALITY_CONTROL.out.versions
 
             ch_summary_data = QUALITY_CONTROL.out.fastqc_zip_pre.collect{it[1]}.ifEmpty([])
                     .mix(QUALITY_CONTROL.out.fastqc_zip_post.collect{it[1]}.ifEmpty([]))
-                    .mix(QUALITY_CONTROL.out.summary_plot.collect{it}.ifEmpty([]))
+                    .mix(QUALITY_CONTROL.out.summary_sections.collect{it}.ifEmpty([]))
         }
 
         // Microbial profiles
