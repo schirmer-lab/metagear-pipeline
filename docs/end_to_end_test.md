@@ -144,8 +144,6 @@ A direct `nextflow run` of a workflow that reads a parameter the wrapper normall
 
 The eight reuse parameters (`contigs_dir`, `genes_dir`, `representative_genes`, `representative_proteins`, `representative_proteins_annotations`, `representative_genes_tpm`, `representative_genes_rpkm`, `representative_genes_count`) are declared in `nextflow.config` and `nextflow_schema.json` with the same `false` defaults that `conf/metagear/common.config` sets, so neither a direct run nor a wrapper run warns about them. The remaining per-workflow inputs and database parameters are still undeclared by design, so a direct run of `virus`, `classification`, `mag` or `msp` will warn about whichever of those it reads.
 
-One parameter warns in every run, wrapper included: `contigs`, read only in `subworkflows/local/common/assembly.nf` and declared nowhere. Its callers gate on `contigs_dir` one level up and call `ASSEMBLY` only when no contigs directory was given, so that block is a duplicate of a feature implemented above it.
-
 A second warning, `The operator 'first' is useless when applied to a value channel`, comes from the `.out.versions.first()` idiom used throughout the subworkflows. It is cosmetic and pipeline-wide.
 
 None of these affects the result. What decides pass or fail is the checks `tests/run_e2e.sh` prints at the end.
