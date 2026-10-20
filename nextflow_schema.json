@@ -73,6 +73,52 @@
                 "metaphlan_db": {
                     "type": "string",
                     "description": "Database to use for MetaPhlAn."
+                },
+                "contigs_dir": {
+                    "type": ["boolean", "string"],
+                    "description": "Directory of existing contigs to reuse instead of assembling.",
+                    "hidden": true
+                },
+                "genes_dir": {
+                    "type": ["boolean", "string"],
+                    "description": "Directory of existing called genes to reuse.",
+                    "hidden": true
+                },
+                "representative_genes": {
+                    "type": ["boolean", "string"],
+                    "description": "Existing representative gene catalogue to reuse.",
+                    "hidden": true
+                },
+                "representative_proteins": {
+                    "type": ["boolean", "string"],
+                    "description": "Existing representative protein catalogue to reuse.",
+                    "hidden": true
+                },
+                "representative_proteins_annotations": {
+                    "type": ["boolean", "string"],
+                    "description": "Functional annotations for representative proteins. Supplying them skips the annotation stage.",
+                    "hidden": true
+                },
+                "representative_genes_tpm": {
+                    "type": ["boolean", "string"],
+                    "description": "Existing TPM abundance matrix to reuse.",
+                    "hidden": true
+                },
+                "representative_genes_rpkm": {
+                    "type": ["boolean", "string"],
+                    "description": "Existing RPKM abundance matrix to reuse.",
+                    "hidden": true
+                },
+                "representative_genes_count": {
+                    "type": ["boolean", "string"],
+                    "description": "Existing count abundance matrix to reuse.",
+                    "hidden": true
+                },
+                "files_batch_size": {
+                    "type": "integer",
+                    "default": 50,
+                    "description": "Number of alignment files per abundance batch.",
+                    "help_text": "Abundance quantification splits per-sample alignments into fixed-size batches before merging. The metagear command line interface sets this; the default here is the same value, so the pipeline also runs without it."
                 }
             }
         },
