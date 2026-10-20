@@ -73,6 +73,12 @@
                 "metaphlan_db": {
                     "type": "string",
                     "description": "Database to use for MetaPhlAn."
+                },
+                "files_batch_size": {
+                    "type": "integer",
+                    "default": 50,
+                    "description": "Number of alignment files per abundance batch.",
+                    "help_text": "Abundance quantification splits per-sample alignments into fixed-size batches before merging. The metagear command line interface sets this; the default here is the same value, so the pipeline also runs without it."
                 }
             }
         },
