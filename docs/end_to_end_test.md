@@ -140,11 +140,13 @@ The exact count varies between runs on identical input: nine runs gave between 6
 
 ## The warnings a direct run prints
 
-A direct `nextflow run` of any workflow, including this profile, prints six `Access to undefined parameter` warnings: `contigs_dir`, `contigs`, `genes_dir`, `representative_genes`, `representative_proteins` and `representative_genes_tpm`. They are expected and harmless. Those parameters are supplied by the wrapper and are deliberately declared in neither `nextflow.config` nor the schema, as the comment in `nextflow.config` explains, because an undeclared parameter reads as null and null is the default every consumer relies on (`if ( params.contigs_dir )`). The branch is simply skipped.
+A direct `nextflow run` of a workflow that reads a parameter the wrapper normally supplies prints `Access to undefined parameter` for it. That is harmless: an undeclared parameter reads as null, null is falsey, and the branch is skipped.
 
-Five of the six are declared in `conf/metagear/common.config`, so a run through `metagear` prints none of them. `contigs` is the exception: it is declared nowhere and is read only in `subworkflows/local/common/assembly.nf`, whose callers already gate on `contigs_dir` one level up, so that warning appears in every run, wrapper included.
+The eight reuse parameters (`contigs_dir`, `genes_dir`, `representative_genes`, `representative_proteins`, `representative_proteins_annotations`, `representative_genes_tpm`, `representative_genes_rpkm`, `representative_genes_count`) are declared in `nextflow.config` and `nextflow_schema.json` with the same `false` defaults that `conf/metagear/common.config` sets, so neither a direct run nor a wrapper run warns about them. The remaining per-workflow inputs and database parameters are still undeclared by design, so a direct run of `virus`, `classification`, `mag` or `msp` will warn about whichever of those it reads.
 
-One further warning, `The operator 'first' is useless when applied to a value channel`, comes from the `.out.versions.first()` idiom used throughout the subworkflows. It is cosmetic and pipeline-wide.
+One parameter warns in every run, wrapper included: `contigs`, read only in `subworkflows/local/common/assembly.nf` and declared nowhere. Its callers gate on `contigs_dir` one level up and call `ASSEMBLY` only when no contigs directory was given, so that block is a duplicate of a feature implemented above it.
+
+A second warning, `The operator 'first' is useless when applied to a value channel`, comes from the `.out.versions.first()` idiom used throughout the subworkflows. It is cosmetic and pipeline-wide.
 
 None of these affects the result. What decides pass or fail is the checks `tests/run_e2e.sh` prints at the end.
 

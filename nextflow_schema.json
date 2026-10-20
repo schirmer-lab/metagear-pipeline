@@ -74,6 +74,46 @@
                     "type": "string",
                     "description": "Database to use for MetaPhlAn."
                 },
+                "contigs_dir": {
+                    "type": ["boolean", "string"],
+                    "description": "Directory of existing contigs to reuse instead of assembling.",
+                    "hidden": true
+                },
+                "genes_dir": {
+                    "type": ["boolean", "string"],
+                    "description": "Directory of existing called genes to reuse.",
+                    "hidden": true
+                },
+                "representative_genes": {
+                    "type": ["boolean", "string"],
+                    "description": "Existing representative gene catalogue to reuse.",
+                    "hidden": true
+                },
+                "representative_proteins": {
+                    "type": ["boolean", "string"],
+                    "description": "Existing representative protein catalogue to reuse.",
+                    "hidden": true
+                },
+                "representative_proteins_annotations": {
+                    "type": ["boolean", "string"],
+                    "description": "Functional annotations for representative proteins. Supplying them skips the annotation stage.",
+                    "hidden": true
+                },
+                "representative_genes_tpm": {
+                    "type": ["boolean", "string"],
+                    "description": "Existing TPM abundance matrix to reuse.",
+                    "hidden": true
+                },
+                "representative_genes_rpkm": {
+                    "type": ["boolean", "string"],
+                    "description": "Existing RPKM abundance matrix to reuse.",
+                    "hidden": true
+                },
+                "representative_genes_count": {
+                    "type": ["boolean", "string"],
+                    "description": "Existing count abundance matrix to reuse.",
+                    "hidden": true
+                },
                 "files_batch_size": {
                     "type": "integer",
                     "default": 50,
