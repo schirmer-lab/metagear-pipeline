@@ -138,6 +138,16 @@ A successful run produces a gene catalogue of a few dozen sequences, a protein c
 
 The exact count varies between runs on identical input: nine runs gave between 64 and 75 representatives (64, 65, 66, 66, 67, 69, 72, 72, 75), from 124 to 133 called genes. MEGAHIT returns the same contigs each time, with the same lengths, but numbers and orders them differently, and that order propagates through gene calling and cluster representative selection. The assertions therefore check structure, that each stage produced a non-empty output with the expected sample columns, and never a sequence count. Do not add a count assertion here.
 
+## The warnings a direct run prints
+
+A direct `nextflow run` of any workflow, including this profile, prints six `Access to undefined parameter` warnings: `contigs_dir`, `contigs`, `genes_dir`, `representative_genes`, `representative_proteins` and `representative_genes_tpm`. They are expected and harmless. Those parameters are supplied by the wrapper and are deliberately declared in neither `nextflow.config` nor the schema, as the comment in `nextflow.config` explains, because an undeclared parameter reads as null and null is the default every consumer relies on (`if ( params.contigs_dir )`). The branch is simply skipped.
+
+Five of the six are declared in `conf/metagear/common.config`, so a run through `metagear` prints none of them. `contigs` is the exception: it is declared nowhere and is read only in `subworkflows/local/common/assembly.nf`, whose callers already gate on `contigs_dir` one level up, so that warning appears in every run, wrapper included.
+
+One further warning, `The operator 'first' is useless when applied to a value channel`, comes from the `.out.versions.first()` idiom used throughout the subworkflows. It is cosmetic and pipeline-wide.
+
+None of these affects the result. What decides pass or fail is the checks `tests/run_e2e.sh` prints at the end.
+
 ## What it does not cover
 
 Protein annotation. That stage runs InterProScan, whose reference data is tens of gigabytes, so it cannot be part of a fast test. The profile skips it by supplying `representative_proteins_annotations`, which is the pipeline's own mechanism for providing that stage's output from elsewhere.
