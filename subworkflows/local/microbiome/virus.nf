@@ -81,27 +81,56 @@ workflow VIRUS {
             ch_contigs = ASSEMBLY.out.contigs
         }
 
-        // NOTE on re-running to change the clustering criterion: detection cannot
-        // currently be skipped, and that is the dominant cost of such a re-run.
-        // VIRAL_DETECTION emits eleven channels, and this workflow consumes eight
-        // of them besides versions: viral_sequences, plasmid_sequences, viral_ids,
-        // plasmid_ids, virus_tables, virus_filtered_tables, plasmid_tables and
-        // plasmid_filtered_tables. A bypass parameter would have to supply all
-        // eight from disk, not just the FASTAs, so it is a larger change than the
-        // criterion fix itself. Nextflow's own -resume covers this correctly when
-        // the previous run's work directory is available, which is the supported
-        // route; see docs/workflows/virus.md.
-        VIRAL_DETECTION ( ch_contigs, genomad_db, checkv_db )
-        ch_versions =  ch_versions.mix( VIRAL_DETECTION.out.versions )
+        // Detection is the dominant cost and classification runs it too, so its
+        // published output can be reused. Only valid against the same contigs;
+        // see docs/workflows/virus.md.
+        if ( params.viral_detection_dir ) {
+            // Points at a previous run's virus/per_sample; the unfiltered plasmid
+            // summary sits beside it under virus/genomad.
+            def detection_dir = params.viral_detection_dir
+            def detection_root = file ( detection_dir ).parent
+
+            def per_sample_table = { String file_name, Map extra_meta ->
+                Channel.fromPath ( "${detection_dir}/*/${file_name}", checkIfExists: true )
+                    .map { file -> [ [ id: file.parent.name ] + extra_meta, file ] }
+            }
+
+            // label is required by CLUSTER_SEQUENCES.
+            ch_viral_sequences         = per_sample_table ( "virus.filtered.fna.gz",        [ label: "virus" ] )
+            ch_plasmid_sequences       = per_sample_table ( "plasmid.filtered.fna.gz",      [ label: "plasmid" ] )
+            ch_viral_ids               = per_sample_table ( "virus.ids.txt",                [:] )
+            ch_plasmid_ids             = per_sample_table ( "plasmid.ids.txt",              [:] )
+            ch_virus_tables            = per_sample_table ( "virus.summary.tsv",            [:] )
+            ch_virus_filtered_tables   = per_sample_table ( "virus.summary.filtered.tsv",   [:] )
+            ch_plasmid_filtered_tables = per_sample_table ( "plasmid.summary.filtered.tsv", [:] )
+
+            // The unfiltered plasmid summary comes straight from GENOMAD_PASS1, which
+            // publishes under its own tree instead of per_sample.
+            ch_plasmid_tables = Channel.fromPath ( "${detection_root}/genomad/virus/*/*_summary/*_plasmid_summary.tsv", checkIfExists: true )
+                .map { file -> [ [ id: file.parent.parent.name ], file ] }
+
+        } else {
+            VIRAL_DETECTION ( ch_contigs, genomad_db, checkv_db )
+            ch_versions =  ch_versions.mix( VIRAL_DETECTION.out.versions )
+
+            ch_viral_sequences         = VIRAL_DETECTION.out.viral_sequences
+            ch_plasmid_sequences       = VIRAL_DETECTION.out.plasmid_sequences
+            ch_viral_ids               = VIRAL_DETECTION.out.viral_ids
+            ch_plasmid_ids             = VIRAL_DETECTION.out.plasmid_ids
+            ch_virus_tables            = VIRAL_DETECTION.out.virus_tables
+            ch_virus_filtered_tables   = VIRAL_DETECTION.out.virus_filtered_tables
+            ch_plasmid_tables          = VIRAL_DETECTION.out.plasmid_tables
+            ch_plasmid_filtered_tables = VIRAL_DETECTION.out.plasmid_filtered_tables
+        }
 
         // Default is 'vclust', which implements the MIUViG species criterion the
         // catalog intends: 95% ANI over 85% of the shorter sequence, on merged
         // local alignments. Set --virus_clustering_method mmseqs2 to reproduce
         // catalogs built before this changed; see docs/workflows/virus.md.
-        CLUSTER_VIRUS ( VIRAL_DETECTION.out.viral_sequences, params.virus_clustering_method ?: "vclust", true )
+        CLUSTER_VIRUS ( ch_viral_sequences, params.virus_clustering_method ?: "vclust", true )
         ch_versions =  ch_versions.mix( CLUSTER_VIRUS.out.versions )
 
-        CLUSTER_PLASMID ( VIRAL_DETECTION.out.plasmid_sequences, "mmseqs2", true )
+        CLUSTER_PLASMID ( ch_plasmid_sequences, "mmseqs2", true )
 
         ch_genes = Channel.empty()
         if ( params.genes_dir ) {
@@ -164,8 +193,8 @@ workflow VIRUS {
         // gene channel doesn't carry. Without this normalization the join
         // produces zero tuples for single-end cohorts and VIRAL_ANNOTATION +
         // AMG_POSTPROCESS silently never fire.
-        ch_viral_ids_for_join   = VIRAL_DETECTION.out.viral_ids.map   { meta, ids -> [ [id: meta.id], ids ] }
-        ch_plasmid_ids_for_join = VIRAL_DETECTION.out.plasmid_ids.map { meta, ids -> [ [id: meta.id], ids ] }
+        ch_viral_ids_for_join   = ch_viral_ids.map   { meta, ids -> [ [id: meta.id], ids ] }
+        ch_plasmid_ids_for_join = ch_plasmid_ids.map { meta, ids -> [ [id: meta.id], ids ] }
 
         ch_viral_genes = ch_viral_ids_for_join.join(ch_genes_reformatted, by:0)
                             .map { [ [id: it[0].id +'.virus.genes', src: it[0].id, label: 'virus'], it[1], it[2] ] }
@@ -221,10 +250,10 @@ workflow VIRUS {
                 .map { [[id: preffix], it] }
         }
 
-        ch_tables = prepare_table_channels('virus', VIRAL_DETECTION.out.virus_tables )
-                    .concat( prepare_table_channels('virus.filtered', VIRAL_DETECTION.out.virus_filtered_tables ) )
-                    .concat( prepare_table_channels('plasmid', VIRAL_DETECTION.out.plasmid_tables ) )
-                    .concat( prepare_table_channels('plasmid.filtered', VIRAL_DETECTION.out.plasmid_filtered_tables ) )
+        ch_tables = prepare_table_channels('virus', ch_virus_tables )
+                    .concat( prepare_table_channels('virus.filtered', ch_virus_filtered_tables ) )
+                    .concat( prepare_table_channels('plasmid', ch_plasmid_tables ) )
+                    .concat( prepare_table_channels('plasmid.filtered', ch_plasmid_filtered_tables ) )
                     .concat( prepare_table_channels('amg', VIRAL_ANNOTATION.out.amgs ) )
                     .concat( prepare_table_channels('host.genus', VIRAL_ANNOTATION.out.iphop_genus ) )
                     .concat( prepare_table_channels('host.genome', VIRAL_ANNOTATION.out.iphop_genomes ) )

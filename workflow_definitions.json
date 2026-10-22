@@ -162,6 +162,11 @@
                             "description": "Contigs (DIRECTORY: optional). Folder containing SAMPLE_ID.contigs.fa.gz files"
                         },
                         {
+                            "name": "viral_detection_dir",
+                            "required": false,
+                            "description": "Viral detection outputs (DIRECTORY: optional). Path to virus/per_sample from a prior classification or virus run. Skips geNomad and CheckV entirely and reads their per-sample tables and sequences back. Auto-discovered by --reuse-outputs. Only valid when that run assembled the SAME contigs, so pass the matching --contigs_dir: nothing checks the two agree."
+                        },
+                        {
                             "name": "genes_dir",
                             "required": false,
                             "description": "Genes (DIRECTORY: optional). Folder containing SAMPLE_ID.all.genes.filtered.fasta files"

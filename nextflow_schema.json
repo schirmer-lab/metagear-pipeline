@@ -114,6 +114,11 @@
                     "description": "Existing count abundance matrix to reuse.",
                     "hidden": true
                 },
+                "viral_detection_dir": {
+                    "type": ["boolean", "string"],
+                    "description": "Previous run's virus/ directory, to reuse viral detection instead of re-running it.",
+                    "hidden": true
+                },
                 "files_batch_size": {
                     "type": "integer",
                     "default": 50,
