@@ -19,6 +19,7 @@ include { CLUSTER_SEQUENCES as CLUSTER_GENES; CLUSTER_SEQUENCES as CLUSTER_PROTE
 include { FIND_REPRESENTATIVES; MERGE_CLUSTER_ANNOTATIONS } from "$projectDir/modules/local/metagear/mge/viral_clusters"
 
 include { COLLECT_TABLES } from "$projectDir/modules/local/metagear/mge/summarize"
+include { RESTORE_VIRAL_DETECTION } from "$projectDir/modules/local/metagear/virus/restore_detection"
 
 workflow VIRUS_INIT {
 
@@ -85,27 +86,30 @@ workflow VIRUS {
         // published output can be reused. Only valid against the same contigs;
         // see docs/workflows/virus.md.
         if ( params.viral_detection_dir ) {
-            // Points at a previous run's virus/per_sample; the unfiltered plasmid
-            // summary sits beside it under virus/genomad.
-            def detection_dir = params.viral_detection_dir
-            def detection_root = file ( detection_dir ).parent
+            // Points at a previous run's virus/per_sample. Publishing put the sample in
+            // the directory and stripped it from the file name, so restore the names
+            // detection emitted: the published ones collide across samples once a
+            // collecting process stages them side by side.
+            def detection_root = file ( params.viral_detection_dir ).parent
 
-            def per_sample_table = { String file_name, Map extra_meta ->
-                Channel.fromPath ( "${detection_dir}/*/${file_name}", checkIfExists: true )
-                    .map { file -> [ [ id: file.parent.name ] + extra_meta, file ] }
+            RESTORE_VIRAL_DETECTION ( Channel.fromPath ( params.viral_detection_dir, type: "dir", checkIfExists: true ) )
+            ch_versions = ch_versions.mix ( RESTORE_VIRAL_DETECTION.out.versions )
+
+            def per_sample = { ch, String suffix, Map extra_meta ->
+                ch.flatten().map { file -> [ [ id: file.name - suffix ] + extra_meta, file ] }
             }
 
             // label is required by CLUSTER_SEQUENCES.
-            ch_viral_sequences         = per_sample_table ( "virus.filtered.fna.gz",        [ label: "virus" ] )
-            ch_plasmid_sequences       = per_sample_table ( "plasmid.filtered.fna.gz",      [ label: "plasmid" ] )
-            ch_viral_ids               = per_sample_table ( "virus.ids.txt",                [:] )
-            ch_plasmid_ids             = per_sample_table ( "plasmid.ids.txt",              [:] )
-            ch_virus_tables            = per_sample_table ( "virus.summary.tsv",            [:] )
-            ch_virus_filtered_tables   = per_sample_table ( "virus.summary.filtered.tsv",   [:] )
-            ch_plasmid_filtered_tables = per_sample_table ( "plasmid.summary.filtered.tsv", [:] )
+            ch_viral_sequences         = per_sample ( RESTORE_VIRAL_DETECTION.out.viral_sequences,         ".virus.filtered.gz",                          [ label: "virus" ] )
+            ch_plasmid_sequences       = per_sample ( RESTORE_VIRAL_DETECTION.out.plasmid_sequences,       ".plasmid.filtered.gz",                        [ label: "plasmid" ] )
+            ch_viral_ids               = per_sample ( RESTORE_VIRAL_DETECTION.out.viral_ids,               "_viral_ids_to_keep.txt",                      [:] )
+            ch_plasmid_ids             = per_sample ( RESTORE_VIRAL_DETECTION.out.plasmid_ids,             "_plasmid_ids_to_keep.txt",                    [:] )
+            ch_virus_tables            = per_sample ( RESTORE_VIRAL_DETECTION.out.virus_tables,            "_Merged_Genomad_CheckV_Summary.tsv",          [:] )
+            ch_virus_filtered_tables   = per_sample ( RESTORE_VIRAL_DETECTION.out.virus_filtered_tables,   "_Merged_Genomad_CheckV_Summary.filtered.tsv", [:] )
+            ch_plasmid_filtered_tables = per_sample ( RESTORE_VIRAL_DETECTION.out.plasmid_filtered_tables, "_Plasmid_Summary.filtered.tsv",               [:] )
 
             // The unfiltered plasmid summary comes straight from GENOMAD_PASS1, which
-            // publishes under its own tree instead of per_sample.
+            // publishes under its own tree and keeps the sample in the file name.
             ch_plasmid_tables = Channel.fromPath ( "${detection_root}/genomad/virus/*/*_summary/*_plasmid_summary.tsv", checkIfExists: true )
                 .map { file -> [ [ id: file.parent.parent.name ], file ] }
 
