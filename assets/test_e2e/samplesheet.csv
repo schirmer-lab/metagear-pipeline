@@ -1,0 +1,4 @@
+sample,biome,fastq_1,fastq_2
+MOCK1,global,__TEST_E2E_DIR__/reads/MOCK1_R1.fastq.gz,__TEST_E2E_DIR__/reads/MOCK1_R2.fastq.gz
+MOCK2,global,__TEST_E2E_DIR__/reads/MOCK2_R1.fastq.gz,__TEST_E2E_DIR__/reads/MOCK2_R2.fastq.gz
+MOCK3,global,__TEST_E2E_DIR__/reads/MOCK3_R1.fastq.gz,__TEST_E2E_DIR__/reads/MOCK3_R2.fastq.gz
