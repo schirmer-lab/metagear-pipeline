@@ -237,8 +237,31 @@ workflow VIRUS {
         ch_abundance_input = reads.combine( ch_all_sequences )
                     .map { meta_reads, reads, meta_sequences, sequences -> [ meta_reads + [label: meta_sequences.id], reads, sequences ] }
 
-        ABUNDANCE ( ch_abundance_input, 'contig', file("$projectDir/assets/empty.txt"), null )
+        // Gene-catalog abundance supplied rather than recomputed. Only the all.genes label is
+        // held back: these parameters say nothing about the virus and plasmid catalogs.
+        def reuse_gene_abundance = params.representative_genes_tpm \
+                                   && params.representative_genes_rpkm \
+                                   && params.representative_genes_count
+
+        ABUNDANCE (
+            reuse_gene_abundance
+                ? ch_abundance_input.filter { it[0].label != 'all.genes' }
+                : ch_abundance_input,
+            'contig',
+            file("$projectDir/assets/empty.txt"),
+            null
+        )
         ch_versions =  ch_versions.mix( ABUNDANCE.out.versions )
+
+        if ( reuse_gene_abundance ) {
+            ch_genes_tpm   = createExistingFileChannel ( params.representative_genes_tpm,   { [ [id: "all.genes_tpm"],   it ] } )
+            ch_genes_rpkm  = createExistingFileChannel ( params.representative_genes_rpkm,  { [ [id: "all.genes_rpkm"],  it ] } )
+            ch_genes_count = createExistingFileChannel ( params.representative_genes_count, { [ [id: "all.genes_count"], it ] } )
+        } else {
+            ch_genes_tpm   = ABUNDANCE.out.tpm.filter   { meta, _ -> meta.id == 'all.genes_tpm' }
+            ch_genes_rpkm  = ABUNDANCE.out.rpkm.filter  { meta, _ -> meta.id == 'all.genes_rpkm' }
+            ch_genes_count = ABUNDANCE.out.count.filter { meta, _ -> meta.id == 'all.genes_count' }
+        }
 
         virus_representative_proteins = FIND_REPRESENTATIVES.out.representative_proteins.filter { meta, _ -> meta.id == 'virus.genes' }.map { it[1] }
         input_viral_annotation = CLUSTER_VIRUS.out.representative.combine( virus_representative_proteins )
@@ -271,9 +294,9 @@ workflow VIRUS {
         ch_amg_postprocess = COLLECT_TABLES.out.summary.filter { meta, _ -> meta.id == 'amg' }
             .join ( VIRAL_ANNOTATION.out.amg_faa.map { meta, file -> file }.collect().map { [[id: 'amg'], it] } )
             .join ( VIRAL_ANNOTATION.out.amg_fna.map { meta, file -> file }.collect().map { [[id: 'amg'], it] } )
-            .join ( ABUNDANCE.out.tpm.filter { meta, _ -> meta.id == 'all.genes_tpm' }.map { [[id: 'amg'], it[1]] } )
-            .join ( ABUNDANCE.out.rpkm.filter { meta, _ -> meta.id == 'all.genes_rpkm' }.map { [[id: 'amg'], it[1]] } )
-            .join ( ABUNDANCE.out.count.filter { meta, _ -> meta.id == 'all.genes_count' }.map { [[id: 'amg'], it[1]] } )
+            .join ( ch_genes_tpm.map { [[id: 'amg'], it[1]] } )
+            .join ( ch_genes_rpkm.map { [[id: 'amg'], it[1]] } )
+            .join ( ch_genes_count.map { [[id: 'amg'], it[1]] } )
 
         // ch_amg_postprocess.view()
 

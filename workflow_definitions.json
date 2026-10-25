@@ -197,6 +197,21 @@
                             "description": "Representative-proteins annotations (FILE: optional). Functional annotations for representative proteins."
                         },
                         {
+                            "name": "representative_genes_tpm",
+                            "required": false,
+                            "description": "Representative-genes TPM (FILE: optional). Supplying all three of TPM, RPKM and counts skips mapping the cohort against the gene catalog and reads these tables instead; the virus and plasmid catalogs are still mapped. Auto-discovered by --reuse-outputs. Only valid when they came from the SAME gene catalog this run uses, so pass the matching --representative_genes: nothing checks the two agree."
+                        },
+                        {
+                            "name": "representative_genes_rpkm",
+                            "required": false,
+                            "description": "Representative-genes RPKM (FILE: optional). See --representative_genes_tpm; all three are required together."
+                        },
+                        {
+                            "name": "representative_genes_count",
+                            "required": false,
+                            "description": "Representative-genes counts (FILE: optional). See --representative_genes_tpm; all three are required together."
+                        },
+                        {
                             "name": "viral_annotation",
                             "required": false,
                             "description": "Perform viral annotation (default: true)."
