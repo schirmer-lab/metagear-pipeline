@@ -55,7 +55,10 @@ jobs:
           echo "CONTAINER_SYSTEM=${{ github.event.inputs.container_system || 'none' }}" >> "$GITHUB_OUTPUT"
 
   download:
-    runs-on: ubuntu-latest
+    # Pinned for the same reason as the nf-test job: ubuntu-latest is now Ubuntu 26.04,
+    # which ships libfuse3-4, and the apptainer .deb installed below needs libfuse3-3.
+    # The configure job above installs no apptainer and stays on ubuntu-latest.
+    runs-on: ubuntu-24.04
     needs: configure
     steps:
       - name: Check out pipeline code
