@@ -1,3 +1,5 @@
+include { covermColumnSuffix } from './methods'
+
 process COVERM_GENOME {
     tag "$meta.id"
     label 'process_medium'
@@ -17,10 +19,7 @@ process COVERM_GENOME {
     tuple val(meta), path(bams), path(genome_definition)
 
     output:
-    tuple val(meta), path("*.abundance_count.tsv"), emit: abundance_count
-    tuple val(meta), path("*.abundance_trimmed_mean.tsv"), emit: abundance_trimmed_mean
-    tuple val(meta), path("*.abundance_rpkm.tsv"), emit: abundance_rpkm
-    tuple val(meta), path("*.abundance_tpm.tsv"), emit: abundance_tpm
+    tuple val(meta), path("*.abundance_*.tsv"), emit: abundance
     path("versions.yml"), emit: versions
 
     when:
@@ -28,20 +27,14 @@ process COVERM_GENOME {
 
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def args   = task.ext.args   ?: ''
-    def args2  = task.ext.args2  ?: ''
+    def requested = (task.ext.methods  ?: ['count']).collect { [ it, task.ext.args  ?: '' ] } +
+                    (task.ext.methods2 ?: ['rpkm', 'tpm']).collect { [ it, task.ext.args2 ?: '' ] }
+    def metric_calls = requested.collect { method, options ->
+        "coverm genome --methods ${method} --bam-files ${bams} --genome-definition ${genome_definition} -t ${task.cpus} ${options} 1> ${prefix}.abundance_${method}.tsv 2> log_${method}.txt\n" +
+        "    sed -i '1 s/ ${covermColumnSuffix(method)}//g' ${prefix}.abundance_${method}.tsv"
+    }.join('\n\n    ')
     """
-    coverm genome --methods count --bam-files $bams --genome-definition ${genome_definition} -t $task.cpus $args 1> ${prefix}.abundance_count.tsv 2> log_count.txt
-    sed -i '1 s/ Read Count//g' ${prefix}.abundance_count.tsv
-
-    coverm genome --methods trimmed_mean --bam-files $bams --genome-definition ${genome_definition} -t $task.cpus $args2 1> ${prefix}.abundance_trimmed_mean.tsv 2> log_trimmed_mean.txt
-    sed -i '1 s/ Trimmed Mean//g' ${prefix}.abundance_trimmed_mean.tsv
-
-    coverm genome --methods rpkm --bam-files $bams --genome-definition ${genome_definition} -t $task.cpus $args2 1> ${prefix}.abundance_rpkm.tsv 2> log_rpkm.txt
-    sed -i '1 s/ RPKM//g' ${prefix}.abundance_rpkm.tsv
-
-    coverm genome --methods tpm --bam-files $bams --genome-definition ${genome_definition} -t $task.cpus $args2 1> ${prefix}.abundance_tpm.tsv 2> log_tpm.txt
-    sed -i '1 s/ TPM//g' ${prefix}.abundance_tpm.tsv
+    ${metric_calls}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

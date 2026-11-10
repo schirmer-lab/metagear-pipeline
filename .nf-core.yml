@@ -46,7 +46,7 @@ nf_core_version: 4.0.2
 repository_type: pipeline
 template:
   author: Emilio Rios, Shen Jin
-  description: "Integrated shotgun metagenomics — profiles, gene catalogs, MAGs, viruses and pangenomes"
+  description: "Integrated shotgun metagenomics: profiles, gene catalogs, MAGs, viruses and pangenomes"
   force: false
   is_nfcore: false
   name: metagear
@@ -55,4 +55,4 @@ template:
   skip_features:
     - igenomes
     - fastqc
-  version: "26.09.1"
+  version: "26.11"

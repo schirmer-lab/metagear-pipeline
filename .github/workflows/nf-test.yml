@@ -65,8 +65,15 @@ jobs:
     name: "${{ matrix.profile }} | ${{ matrix.NXF_VER }} | ${{ matrix.shard }}/${{ needs.nf-test-changes.outputs.total_shards }}"
     needs: [nf-test-changes]
     if: ${{ needs.nf-test-changes.outputs.total_shards != '0' }}
+    # Pinned, not ubuntu-latest: that now resolves to Ubuntu 26.04, which ships libfuse3-4
+    # and libsubid5. The apptainer .deb that eWaterCycle/setup-apptainer v2 installs depends
+    # on libfuse3-3 and libsubid4, so every singularity job dies in "Setup apptainer" before
+    # a single test runs. Raising apptainer-version does not help: the generic .deb declares
+    # the same dependency in current releases. Lift the pin when the setup step moves to
+    # eWaterCycle/setup-apptainer v3, which installs unprivileged into the tool cache
+    # instead of apt-installing the .deb and supports 24.04 and 26.04.
     runs-on: # use GitHub runners
-      - "ubuntu-latest"
+      - "ubuntu-24.04"
     strategy:
       fail-fast: false
       matrix:

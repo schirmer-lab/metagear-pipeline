@@ -32,7 +32,7 @@ workflow SUMMARY {
         softwareVersionsToYAML(ch_versions)
             .collectFile(
                 storeDir: "${params.outdir}/pipeline_info",
-                name:  "${params.workflow}_mqc_versions.yml",
+                name:  "${params.run_label}_mqc_versions.yml",
                 sort: true,
                 newLine: true
             ).set { ch_collated_versions }

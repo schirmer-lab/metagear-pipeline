@@ -182,7 +182,8 @@ workflow MAG {
         ABUNDANCE (
             ch_abundance_in,
             'genome',
-            BUILD_MAG_CATALOG.out.contig_to_mag
+            BUILD_MAG_CATALOG.out.contig_to_mag,
+            null
         )
         ch_versions = ch_versions.mix( ABUNDANCE.out.versions )
 

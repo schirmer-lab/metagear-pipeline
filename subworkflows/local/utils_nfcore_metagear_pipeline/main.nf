@@ -170,7 +170,7 @@ def dumpParametersToWorkflowJSON(outdir) {
     def temp_pf   = new File(workflow.launchDir.toString(), ".params_${timestamp}.json")
     temp_pf.text  = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(params))
 
-    nextflow.extension.FilesEx.copyTo(temp_pf.toPath(), "${outdir}/pipeline_info/${params.workflow}_params_${timestamp}.json")
+    nextflow.extension.FilesEx.copyTo(temp_pf.toPath(), "${outdir}/pipeline_info/${params.run_label}_params_${timestamp}.json")
     temp_pf.delete()
 }
 
@@ -244,9 +244,7 @@ def metagearWorkflowTools() {
 // rather than asserting tools that never ran.
 //
 def metagearActiveTools() {
-    def selected = (params.workflow ?: '').trim()
-    def key = selected.startsWith('qc_') ? 'qc' : selected
-    return metagearWorkflowTools()[key] ?: []
+    return metagearWorkflowTools()[(params.workflow ?: '').trim()] ?: []
 }
 
 def toolCitationText() {

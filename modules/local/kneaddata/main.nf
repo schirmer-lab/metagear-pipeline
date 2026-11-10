@@ -2,10 +2,10 @@ process KNEADDATA {
     tag "$meta.id"
     label 'process_high'
 
-    conda "bioconda::kneaddata==0.12.0--pyhdfd78af_1"
+    conda "bioconda::kneaddata=0.12.4"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/kneaddata:0.10.0--pyhdfd78af_0' :
-        'quay.io/biocontainers/kneaddata:0.10.0--pyhdfd78af_0' }"
+        'https://depot.galaxyproject.org/singularity/kneaddata:0.12.4--pyhdfd78af_0' :
+        'quay.io/biocontainers/kneaddata:0.12.4--pyhdfd78af_0' }"
 
     input:
     tuple val(meta), path(reads)
@@ -23,9 +23,10 @@ process KNEADDATA {
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
 
-    input = meta.single_end ? "--input=${reads}" : "--input=${reads[0]} --input=${reads[1]}"
-
+    // 0.11 replaced the repeatable --input with one flag per mate.
+    def input = meta.single_end ? "--unpaired ${reads}" : "--input1 ${reads[0]} --input2 ${reads[1]}"
     def db_args = kneaddata_db.collect { "-db ${it}" }.join(" ")
+
     """
     kneaddata \\
         ${args} \\
@@ -36,7 +37,16 @@ process KNEADDATA {
         --output-prefix ${prefix} \\
         --output .
 
-    gzip -f *paired_*.fastq
+    # Named rather than globbed: KneadData keeps the contaminant reads it pulled out, and
+    # *paired_* matches those too. Compressing them cost two thirds of this step on a 64 M
+    # pair sample and the scratch directory then threw them away. The container has no pigz,
+    # so the two that are published go in parallel instead.
+    gzip -f ${prefix}_paired_1.fastq &
+    gz1=\$!
+    gzip -f ${prefix}_paired_2.fastq &
+    gz2=\$!
+    wait \$gz1
+    wait \$gz2
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -48,19 +58,20 @@ process KNEADDATA {
 }
 
 process PARSE_KNEADDATA {
-    label 'process_small'
+    tag "$meta.id"
+    label 'process_single'
 
     conda "conda-forge::python=3.10"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://github.com/schirmer-lab/singularity-images/releases/download/23.11.22/python_3.10.sif' :
         'docker.io/raphsoft/python_base:3.10-R4' }"
 
-
     input:
     tuple val(meta), path(kneaddata_log)
 
     output:
-    tuple val(meta), path('*.csv'), emit: kneadata_stats
+    tuple val(meta), path('*_read_counts.tsv'), emit: read_counts
+    path "versions.yml", emit: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -69,63 +80,50 @@ process PARSE_KNEADDATA {
     def prefix = task.ext.prefix ?: "${meta.id}"
 
     """
-    TMP_DATA=data.tmp
+    kneaddata_read_counts.py \\
+        ${kneaddata_log} \\
+        ${prefix}_read_counts.tsv \\
+        --sample ${prefix}
 
-    grep "READ COUNT" ${kneaddata_log} | cut -d':' -f 5,7 > \$TMP_DATA
-
-    RAW_COUNT_1="\$(grep "raw pair1" \$TMP_DATA | cut -d':' -f2 | cut -d'.' -f1 | awk ' {\$1=\$1};1')"
-    #RAW_COUNT_2="\$(grep "raw pair2" \$TMP_DATA | cut -d':' -f2 | cut -d'.' -f1 | awk ' {\$1=\$1};1')"
-
-    TRIMMED_COUNT_1="\$(grep "trimmed pair1" \$TMP_DATA | cut -d':' -f2 | cut -d'.' -f1 |  awk ' {\$1=\$1};1')"
-    #TRIMMED_COUNT_2="\$(grep "trimmed pair2" \$TMP_DATA | cut -d':' -f2 | cut -d'.' -f1 | awk ' {\$1=\$1};1')"
-
-    FINAL_COUNT_1="\$(grep "final pair1" \$TMP_DATA | cut -d':' -f2 | cut -d'.' -f1 | awk ' {\$1=\$1};1')"
-    #FINAL_COUNT_2="\$(grep "final pair2" \$TMP_DATA | cut -d':' -f2 | cut -d'.' -f1 | awk ' {\$1=\$1};1')"
-
-    echo "file,raw,trimmed,decont,final" > ${prefix}_kneaddata_stats.csv
-    echo "${prefix},\$RAW_COUNT_1,\$((\$RAW_COUNT_1 - \$TRIMMED_COUNT_1)),\$((\$TRIMMED_COUNT_1 - \$FINAL_COUNT_1)),\$FINAL_COUNT_1" >> ${prefix}_kneaddata_stats.csv
-    #echo "${prefix}_2,\$RAW_COUNT_2,\$((\$RAW_COUNT_2 - \$TRIMMED_COUNT_2)),\$((\$TRIMMED_COUNT_2 - \$FINAL_COUNT_2)),\$FINAL_COUNT_2" >> ${prefix}_kneaddata_stats.csv
-
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        python: \$(python --version | sed 's/Python //g')
+    END_VERSIONS
     """
 }
 
 process SUMMARY_KNEADDATA {
-    label 'process_small'
+    label 'process_single'
 
     conda "conda-forge::python=3.10"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://github.com/schirmer-lab/singularity-images/releases/download/23.11.22/python_3.10.sif' :
         'docker.io/raphsoft/python_base:3.10-R4' }"
 
-
     input:
-    file(kneaddata_stats)
+    path read_counts
 
     output:
-    path('*_mqc.html'), emit: qc_summary_plot
+    path "${params.run_label}_read_counts.tsv", emit: read_counts
+    path "*_mqc.*"                           , emit: mqc
+    path "versions.yml"                      , emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
+    def args = task.ext.args ?: ''
 
     """
-    head -1 ${kneaddata_stats[0]} > kneaddata_stats.csv
+    kneaddata_qc_report.py \\
+        ${read_counts} \\
+        --prefix ${params.run_label} \\
+        ${args}
 
-    for f in \$(ls *_kneaddata_stats.csv); do
-        tail -1 \$f >> kneaddata_stats.csv
-    done
-
-    qc_summary_plot.py kneaddata_stats.csv summary_report.html
-
-    echo "<!--" > kneaddata_summary_mqc.html
-    echo "id: 'kneaddata_summary'" >> kneaddata_summary_mqc.html
-    echo "section_name: 'Trimming & Decontamination'" >> kneaddata_summary_mqc.html
-    echo "description: 'Stats for trimmed and decontaminated reads.'" >> kneaddata_summary_mqc.html
-    echo "-->" >> kneaddata_summary_mqc.html
-
-    cat summary_report.html >> kneaddata_summary_mqc.html
-
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        python: \$(python --version | sed 's/Python //g')
+    END_VERSIONS
     """
 }
 
@@ -134,10 +132,10 @@ process KNEADDATA_DATABASE {
     tag "$genome_species"
     label 'process_low'
 
-    conda "bioconda::kneaddata==0.12.0--pyhdfd78af_1"
+    conda "bioconda::kneaddata=0.12.4"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/kneaddata:0.10.0--pyhdfd78af_0' :
-        'quay.io/biocontainers/kneaddata:0.10.0--pyhdfd78af_0' }"
+        'https://depot.galaxyproject.org/singularity/kneaddata:0.12.4--pyhdfd78af_0' :
+        'quay.io/biocontainers/kneaddata:0.12.4--pyhdfd78af_0' }"
 
     input:
         tuple val(genome_species), val(dbtype)
@@ -158,6 +156,45 @@ process KNEADDATA_DATABASE {
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         kneaddata: \$(kneaddata --version | sed -e "s/kneaddata v//g")
+    END_VERSIONS
+    """
+}
+
+// The samplesheet for whatever runs next. QC's real output is a set of clean FASTQs, and the
+// step after it has always been writing out their paths by hand -- which is where a typo
+// silently reprocesses the raw reads.
+process CLEAN_SAMPLESHEET {
+    label 'process_single'
+
+    conda "conda-forge::python=3.10"
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://github.com/schirmer-lab/singularity-images/releases/download/23.11.22/python_3.10.sif' :
+        'docker.io/raphsoft/python_base:3.10-R4' }"
+
+    input:
+    path samplesheet
+    path pairs
+
+    output:
+    path "${params.run_label}_samplesheet.csv", emit: samplesheet
+    path "versions.yml"                      , emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    // Absolute, because this sheet is meant to be handed to a run started from somewhere else.
+    def reads_dir = "${file(params.outdir).toAbsolutePath()}/kneaddata"
+    """
+    clean_samplesheet.py \\
+        --samplesheet ${samplesheet} \\
+        --pairs ${pairs} \\
+        --reads-dir ${reads_dir} \\
+        --output ${params.run_label}_samplesheet.csv
+
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        python: \$(python --version | sed 's/Python //g')
     END_VERSIONS
     """
 }

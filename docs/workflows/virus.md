@@ -25,19 +25,20 @@ The two-pass geNomad + CheckV is the central novelty: it recovers viral sequence
 
 ## Parameters
 
-| Parameter         | Type | Default      | Controls                                                                 |
-| ----------------- | ---- | ------------ | ------------------------------------------------------------------------ |
-| `--input`         | path | _(required)_ | Samplesheet of clean reads.                                              |
-| `--outdir`        | path | _(required)_ | Result directory.                                                        |
-| `--genomad_db`    | path | —            | geNomad database.                                                        |
-| `--checkv_db`     | path | —            | CheckV database.                                                         |
-| `--virsorter2_db` | path | —            | VirSorter2 database.                                                     |
-| `--pharokka_db`   | path | —            | Pharokka database.                                                       |
-| `--dram_db`       | path | —            | DRAM-v database.                                                         |
-| `--iphop_db`      | path | —            | iPHoP database.                                                          |
-| `--amrfinder_db`  | path | —            | AMRFinderPlus database.                                                  |
-| `--contigs_dir`   | path | —            | **Skip assembly.** Directory of `<sample>.contigs.fa.gz`.                |
-| `--genes_dir`     | path | —            | **Skip gene calling.** Directory of `<sample>.all.genes.filtered.fasta`. |
+| Parameter               | Type | Default      | Controls                                                                 |
+| ----------------------- | ---- | ------------ | ------------------------------------------------------------------------ |
+| `--input`               | path | _(required)_ | Samplesheet of clean reads.                                              |
+| `--outdir`              | path | _(required)_ | Result directory.                                                        |
+| `--genomad_db`          | path | —            | geNomad database.                                                        |
+| `--checkv_db`           | path | —            | CheckV database.                                                         |
+| `--virsorter2_db`       | path | —            | VirSorter2 database.                                                     |
+| `--pharokka_db`         | path | —            | Pharokka database.                                                       |
+| `--dram_db`             | path | —            | DRAM-v database.                                                         |
+| `--iphop_db`            | path | —            | iPHoP database.                                                          |
+| `--amrfinder_db`        | path | —            | AMRFinderPlus database.                                                  |
+| `--contigs_dir`         | path | —            | **Skip assembly.** Directory of `<sample>.contigs.fa.gz`.                |
+| `--genes_dir`           | path | —            | **Skip gene calling.** Directory of `<sample>.all.genes.filtered.fasta`. |
+| `--viral_detection_dir` | path | —            | **Skip detection.** A previous run's `virus/per_sample` directory.       |
 
 ## Output
 
@@ -128,4 +129,5 @@ nextflow run schirmer-lab/metagear-pipeline -profile docker \
 - **VirSorter2 is used only for DRAM-v prep**, not for primary detection. Detection is geNomad + CheckV. The VirSorter2 invocation (`--include-groups dsDNAphage,ssDNA,NCLDV,lavidaviridae --min-length 1500 --min-score 0.5`) is tuned for that prep role.
 - **Compute and memory.** This is the heaviest workflow in the suite — DRAM-v and iPHoP are both demanding. Expect substantial wall time even on small studies; consider running it on a subset of samples first.
 - **AMGs are auxiliary metabolic genes** — phage-encoded genes that augment host metabolism. The AMG post-processing step joins DRAM-v's AMG calls with the gene abundance matrices, producing AMG-specific TPM/RPKM/count tables suitable for cross-sample analysis.
+- **Reusing detection.** `classification` runs geNomad and CheckV too, so a virus run after it can skip the whole detection stage with `--viral_detection_dir <previous outdir>/virus/per_sample`. Pass it directly, or let the `metagear` CLI discover it with `--reuse-outputs` (needs a CLI build that knows this parameter). It is only valid when the earlier run used the same contigs, so pair it with the matching `--contigs_dir`: detection output describes those contigs and nothing checks that for you. Cluster representatives may differ slightly from a non-reused run, because the per-sample FASTAs are concatenated in path order before clustering.
 - **Plasmids ride along.** geNomad classifies plasmids alongside viruses; the plasmid catalog and its abundance tables are emitted in parallel with the viral set. If you only care about viruses, ignore the plasmid outputs.

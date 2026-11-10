@@ -2,18 +2,21 @@
 
 The `schirmer-lab/metagear-pipeline` pipeline groups its work into ten entry-point workflows, selected at run time with the `--workflow` parameter:
 
-| Workflow                                    | Purpose                                                                             | Input                   | Output                                                            | Cost           |
-| ------------------------------------------- | ----------------------------------------------------------------------------------- | ----------------------- | ----------------------------------------------------------------- | -------------- |
-| [download_databases](download_databases.md) | One-time install of all reference databases                                         | —                       | KneadData, MetaPhlAn4, HUMAnN3, GTDB-Tk, plus viral databases     | Disk + network |
-| [qc_dna](qc_dna.md)                         | Adapter/quality trimming and host decontamination of DNA reads                      | Raw DNA FASTQ           | Clean paired reads + QC report                                    | Medium         |
-| [qc_rna](qc_rna.md)                         | Same flow as `qc_dna`; intended for metatranscriptomic input                        | Raw RNA FASTQ           | Clean paired reads + QC report                                    | Medium         |
-| [microbial_profiles](microbial_profiles.md) | Reference-based taxonomic and functional profiling                                  | Clean reads             | MetaPhlAn4 species table + HUMAnN3 gene-family and pathway tables | Medium–High    |
-| [genes](genes.md)                           | De novo assembly, gene calling, gene catalog, MSP analysis                          | Clean reads             | Gene/protein representative catalogs, abundance matrices, MSPs    | High           |
-| [virus](virus.md)                           | Viral and plasmid detection, clustering, annotation, host prediction, AMG discovery | Clean reads             | Viral and plasmid catalogs, AMGs, iPHoP host predictions          | Very high      |
-| [classification](classification.md)         | Viral/plasmid partition, bacterial binning, per-contig classification               | Clean reads             | Per-contig classification TSV, per-sample MAG bins                | Very high      |
-| [mag](mag.md)                               | Cohort MAG catalog — dRep, GTDB-Tk taxonomy, MAG×sample abundance                   | `classification` output | MAG catalog, GTDB-Tk lineages, abundance matrices                 | High           |
-| [msp](msp.md)                               | MetaSpecies Pangenomes — MSPminer co-abundance clustering, GTDB-Tk, MetaPhlAn       | `genes` output          | MSP membership, taxonomy, MSP×sample abundance                    | High           |
-| [structures](structures.md)                 | Protein structural-homology annotation via PHOLD (ProstT5 → Foldseek)               | `genes`/`virus` output  | Per-representative structural annotations                         | High (GPU)     |
+| Workflow                                    | Purpose                                                                             | Input                   | Output                                                             | Cost           |
+| ------------------------------------------- | ----------------------------------------------------------------------------------- | ----------------------- | ------------------------------------------------------------------ | -------------- |
+| [download_databases](download_databases.md) | One-time install of all reference databases                                         | —                       | KneadData, MetaPhlAn4, HUMAnN3, GTDB-Tk, plus viral databases      | Disk + network |
+| [qc](qc.md)                                 | Adapter/quality trimming and decontamination, `--assay dna` or `rna`                | Raw FASTQ               | Clean paired reads, a samplesheet for them, and a QC report        | Medium         |
+| [microbial_profiles](microbial_profiles.md) | Reference-based taxonomic and functional profiling                                  | Clean reads             | MetaPhlAn4 species table + HUMAnN3 gene-family and pathway tables  | Medium–High    |
+| [genes](genes.md)                           | De novo assembly, gene calling, gene catalog, MSP analysis                          | Clean reads             | Gene/protein representative catalogs, abundance matrices, MSPs     | High           |
+| [virus](virus.md)                           | Viral and plasmid detection, clustering, annotation, host prediction, AMG discovery | Clean reads             | Viral and plasmid catalogs, AMGs, iPHoP host predictions           | Very high      |
+| [classification](classification.md)         | Viral/plasmid partition, bacterial binning, per-contig classification               | Clean reads             | Per-contig classification TSV, per-sample MAG bins                 | Very high      |
+| [mag](mag.md)                               | Cohort MAG catalog — dRep, GTDB-Tk taxonomy, MAG×sample abundance                   | `classification` output | MAG catalog, GTDB-Tk lineages, abundance matrices                  | High           |
+| [msp](msp.md)                               | MetaSpecies Pangenomes — MSPminer co-abundance clustering, GTDB-Tk, MetaPhlAn       | `genes` output          | MSP membership, taxonomy, MSP×sample abundance                     | High           |
+| [structures](structures.md)                 | Protein structural-homology annotation via PHOLD (ProstT5 → Foldseek)               | `genes`/`virus` output  | Per-representative structural annotations                          | High (GPU)     |
+| `easy_map`                                  | Map reads against a catalog supplied by the caller. No assembly, no gene calling    | Clean reads + a FASTA   | Per-sample count, covered bases, RPKM and TPM against that catalog | Medium         |
+
+> [!NOTE]
+> A dedicated page for `easy_map` is still being written. Until it lands, `metagear easy_map --help` and `workflow_definitions.json` are the authoritative parameter references, and [output.md](../output.md) documents what it produces.
 
 ## Recommended order
 
@@ -28,7 +31,7 @@ nextflow run schirmer-lab/metagear-pipeline -profile docker \
 
 # 2. QC the raw reads
 nextflow run schirmer-lab/metagear-pipeline -profile docker \
-  --workflow qc_dna --input raw.csv --outdir qc/
+  --workflow qc --input raw.csv --outdir qc/
 
 # 3. Pick one or more analyses
 nextflow run schirmer-lab/metagear-pipeline -profile docker \

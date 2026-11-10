@@ -8,7 +8,10 @@ process GENOMAD_EXTRACT_CHROMOSOME {
         'biocontainers/seqkit:2.2.0--h9ee0642_0' }"
 
     input:
-    tuple val(meta), path(contigs), path(viral_ids), path(plasmid_ids)
+    // Staged under fixed distinct names: both ID lists are optional upstream and fall back
+    // to the same assets/empty.txt placeholder, which collides at staging when a sample has
+    // neither virus nor plasmid calls.
+    tuple val(meta), path(contigs), path(viral_ids, stageAs: 'viral_ids.txt'), path(plasmid_ids, stageAs: 'plasmid_ids.txt')
 
     output:
     tuple val(meta), path("*.chromosome.fna.gz"), emit: chromosome_fasta, optional: true
