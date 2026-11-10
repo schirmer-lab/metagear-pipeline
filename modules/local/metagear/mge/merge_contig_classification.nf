@@ -27,7 +27,10 @@ process MERGE_CONTIG_CLASSIFICATION {
     // the subworkflow's `.join(remainder:true)` plumbing); the python
     // script silently treats empty/missing-dir bin sets + zero-byte ID
     // files as empty evidence sets.
-    tuple val(meta), path(contigs), path(viral_ids), path(plasmid_ids), path(bin_fastas, stageAs: 'bins/*'), path(mmseqs_lca), path(tiara)
+    // Each optional slot is staged under a fixed distinct name: they all fall back to the
+    // same assets/empty.txt placeholder, so any sample missing two or more of them would
+    // otherwise collide at staging. bin_fastas is already scoped by its own bins/ prefix.
+    tuple val(meta), path(contigs), path(viral_ids, stageAs: 'viral_ids.txt'), path(plasmid_ids, stageAs: 'plasmid_ids.txt'), path(bin_fastas, stageAs: 'bins/*'), path(mmseqs_lca, stageAs: 'mmseqs_lca.tsv'), path(tiara, stageAs: 'tiara.txt')
 
     output:
     tuple val(meta), path("${prefix}.contigs.tsv"), emit: tsv

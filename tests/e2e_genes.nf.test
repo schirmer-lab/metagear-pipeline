@@ -1,0 +1,66 @@
+nextflow_pipeline {
+
+    name "End-to-end genes workflow on the mock community"
+    script "../main.nf"
+    tag "e2e"
+    // Overrides profile = "test" in nf-test.config, which dispatches no workflow.
+    profile "test_e2e"
+
+    // Runs the gene-centric route to completion on the committed mock
+    // community in assets/test_e2e: assembly, gene calling, gene clustering,
+    // protein calling, protein clustering and abundance. Protein annotation is
+    // skipped by the profile because InterProScan's reference data is tens of
+    // gigabytes; see the note at the top of conf/test_e2e.config.
+    //
+    // The `e2e` tag selects it on its own:
+    //   nf-test test --tag e2e --profile +singularity
+    // Continuous integration passes no --tag, so it also runs there, once per
+    // profile in the nf-test.yml matrix, pulling 6.6 GB of images each time.
+
+    test("genes workflow completes and produces a catalogue with abundance") {
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+        }
+
+        // Paths below were read off a completed run, not guessed.
+        then {
+            assertAll(
+                { assert workflow.success },
+
+                // Every sample assembled
+                { assert path("$outputDir/megahit/MOCK1.contigs.fa.gz").exists() },
+                { assert path("$outputDir/megahit/MOCK2.contigs.fa.gz").exists() },
+                { assert path("$outputDir/megahit/MOCK3.contigs.fa.gz").exists() },
+
+                // Genes were called and survived the completeness filter
+                { assert path("$outputDir/filter/MOCK1.all.genes.filtered.fasta").exists() },
+
+                // A non-redundant gene and protein catalogue was built. These
+                // must be non-empty: the failure mode this test exists to catch
+                // is an empty catalogue that still "succeeds" downstream.
+                { assert path("$outputDir/mmseqs/all.genes.representative.fa.gz").exists() },
+                { assert path("$outputDir/mmseqs/all.proteins.representative.fa.gz").exists() },
+                { assert path("$outputDir/mmseqs/all.genes.clusters.tsv").size() > 0 },
+
+                // Abundance was quantified against that catalogue, for every
+                // sample, in all three metrics. This is the end of the route.
+                { assert path("$outputDir/coverm/all.genes_count_merged.tsv").size() > 0 },
+                { assert path("$outputDir/coverm/all.genes_rpkm_merged.tsv").size() > 0 },
+                { assert path("$outputDir/coverm/all.genes_tpm_merged.tsv").size() > 0 },
+                { assert path("$outputDir/coverm/all.genes/MOCK1.bam").exists() },
+                { assert path("$outputDir/coverm/all.genes/MOCK2.bam").exists() },
+                { assert path("$outputDir/coverm/all.genes/MOCK3.bam").exists() },
+
+                // The abundance matrix has a column per sample
+                { assert path("$outputDir/coverm/all.genes_count_merged.tsv").readLines()[0]
+                        .split('\t').size() == 4 },
+
+                // The run reported its software versions
+                { assert path("$outputDir/pipeline_info/genes_mqc_versions.yml").exists() }
+            )
+        }
+    }
+}

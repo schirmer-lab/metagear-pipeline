@@ -22,3 +22,6 @@ metagear_user.config
 # Local scratch — verification scripts, ad-hoc results, handoff notes
 scratch/
 .scratch/
+
+# Generated at parse time by conf/test_e2e.config
+.metagear_test_e2e_samplesheet.csv
