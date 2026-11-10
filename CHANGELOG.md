@@ -47,6 +47,15 @@ and are released in lockstep with [metagear-tools](https://github.com/schirmer-l
 
 ### `Changed`
 
+- `qc_dna` and `qc_rna` are merged into a single `qc` workflow, selected with `--assay dna|rna`.
+  It takes `--qc_dna_refdb`, `--qc_rna_refdb` and `--qc_max_plot_samples`, and
+  `docs/workflows/qc.md` replaces the two per-assay pages. **This is breaking for anyone
+  invoking the pipeline directly:** `--workflow qc_dna` and `--workflow qc_rna` are gone, and
+  become `--workflow qc --assay dna` and `--workflow qc --assay rna`. The metagear-tools
+  wrapper keeps `qc_dna` and `qc_rna` working as aliases, so wrapper users are unaffected.
+- KneadData moves to 0.12.4. `bin/kneaddata_qc_report.py` and `bin/kneaddata_read_counts.py`
+  replace `bin/qc_summary_plot.py`, and `CONCATENATE_READS` and `FIX_FASTX_HEADERS` are
+  removed from the QC path.
 - `trimmed_mean` is no longer computed. Both coverm modules produced it on every run and
   `ABUNDANCE` never consumed it, so it was never published. It can be restored for any
   caller by adding it to `ext.methods2`, and it will then be published like any other
