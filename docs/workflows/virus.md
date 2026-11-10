@@ -25,20 +25,20 @@ The two-pass geNomad + CheckV is the central novelty: it recovers viral sequence
 
 ## Parameters
 
-| Parameter         | Type | Default      | Controls                                                                 |
-| ----------------- | ---- | ------------ | ------------------------------------------------------------------------ |
-| `--input`         | path | _(required)_ | Samplesheet of clean reads.                                              |
-| `--outdir`        | path | _(required)_ | Result directory.                                                        |
-| `--genomad_db`    | path | —            | geNomad database.                                                        |
-| `--checkv_db`     | path | —            | CheckV database.                                                         |
-| `--virsorter2_db` | path | —            | VirSorter2 database.                                                     |
-| `--pharokka_db`   | path | —            | Pharokka database.                                                       |
-| `--dram_db`       | path | —            | DRAM-v database.                                                         |
-| `--iphop_db`      | path | —            | iPHoP database.                                                          |
-| `--amrfinder_db`  | path | —            | AMRFinderPlus database.                                                  |
-| `--contigs_dir`   | path | —            | **Skip assembly.** Directory of `<sample>.contigs.fa.gz`.                |
-| `--genes_dir`     | path | —            | **Skip gene calling.** Directory of `<sample>.all.genes.filtered.fasta`. |
-| `--viral_detection_dir` | path | — | **Skip detection.** A previous run's `virus/per_sample` directory. |
+| Parameter               | Type | Default      | Controls                                                                 |
+| ----------------------- | ---- | ------------ | ------------------------------------------------------------------------ |
+| `--input`               | path | _(required)_ | Samplesheet of clean reads.                                              |
+| `--outdir`              | path | _(required)_ | Result directory.                                                        |
+| `--genomad_db`          | path | —            | geNomad database.                                                        |
+| `--checkv_db`           | path | —            | CheckV database.                                                         |
+| `--virsorter2_db`       | path | —            | VirSorter2 database.                                                     |
+| `--pharokka_db`         | path | —            | Pharokka database.                                                       |
+| `--dram_db`             | path | —            | DRAM-v database.                                                         |
+| `--iphop_db`            | path | —            | iPHoP database.                                                          |
+| `--amrfinder_db`        | path | —            | AMRFinderPlus database.                                                  |
+| `--contigs_dir`         | path | —            | **Skip assembly.** Directory of `<sample>.contigs.fa.gz`.                |
+| `--genes_dir`           | path | —            | **Skip gene calling.** Directory of `<sample>.all.genes.filtered.fasta`. |
+| `--viral_detection_dir` | path | —            | **Skip detection.** A previous run's `virus/per_sample` directory.       |
 
 ## Output
 

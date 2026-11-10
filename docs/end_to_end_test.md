@@ -110,19 +110,19 @@ The computation is about two minutes. Four timed runs of the analysis itself, wi
 
 Everything else is one-off setup, and the container images dominate it. The route pulls 11 distinct images, 6.62 GB in total as measured from the registries:
 
-| image | used by | size |
-| --- | --- | --- |
-| `schirmerlab/vamb:4.1.3` | catalogue concatenation | 4,313 MB |
-| `python_3.10.sif` (23.11.27) | gene filtering | 527 MB |
-| `python_3.10.sif` (23.11.22) | samplesheet check, file renaming | 523 MB |
-| MultiQC (Seqera) | summary | 459 MB |
-| `schirmerlab/coverm_bwamem2:0.7.0` | read mapping | 194 MB |
-| `mmseqs2:17.b804f` | clustering | 164 MB |
-| `auashen/biopython:1.83` | translation | 137 MB |
-| `coverm:0.7.0` | abundance | 134 MB |
-| BWA (Seqera) | indexing | 92 MB |
-| `megahit:1.2.9` | assembly | 72 MB |
-| Prodigal (mulled) | gene calling | 7 MB |
+| image                              | used by                          | size     |
+| ---------------------------------- | -------------------------------- | -------- |
+| `schirmerlab/vamb:4.1.3`           | catalogue concatenation          | 4,313 MB |
+| `python_3.10.sif` (23.11.27)       | gene filtering                   | 527 MB   |
+| `python_3.10.sif` (23.11.22)       | samplesheet check, file renaming | 523 MB   |
+| MultiQC (Seqera)                   | summary                          | 459 MB   |
+| `schirmerlab/coverm_bwamem2:0.7.0` | read mapping                     | 194 MB   |
+| `mmseqs2:17.b804f`                 | clustering                       | 164 MB   |
+| `auashen/biopython:1.83`           | translation                      | 137 MB   |
+| `coverm:0.7.0`                     | abundance                        | 134 MB   |
+| BWA (Seqera)                       | indexing                         | 92 MB    |
+| `megahit:1.2.9`                    | assembly                         | 72 MB    |
+| Prodigal (mulled)                  | gene calling                     | 7 MB     |
 
 Measured on a clean Ubuntu 24.04 VM following the steps above, with an empty image cache: **8 min 31 s** for the pipeline and 8 min 40 s including the script's checks, all 29 tasks successful. That is the number to expect for a first run. The second run on the same machine is just the compute, since the images are cached.
 
