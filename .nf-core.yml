@@ -55,4 +55,4 @@ template:
   skip_features:
     - igenomes
     - fastqc
-  version: "26.11"
+  version: "26.12dev"
