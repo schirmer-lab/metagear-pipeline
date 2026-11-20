@@ -6,6 +6,16 @@ and are released in lockstep with [metagear-tools](https://github.com/schirmer-l
 
 ## v26.12dev - [unreleased]
 
+### `Fixed`
+
+- `msp`: the regression of MSPs against MetaPhlAn species compared each MSP abundance
+  with the neighbouring sample and left the last sample out. `msp_metaphlan_LM.py` read
+  the `msp_name` label in the header of the MSP abundance table as a sample name, so every
+  value was paired one sample off. The workflow completed and wrote R2 values, but the
+  species in `msp/msp_metaphlan4_LM.bestR2.txt` and `msp/msp_metaphlan4_LM.full.txt` were
+  wrong. Both files from 26.09, 26.09.1 and 26.11 should be regenerated; no other output
+  of `msp` is affected. `tests/bin/test_msp_metaphlan_lm.sh` asserts the pairing.
+
 ## v26.11 - [2026-11-10]
 
 ### `Added`

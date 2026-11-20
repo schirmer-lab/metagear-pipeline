@@ -8,34 +8,42 @@ import numpy as np
 
 
 # return {msp_id:{sample_id:msp_abd(RPKM)}}
-def _load_msp_profile(msp_profile_fp, sep="\t", has_column_header=False):
+def _load_msp_profile(msp_profile_fp, sep="\t"):
     """
     Load MSP abundance profile from file.
+
+    The header may or may not label the MSP id column (MSP_ABUNDANCE writes
+    `msp_name`). The width of each row decides which, so a value is never
+    paired with the neighbouring sample.
 
     Parameters:
         msp_profile_fp (str): Path to MSP profile file.
         sep (str): Delimiter used in the file.
-        has_column_header (bool): If True, the first column of the header contains sample IDs.
 
     Returns:
         dict: Nested dictionary {msp_id: {sample_id: RPKM_value}}.
     """
-    ret_abd_prev = {}
-    ret_sample_lst = []
-    with open(msp_profile_fp, "r") as f:
-        for ii, line in enumerate(f):
-            if ii == 0:
-                if has_column_header:
-                    ret_sample_lst = line.strip().split(sep)[1:]
-                else:
-                    ret_sample_lst = line.strip().split(sep)
-                continue
-            lst = line.strip().split(sep)
-            ret_abd_prev[lst[0]] = [float(it) for it in lst[1:]]
-    # reformat the abundance list by sample_id
+    header = None
     ret_abd = {}
-    for msp_id in ret_abd_prev:
-        ret_abd[msp_id] = dict(zip(ret_sample_lst, ret_abd_prev[msp_id]))
+    with open(msp_profile_fp, "r") as f:
+        for line_no, line in enumerate(f, start=1):
+            lst = line.rstrip("\r\n").split(sep)
+            if header is None:
+                header = lst
+                continue
+            if lst == [""]:
+                continue
+            values = lst[1:]
+            if len(header) == len(values) + 1:
+                sample_lst = header[1:]
+            elif len(header) == len(values):
+                sample_lst = header
+            else:
+                raise ValueError(
+                    f"{msp_profile_fp}: line {line_no} has {len(values)} values "
+                    f"but the header has {len(header)} fields"
+                )
+            ret_abd[lst[0]] = dict(zip(sample_lst, (float(it) for it in values)))
     return ret_abd
 
 
