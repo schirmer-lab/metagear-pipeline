@@ -128,6 +128,14 @@ Tools are grouped by the entry-point workflow that runs them. A single run execu
 
 > Bouras G, Nepal R, Houtak G, Psaltis AJ, Wormald PJ, Vreugde S. Pharokka: a fast scalable bacteriophage annotation tool. Bioinformatics. 2023;39(1):btac776. doi: 10.1093/bioinformatics/btac776.
 
+- [vclust](https://doi.org/10.1038/s41592-025-02701-7)
+
+> Zielezinski A, Gudyś A, Barylski J, Siminski K, Rozwalak P, Dutilh BE, Deorowicz S. Ultrafast and accurate sequence alignment and clustering of viral genomes. Nat Methods. 2025;22(6):1191-1194. doi: 10.1038/s41592-025-02701-7.
+
+- [PhaTYP](https://doi.org/10.1093/bib/bbac487)
+
+> Shang J, Tang X, Sun Y. PhaTYP: predicting the lifestyle for bacteriophages using BERT. Brief Bioinform. 2022;24(1). doi: 10.1093/bib/bbac487.
+
 ### Binning and MAGs (`classification`, `mag`)
 
 - [SemiBin2](https://pubmed.ncbi.nlm.nih.gov/37387171/)
