@@ -4,7 +4,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versions are date-based (`YY.MM`, or `YY.MM.N` for a fix within the same month)
 and are released in lockstep with [metagear-tools](https://github.com/schirmer-lab/metagear-tools).
 
-## v26.12dev - [unreleased]
+## v26.11.1 - [2026-11-22]
 
 ### `Fixed`
 
